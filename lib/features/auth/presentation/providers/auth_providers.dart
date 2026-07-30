@@ -1,0 +1,42 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../family/presentation/family_providers.dart';
+import '../../data/repositories/mock_auth_repository.dart';
+import '../../domain/entities/user_entity.dart';
+import '../../domain/repositories/auth_repository.dart';
+import '../../../security/presentation/security_providers.dart';
+import '../../../../core/services/pilot_local_store.dart';
+
+final authRepositoryProvider = Provider<AuthRepository>(
+  (ref) => MockAuthRepository(ref.watch(familyRepositoryProvider)),
+);
+
+/// Usuario actual mock. Null cuando no hay sesión iniciada.
+class CurrentUserNotifier extends StateNotifier<UserEntity?> {
+  final AuthRepository _repository;
+  final Ref ref;
+  CurrentUserNotifier(this._repository, this.ref) : super(null) {
+    if (PilotLocalStore.hasSession) loadCurrentUser();
+  }
+
+  Future<void> loadCurrentUser() async {
+    state = await _repository.currentUser();
+  }
+
+  void setUser(UserEntity user) => state = user;
+
+  Future<void> logout() async {
+    await _repository.logout();
+    await ref.read(securityRepositoryProvider).clearSession();
+    await PilotLocalStore.clearSession();
+    state = null;
+  }
+}
+
+final currentUserProvider =
+    StateNotifierProvider<CurrentUserNotifier, UserEntity?>((ref) {
+      return CurrentUserNotifier(ref.watch(authRepositoryProvider), ref);
+    });
+
+final isAuthenticatedProvider = Provider<bool>(
+  (ref) => ref.watch(currentUserProvider) != null,
+);

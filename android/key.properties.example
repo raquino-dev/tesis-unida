@@ -1,0 +1,6 @@
+# Copiá este archivo como key.properties y completá los valores localmente.
+# No subas key.properties ni el archivo .jks al repositorio.
+storePassword=REEMPLAZAR
+keyPassword=REEMPLAZAR
+keyAlias=finanzas-inteligentes
+storeFile=/ruta/absoluta/finanzas-inteligentes-upload.jks

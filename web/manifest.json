@@ -1,0 +1,35 @@
+{
+    "name": "Finanzas Inteligentes (Prototipo)",
+    "short_name": "Finanzas",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#121226",
+    "theme_color": "#6868A6",
+    "description": "Prototipo de gestión inteligente de finanzas personales y familiares.",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

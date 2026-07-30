@@ -1,0 +1,49 @@
+# Distribución beta de Finanzas Inteligentes
+
+## Identidad
+
+- Nombre visible: `Finanzas Inteligentes`
+- Identificador Android: `com.tesis.finanzasinteligentes`
+- Versión inicial del prototipo: `0.1.0+1`
+- Los builds de prueba muestran una banda `PROTOTIPO` dentro de la aplicación.
+
+El identificador Android debe considerarse definitivo antes de registrar la app en Google Play.
+
+## Firma de publicación
+
+La configuración de Gradle lee las credenciales desde `android/key.properties`. Ese archivo y los keystores están excluidos del repositorio.
+
+1. Crear y respaldar el keystore de carga:
+
+   ```bash
+   keytool -genkeypair -v \
+     -keystore finanzas-inteligentes-upload.jks \
+     -keyalg RSA -keysize 2048 -validity 10000 \
+     -alias finanzas-inteligentes
+   ```
+
+2. Copiar `android/key.properties.example` como `android/key.properties`.
+3. Completar la ruta absoluta, alias y contraseñas.
+4. Guardar el keystore y sus contraseñas en un gestor seguro fuera del proyecto.
+5. Generar el App Bundle:
+
+   ```bash
+   flutter build appbundle --release
+   ```
+
+## Recomendación para la primera prueba
+
+Para validar diseño y usabilidad con datos ficticios, distribuir el APK mediante Firebase App Distribution. Cuando la identidad y los recorridos estén validados, utilizar el canal Internal testing de Google Play.
+
+Los testers deben recibir estas indicaciones:
+
+- Usar exclusivamente datos ficticios.
+- La cámara, selección de archivos, biometría y almacenamiento seguro utilizan
+  capacidades reales del dispositivo.
+- El procesamiento OCR, el envío de OTP/correos, las suscripciones y el backend
+  de sesión continúan simulados con datos mock.
+- El código OTP del prototipo es `123456`.
+- El plan gratuito permite procesar hasta tres comprobantes OCR por mes.
+- Completar el consentimiento y la encuesta inicial antes de probar los flujos;
+  al finalizar, completar la encuesta final desde el Centro del piloto.
+- Reportar problemas indicando pantalla, acción realizada y resultado esperado.
