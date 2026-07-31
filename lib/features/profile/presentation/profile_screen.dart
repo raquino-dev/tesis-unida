@@ -372,15 +372,18 @@ class _DeleteAccountSheetState extends ConsumerState<_DeleteAccountSheet> {
               onPressed: !_acknowledged || _password.text.isEmpty
                   ? null
                   : () async {
-                      final verified = await requestOtpVerification(
+                      final verificationId = await requestOtpVerification(
                         context,
                         ref,
                         reason: 'Eliminar cuenta',
                       );
-                      if (verified) {
+                      if (verificationId != null) {
                         await ref
                             .read(deleteAccountViewModelProvider.notifier)
-                            .deleteAccount(_password.text);
+                            .deleteAccount(
+                              _password.text,
+                              otpVerificationId: verificationId,
+                            );
                       }
                     },
             ),

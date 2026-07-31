@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/accounts/presentation/account_list_screen.dart';
@@ -35,6 +36,8 @@ import '../../features/savings_goals/presentation/savings_goals_screen.dart';
 import 'app_routes.dart';
 import 'app_shell.dart';
 
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final currentUser = ref.watch(currentUserProvider);
   final authenticated = currentUser != null || PilotLocalStore.hasSession;
@@ -46,6 +49,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     AppRoutes.resetPassword,
   };
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     initialLocation: !PilotLocalStore.onboardingCompleted
         ? AppRoutes.onboarding
         : authenticated
@@ -196,6 +200,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.invitationAcceptance,
         builder: (context, state) => InvitationAcceptanceScreen(
           initialCode: state.uri.queryParameters['code'],
+          initialToken: state.uri.queryParameters['token'],
         ),
       ),
       GoRoute(

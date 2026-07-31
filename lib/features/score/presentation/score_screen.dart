@@ -17,7 +17,7 @@ class ScoreScreen extends ConsumerWidget {
     final colors = context.colors;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Score financiero')),
+      appBar: AppBar(title: const Text('Salud financiera')),
       body: state.when(
         loading: () => const AppLoadingState(),
         error: (message) => AppErrorState(
@@ -25,8 +25,9 @@ class ScoreScreen extends ConsumerWidget {
           onRetry: ref.read(scoreViewModelProvider.notifier).load,
         ),
         empty: () => const AppEmptyState(
-          title: 'Sin score disponible',
-          message: 'Necesitamos más movimientos para calcular tu score.',
+          title: 'Sin indicador disponible',
+          message:
+              'Necesitamos al menos tres movimientos confirmados para calcularlo.',
         ),
         success: (score) => ListView(
           padding: const EdgeInsets.fromLTRB(
@@ -82,9 +83,15 @@ class ScoreScreen extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Tu score es una guía, no una calificación personal.',
+              'Este indicador es una guía educativa basada en tus propios movimientos. No es un score crediticio.',
               textAlign: TextAlign.center,
               style: TextStyle(color: colors.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Período: ${DateFormatter.short(score.periodStart)} - ${DateFormatter.short(score.periodEnd)} · Modelo ${score.algorithmVersion}',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: colors.textMuted, fontSize: 11.5),
             ),
             const SizedBox(height: AppSpacing.xl),
             const AppSectionHeader(title: 'Lo que suma'),

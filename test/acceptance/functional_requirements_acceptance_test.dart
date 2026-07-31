@@ -74,6 +74,7 @@ void main() {
           name: 'Usuario piloto',
           email: 'piloto@demo.com',
           password: 'clave123',
+          acceptsTerms: true,
         );
         final loggedIn = await auth.login(
           email: registered.email,
@@ -98,6 +99,7 @@ void main() {
           auth.changePassword(
             currentPassword: 'actual123',
             newPassword: 'nueva123',
+            otpVerificationId: 'verification_mock',
           ),
           completes,
         );
@@ -123,14 +125,17 @@ void main() {
           role: FamilyRole.member,
         );
         expect((await family.getFamilyGroup())!.members, hasLength(1));
-        final withMember = await family.acceptInvitation(invitation.code);
+        final withMember = await family.acceptInvitation(
+          invitation.token ?? 'mock-token',
+          invitation.code,
+        );
         final member = withMember.members.firstWhere(
           (item) => item.id != 'you',
         );
         final withoutMember = await family.removeMember(member.id);
         expect(invitation.code, hasLength(6));
         expect(withoutMember.members, hasLength(1));
-        await family.deleteFamilyGroup();
+        await family.deleteFamilyGroup('otp-verification');
         expect(await family.getFamilyGroup(), isNull);
       },
     );
@@ -271,7 +276,11 @@ void main() {
             scope: SavingsGoalScope.family,
           ),
         );
-        final updated = await goals.contribute(shared.id, 750000);
+        final updated = await goals.contribute(
+          shared.id,
+          750000,
+          accountId: 'acc_test',
+        );
         expect(updated.scope, SavingsGoalScope.family);
         expect(updated.savedAmount, 750000);
       },
@@ -394,10 +403,10 @@ void main() {
     test('RF-19 exige y valida OTP en acciones sensibles', () async {
       final security = MockSecurityRepository();
       final challenge = await security.requestOtp('Acción crítica');
-      expect(await security.validateOtp(challenge.id, '000000'), isFalse);
+      expect(await security.validateOtp(challenge.id, '000000'), isNull);
       expect(
-        await security.validateOtp(challenge.id, challenge.demoCode),
-        isTrue,
+        await security.validateOtp(challenge.id, challenge.demoCode!),
+        isNotNull,
       );
     });
 

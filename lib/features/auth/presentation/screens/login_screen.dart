@@ -8,6 +8,7 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../viewmodels/login_viewmodel.dart';
 import '../../../security/presentation/widgets/otp_verification_dialog.dart';
+import '../../../../core/config/app_environment.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -122,13 +123,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 label: 'Iniciar sesión',
                 isLoading: loading,
                 onPressed: () async {
-                  if (!_rememberSession) {
-                    final verified = await requestOtpVerification(
+                  if (!_rememberSession && !AppEnvironment.useApi) {
+                    final verificationId = await requestOtpVerification(
                       context,
                       ref,
                       reason: 'Acceso desde dispositivo no habitual',
                     );
-                    if (!verified) return;
+                    if (verificationId == null) return;
                   }
                   await ref
                       .read(loginViewModelProvider.notifier)

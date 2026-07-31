@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme_extension.dart';
+import '../../../core/config/app_environment.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
@@ -12,7 +13,6 @@ import '../../accounts/domain/account_entity.dart';
 import '../../accounts/presentation/account_providers.dart';
 import '../../security/presentation/widgets/otp_verification_dialog.dart';
 import '../../categories/domain/category_entity.dart';
-import '../../categories/presentation/category_providers.dart';
 
 class FamilyFinanceScreen extends ConsumerStatefulWidget {
   final int initialIndex;
@@ -66,7 +66,7 @@ class _TreasuryTab extends ConsumerWidget {
       error: (_) => null,
       empty: () => null,
       success: (group) => group.members.firstWhere(
-        (member) => member.id == 'you',
+        (member) => member.id == (group.currentMemberId ?? 'you'),
         orElse: () => group.members.first,
       ),
     );
@@ -134,17 +134,18 @@ class _TreasuryTab extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  AppButton(
-                    label: 'Registrar gasto desde la caja',
-                    variant: AppButtonVariant.ghost,
-                    onPressed: canManage
-                        ? () => _openOperation(
-                            context,
-                            TreasuryOperationType.sharedExpense,
-                            currentMember,
-                          )
-                        : null,
-                  ),
+                  if (!AppEnvironment.useApi)
+                    AppButton(
+                      label: 'Registrar gasto desde la caja',
+                      variant: AppButtonVariant.ghost,
+                      onPressed: canManage
+                          ? () => _openOperation(
+                              context,
+                              TreasuryOperationType.sharedExpense,
+                              currentMember,
+                            )
+                          : null,
+                    ),
                   if (!canManage)
                     Padding(
                       padding: const EdgeInsets.only(top: 6),
@@ -297,16 +298,15 @@ class _TreasuryOperationSheetState
                 }
                 String? verificationId;
                 if (widget.type != TreasuryOperationType.contribution) {
-                  final verified = await requestOtpVerification(
+                  final verifiedId = await requestOtpVerification(
                     context,
                     ref,
                     reason: widget.type == TreasuryOperationType.withdrawal
                         ? 'Retiro de caja familiar'
                         : 'Gasto desde caja familiar',
                   );
-                  if (!verified || !mounted) return;
-                  verificationId =
-                      'otp_verified_${DateTime.now().millisecondsSinceEpoch}';
+                  if (verifiedId == null || !mounted) return;
+                  verificationId = verifiedId;
                 }
                 await ref
                     .read(familyRepositoryProvider)
@@ -399,7 +399,7 @@ class _FamilyBudgetSheetState extends ConsumerState<_FamilyBudgetSheet> {
   final _amount = TextEditingController();
   @override
   Widget build(BuildContext context) {
-    final categoriesState = ref.watch(categoryListViewModelProvider);
+    final categoriesState = ref.watch(familyCategoriesProvider);
     return Padding(
       padding: EdgeInsets.fromLTRB(
         AppSpacing.lg,
@@ -422,20 +422,22 @@ class _FamilyBudgetSheetState extends ConsumerState<_FamilyBudgetSheet> {
           const SizedBox(height: 8),
           categoriesState.when(
             loading: () => const LinearProgressIndicator(),
-            error: (_) => const Text('No pudimos cargar las categorías.'),
-            empty: () => const Text('No hay categorías disponibles.'),
-            success: (categories) => Wrap(
-              spacing: 8,
-              children: categories
-                  .map(
-                    (category) => ChoiceChip(
-                      label: Text(category.name),
-                      selected: _category?.id == category.id,
-                      onSelected: (_) => setState(() => _category = category),
-                    ),
-                  )
-                  .toList(),
-            ),
+            error: (_, _) => const Text('No pudimos cargar las categorías.'),
+            data: (categories) => categories.isEmpty
+                ? const Text('No hay categorías disponibles.')
+                : Wrap(
+                    spacing: 8,
+                    children: categories
+                        .map(
+                          (category) => ChoiceChip(
+                            label: Text(category.name),
+                            selected: _category?.id == category.id,
+                            onSelected: (_) =>
+                                setState(() => _category = category),
+                          ),
+                        )
+                        .toList(),
+                  ),
           ),
           const SizedBox(height: AppSpacing.md),
           AppTextField(
@@ -457,6 +459,7 @@ class _FamilyBudgetSheetState extends ConsumerState<_FamilyBudgetSheet> {
                             categoryName: _category!.name,
                             amount: double.tryParse(_amount.text) ?? 0,
                             spent: 0,
+                            categoryId: _category!.id,
                           ),
                         );
                     ref.invalidate(familyBudgetsProvider);

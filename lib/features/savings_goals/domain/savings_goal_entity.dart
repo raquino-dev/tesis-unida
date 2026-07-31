@@ -7,6 +7,10 @@ class SavingsGoalEntity {
   final double savedAmount;
   final DateTime targetDate;
   final SavingsGoalScope scope;
+  final String? accountId;
+  final String? accountName;
+  final String? familyGroupId;
+  final int version;
 
   const SavingsGoalEntity({
     required this.id,
@@ -15,6 +19,10 @@ class SavingsGoalEntity {
     required this.savedAmount,
     required this.targetDate,
     required this.scope,
+    this.accountId,
+    this.accountName,
+    this.familyGroupId,
+    this.version = 1,
   });
 
   double get progress =>
@@ -28,6 +36,10 @@ class SavingsGoalEntity {
     double? savedAmount,
     DateTime? targetDate,
     SavingsGoalScope? scope,
+    String? accountId,
+    String? accountName,
+    String? familyGroupId,
+    int? version,
   }) {
     return SavingsGoalEntity(
       id: id,
@@ -36,6 +48,10 @@ class SavingsGoalEntity {
       savedAmount: savedAmount ?? this.savedAmount,
       targetDate: targetDate ?? this.targetDate,
       scope: scope ?? this.scope,
+      accountId: accountId ?? this.accountId,
+      accountName: accountName ?? this.accountName,
+      familyGroupId: familyGroupId ?? this.familyGroupId,
+      version: version ?? this.version,
     );
   }
 }

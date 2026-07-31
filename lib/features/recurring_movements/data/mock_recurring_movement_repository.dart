@@ -123,4 +123,10 @@ class MockRecurringMovementRepository implements RecurringMovementRepository {
     final all = await _load();
     all.removeWhere((r) => r.id == id);
   }
+
+  @override
+  Future<RecurringMovementEntity> setStatus(
+    RecurringMovementEntity recurring,
+    RecurringStatus status,
+  ) => updateRecurringMovement(recurring.copyWith(status: status));
 }

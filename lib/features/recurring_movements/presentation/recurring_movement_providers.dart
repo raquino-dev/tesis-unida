@@ -1,14 +1,24 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/app_failure.dart';
+import '../../../core/config/app_environment.dart';
+import '../../../core/network/api_providers.dart';
 import '../../../core/utils/view_state.dart';
 import '../../accounts/presentation/account_providers.dart';
 import '../../categories/presentation/category_providers.dart';
+import '../data/api_recurring_movement_repository.dart';
 import '../data/mock_recurring_movement_repository.dart';
 import '../domain/recurring_movement_entity.dart';
 import '../domain/recurring_movement_repository.dart';
 
 final recurringMovementRepositoryProvider =
     Provider<RecurringMovementRepository>((ref) {
+      if (AppEnvironment.useApi) {
+        return ApiRecurringMovementRepository(
+          ref.watch(apiClientProvider),
+          ref.watch(categoryRepositoryProvider),
+          ref.watch(accountRepositoryProvider),
+        );
+      }
       return MockRecurringMovementRepository(
         ref.watch(categoryRepositoryProvider),
         ref.watch(accountRepositoryProvider),
@@ -59,7 +69,8 @@ class RecurringMovementListViewModel
     RecurringMovementEntity recurring,
     RecurringStatus status,
   ) async {
-    await update(recurring.copyWith(status: status));
+    await _repository.setStatus(recurring, status);
+    await load();
   }
 
   Future<void> delete(String id) async {

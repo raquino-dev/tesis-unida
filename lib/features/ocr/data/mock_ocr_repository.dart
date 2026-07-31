@@ -88,4 +88,21 @@ class MockOcrRepository implements OcrRepository {
       documentName: documentName,
     );
   }
+
+  @override
+  Future<OcrResultEntity> correctReceipt(
+    OcrResultEntity result, {
+    required double amount,
+    required DateTime date,
+    required String merchant,
+    required String categoryId,
+  }) async => result.copyWith(
+    amount: amount,
+    date: date,
+    merchant: merchant,
+    suggestedCategoryId: categoryId,
+    status: OcrStatus.success,
+    confidence: 1,
+    warnings: const [],
+  );
 }

@@ -78,4 +78,11 @@ class MockAlertRepository implements AlertRepository {
       orElse: () => throw const AppFailure('Alerta no encontrada.'),
     );
   }
+
+  @override
+  Future<AlertEntity> markAsRead(String id) async =>
+      (await getAlertById(id)).copyWith(isRead: true);
+
+  @override
+  Future<void> archive(String id) async {}
 }

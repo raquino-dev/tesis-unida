@@ -20,6 +20,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
+  bool _acceptsTerms = false;
 
   @override
   void dispose() {
@@ -89,6 +90,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _confirm,
                 obscureText: true,
               ),
+              const SizedBox(height: AppSpacing.sm),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _acceptsTerms,
+                onChanged: (value) =>
+                    setState(() => _acceptsTerms = value ?? false),
+                controlAffinity: ListTileControlAffinity.leading,
+                title: const Text(
+                  'Acepto los términos y la política de privacidad.',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
               if (errorMessage != null) ...[
                 const SizedBox(height: AppSpacing.sm),
                 Text(
@@ -107,6 +120,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       email: _email.text.trim(),
                       password: _password.text,
                       confirmPassword: _confirm.text,
+                      acceptsTerms: _acceptsTerms,
                     ),
               ),
             ],

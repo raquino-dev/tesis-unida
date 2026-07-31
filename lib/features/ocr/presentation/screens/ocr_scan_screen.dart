@@ -189,6 +189,8 @@ class _ResultReviewState extends ConsumerState<_ResultReview> {
   late String _categoryId = widget.result.suggestedCategoryId;
   String? _accountId;
   late DateTime _date = widget.result.date;
+  bool _savingDocument = false;
+  String? _documentError;
 
   Future<void> _pickDate() async {
     final value = await showDatePicker(
@@ -279,6 +281,15 @@ class _ResultReviewState extends ConsumerState<_ResultReview> {
                   ],
                 ),
               ),
+            if (widget.result.warnings.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.sm),
+              ...widget.result.warnings.map(
+                (warning) => Text(
+                  '• $warning',
+                  style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                ),
+              ),
+            ],
             const SizedBox(height: AppSpacing.lg),
             if (widget.result.documentName != null) ...[
               AppCard(
@@ -452,8 +463,8 @@ class _ResultReviewState extends ConsumerState<_ResultReview> {
             const SizedBox(height: AppSpacing.xl),
             AppButton(
               label: 'Confirmar y crear movimiento',
-              isLoading: saving,
-              onPressed: () {
+              isLoading: saving || _savingDocument,
+              onPressed: () async {
                 final categories = categoriesState.when(
                   loading: () => null,
                   error: (_) => null,
@@ -475,6 +486,32 @@ class _ResultReviewState extends ConsumerState<_ResultReview> {
                   orElse: () => accounts.first,
                 );
                 if (category == null || account == null) return;
+                setState(() {
+                  _savingDocument = true;
+                  _documentError = null;
+                });
+                OcrResultEntity corrected;
+                try {
+                  corrected = await ref
+                      .read(ocrRepositoryProvider)
+                      .correctReceipt(
+                        widget.result,
+                        amount: double.tryParse(_amount.text) ?? 0,
+                        date: _date,
+                        merchant: _merchant.text.trim(),
+                        categoryId: category.id,
+                      );
+                } catch (error) {
+                  if (!mounted) return;
+                  setState(() {
+                    _savingDocument = false;
+                    _documentError =
+                        'No pudimos guardar las correcciones del comprobante.';
+                  });
+                  return;
+                }
+                if (!mounted) return;
+                setState(() => _savingDocument = false);
                 ref
                     .read(addMovementViewModelProvider.notifier)
                     .submit(
@@ -490,12 +527,20 @@ class _ResultReviewState extends ConsumerState<_ResultReview> {
                           : widget.result.source == OcrSource.pdf
                           ? AttachmentType.pdf
                           : AttachmentType.image,
-                      ocrStatus: widget.result.status,
+                      ocrStatus: corrected.status,
                       attachmentPath: widget.result.documentPath,
                       attachmentName: widget.result.documentName,
+                      documentId: corrected.documentId,
                     );
               },
             ),
+            if (_documentError != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                _documentError!,
+                style: TextStyle(color: colors.error, fontSize: 13),
+              ),
+            ],
             const SizedBox(height: AppSpacing.sm),
             AppButton(
               label: 'Escanear otra factura',

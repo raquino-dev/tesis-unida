@@ -2,12 +2,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/app_failure.dart';
 import '../../../core/utils/view_state.dart';
 import '../data/mock_account_repository.dart';
+import '../data/api_account_repository.dart';
 import '../domain/account_entity.dart';
 import '../domain/account_repository.dart';
+import '../../../core/config/app_environment.dart';
+import '../../../core/network/api_providers.dart';
 
-final accountRepositoryProvider = Provider<AccountRepository>(
-  (ref) => MockAccountRepository(),
-);
+final accountRepositoryProvider = Provider<AccountRepository>((ref) {
+  if (AppEnvironment.useApi) {
+    return ApiAccountRepository(ref.watch(apiClientProvider));
+  }
+  return MockAccountRepository();
+});
 
 class AccountListViewModel
     extends StateNotifier<ViewState<List<AccountEntity>>> {

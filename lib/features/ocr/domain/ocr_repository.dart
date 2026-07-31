@@ -8,4 +8,12 @@ abstract class OcrRepository {
     String? documentPath,
     String? documentName,
   });
+
+  Future<OcrResultEntity> correctReceipt(
+    OcrResultEntity result, {
+    required double amount,
+    required DateTime date,
+    required String merchant,
+    required String categoryId,
+  });
 }

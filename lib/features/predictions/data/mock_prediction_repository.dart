@@ -65,6 +65,7 @@ class MockPredictionRepository implements PredictionRepository {
           .toList(),
       historyMonths: 1,
       isPreliminary: true,
+      generatedAt: DateTime.now(),
     );
   }
 }

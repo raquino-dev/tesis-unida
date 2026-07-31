@@ -56,6 +56,17 @@ class AlertListScreen extends ConsumerWidget {
                       children: [
                         Row(
                           children: [
+                            if (!alert.isRead) ...[
+                              Container(
+                                width: 7,
+                                height: 7,
+                                decoration: BoxDecoration(
+                                  color: colors.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 7),
+                            ],
                             Expanded(
                               child: Text(
                                 alert.title,

@@ -2,12 +2,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/app_failure.dart';
 import '../../../core/utils/view_state.dart';
 import '../data/mock_category_repository.dart';
+import '../data/api_category_repository.dart';
 import '../domain/category_entity.dart';
 import '../domain/category_repository.dart';
+import '../../../core/config/app_environment.dart';
+import '../../../core/network/api_providers.dart';
 
-final categoryRepositoryProvider = Provider<CategoryRepository>(
-  (ref) => MockCategoryRepository(),
-);
+final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
+  if (AppEnvironment.useApi) {
+    return ApiCategoryRepository(ref.watch(apiClientProvider));
+  }
+  return MockCategoryRepository();
+});
 
 class CategoryListViewModel
     extends StateNotifier<ViewState<List<CategoryEntity>>> {

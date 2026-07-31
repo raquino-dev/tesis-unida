@@ -65,6 +65,7 @@ class RecurringMovementEntity {
   final int completedOccurrences;
   final DateTime nextExecutionDate;
   final RecurringStatus status;
+  final int version;
 
   const RecurringMovementEntity({
     required this.id,
@@ -80,6 +81,7 @@ class RecurringMovementEntity {
     this.completedOccurrences = 0,
     required this.nextExecutionDate,
     this.status = RecurringStatus.active,
+    this.version = 1,
   });
 
   bool get isIndefinite => endDate == null && totalOccurrences == null;
@@ -99,6 +101,7 @@ class RecurringMovementEntity {
     int? completedOccurrences,
     DateTime? nextExecutionDate,
     RecurringStatus? status,
+    int? version,
   }) {
     return RecurringMovementEntity(
       id: id,
@@ -116,6 +119,7 @@ class RecurringMovementEntity {
       completedOccurrences: completedOccurrences ?? this.completedOccurrences,
       nextExecutionDate: nextExecutionDate ?? this.nextExecutionDate,
       status: status ?? this.status,
+      version: version ?? this.version,
     );
   }
 }

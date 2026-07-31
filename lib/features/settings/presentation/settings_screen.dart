@@ -8,6 +8,7 @@ import '../../../app/theme/theme_mode_provider.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../security/presentation/security_providers.dart';
 import '../../../core/services/pilot_local_store.dart';
+import '../../notifications/presentation/notification_providers.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -19,6 +20,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _pushNotifications = PilotLocalStore.pushNotifications;
   bool _weeklySummary = PilotLocalStore.weeklySummary;
+  bool _savingNotifications = false;
 
   @override
   Widget build(BuildContext context) {
@@ -172,10 +174,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   Icons.notifications_outlined,
                   'Notificaciones push',
                   _pushNotifications,
-                  (v) {
-                    setState(() => _pushNotifications = v);
-                    PilotLocalStore.savePushNotifications(v);
-                  },
+                  _savingNotifications
+                      ? (_) {}
+                      : (v) => _saveNotifications(v, _weeklySummary),
                 ),
                 const Divider(height: AppSpacing.lg),
                 _switchTile(
@@ -183,10 +184,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   Icons.summarize_outlined,
                   'Resumen semanal',
                   _weeklySummary,
-                  (v) {
-                    setState(() => _weeklySummary = v);
-                    PilotLocalStore.saveWeeklySummary(v);
-                  },
+                  _savingNotifications
+                      ? (_) {}
+                      : (v) => _saveNotifications(_pushNotifications, v),
                 ),
               ],
             ),
@@ -272,6 +272,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _saveNotifications(bool push, bool weekly) async {
+    final previousPush = _pushNotifications;
+    final previousWeekly = _weeklySummary;
+    setState(() {
+      _pushNotifications = push;
+      _weeklySummary = weekly;
+      _savingNotifications = true;
+    });
+    try {
+      if (push && push != previousPush) {
+        final available = await ref
+            .read(pushNotificationServiceProvider)
+            .setEnabled(true);
+        if (!available) {
+          throw StateError('Las notificaciones no están disponibles.');
+        }
+      }
+      await ref
+          .read(notificationRepositoryProvider)
+          .updatePreferences(pushEnabled: push, weeklySummary: weekly);
+      if (!push && push != previousPush) {
+        await ref.read(pushNotificationServiceProvider).setEnabled(false);
+      }
+      ref.invalidate(notificationPreferencesProvider);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _pushNotifications = previousPush;
+        _weeklySummary = previousWeekly;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No pudimos guardar las preferencias.')),
+      );
+    } finally {
+      if (mounted) setState(() => _savingNotifications = false);
+    }
   }
 
   void _showLegal(BuildContext context, String title, String body) {

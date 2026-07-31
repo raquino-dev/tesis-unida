@@ -5,6 +5,7 @@ import '../../domain/entities/user_entity.dart';
 import '../providers/auth_providers.dart';
 import '../../../security/presentation/security_providers.dart';
 import '../../../../core/services/pilot_local_store.dart';
+import '../../../../core/config/app_environment.dart';
 
 class RegisterViewModel extends StateNotifier<ViewState<UserEntity>> {
   final Ref _ref;
@@ -15,6 +16,7 @@ class RegisterViewModel extends StateNotifier<ViewState<UserEntity>> {
     required String email,
     required String password,
     required String confirmPassword,
+    required bool acceptsTerms,
   }) async {
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
       state = const ViewState.error(
@@ -30,6 +32,12 @@ class RegisterViewModel extends StateNotifier<ViewState<UserEntity>> {
       state = const ViewState.error('Las contraseñas no coinciden.');
       return;
     }
+    if (!acceptsTerms) {
+      state = const ViewState.error(
+        'Debés aceptar los términos y la política de privacidad.',
+      );
+      return;
+    }
     state = const ViewState.loading();
     try {
       final repository = _ref.read(authRepositoryProvider);
@@ -37,12 +45,15 @@ class RegisterViewModel extends StateNotifier<ViewState<UserEntity>> {
         name: name,
         email: email,
         password: password,
+        acceptsTerms: acceptsTerms,
       );
       _ref.read(currentUserProvider.notifier).setUser(user);
-      final session = await _ref
-          .read(securityRepositoryProvider)
-          .createSession(trustedDevice: true);
-      await PilotLocalStore.saveSession(session.refreshToken);
+      if (!AppEnvironment.useApi) {
+        final session = await _ref
+            .read(securityRepositoryProvider)
+            .createSession(trustedDevice: true);
+        await PilotLocalStore.saveSession(session.refreshToken);
+      }
       await PilotLocalStore.recordMetric('registration_completed');
       _ref.invalidate(securityEventsProvider);
       state = ViewState.success(user);

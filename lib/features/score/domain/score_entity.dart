@@ -11,6 +11,9 @@ class ScoreEntity {
   final List<String> negativeFactors;
   final List<ScoreHistoryPoint> history;
   final List<String> recommendations;
+  final String algorithmVersion;
+  final DateTime periodStart;
+  final DateTime periodEnd;
 
   const ScoreEntity({
     required this.score,
@@ -19,5 +22,8 @@ class ScoreEntity {
     required this.negativeFactors,
     required this.history,
     required this.recommendations,
+    this.algorithmVersion = 'prototipo-local',
+    required this.periodStart,
+    required this.periodEnd,
   });
 }

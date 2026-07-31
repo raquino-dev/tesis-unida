@@ -1,13 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/config/app_environment.dart';
+import '../../../core/network/api_providers.dart';
 import '../../../core/utils/view_state.dart';
 import '../data/mock_alert_repository.dart';
+import '../data/api_alert_repository.dart';
 import '../domain/alert_entity.dart';
 import '../domain/alert_repository.dart';
 import '../../movements/presentation/viewmodels/movement_providers.dart';
 
-final alertRepositoryProvider = Provider<AlertRepository>(
-  (ref) => MockAlertRepository(ref.watch(movementRepositoryProvider)),
-);
+final alertRepositoryProvider = Provider<AlertRepository>((ref) {
+  if (AppEnvironment.useApi) {
+    return ApiAlertRepository(ref.watch(apiClientProvider));
+  }
+  return MockAlertRepository(ref.watch(movementRepositoryProvider));
+});
 
 class AlertListViewModel extends StateNotifier<ViewState<List<AlertEntity>>> {
   final AlertRepository _repository;
@@ -38,6 +44,8 @@ final alertListViewModelProvider =
 final alertDetailProvider = FutureProvider.family<AlertEntity, String>((
   ref,
   id,
-) {
-  return ref.watch(alertRepositoryProvider).getAlertById(id);
+) async {
+  final alert = await ref.watch(alertRepositoryProvider).getAlertById(id);
+  ref.invalidate(alertListViewModelProvider);
+  return alert;
 });

@@ -12,7 +12,12 @@ import 'family_providers.dart';
 
 class InvitationAcceptanceScreen extends ConsumerStatefulWidget {
   final String? initialCode;
-  const InvitationAcceptanceScreen({super.key, this.initialCode});
+  final String? initialToken;
+  const InvitationAcceptanceScreen({
+    super.key,
+    this.initialCode,
+    this.initialToken,
+  });
 
   @override
   ConsumerState<InvitationAcceptanceScreen> createState() =>
@@ -22,12 +27,14 @@ class InvitationAcceptanceScreen extends ConsumerStatefulWidget {
 class _InvitationAcceptanceScreenState
     extends ConsumerState<InvitationAcceptanceScreen> {
   late final _code = TextEditingController(text: widget.initialCode ?? '');
+  late final _token = TextEditingController(text: widget.initialToken ?? '');
   bool _loading = false;
   String? _error;
 
   @override
   void dispose() {
     _code.dispose();
+    _token.dispose();
     super.dispose();
   }
 
@@ -39,7 +46,7 @@ class _InvitationAcceptanceScreenState
     try {
       await ref
           .read(familyRepositoryProvider)
-          .acceptInvitation(_code.text.trim());
+          .acceptInvitation(_token.text.trim(), _code.text.trim());
       await ref.read(familyViewModelProvider.notifier).load();
       ref.invalidate(familyInvitationsProvider);
       await PilotLocalStore.recordMetric('family_invitation_accepted');
@@ -73,6 +80,12 @@ class _InvitationAcceptanceScreenState
           ),
           const SizedBox(height: AppSpacing.lg),
           AppTextField(
+            label: 'Token de invitación',
+            controller: _token,
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          AppTextField(
             label: 'Código de invitación',
             controller: _code,
             keyboardType: TextInputType.number,
@@ -89,7 +102,10 @@ class _InvitationAcceptanceScreenState
           AppButton(
             label: 'Aceptar invitación',
             isLoading: _loading,
-            onPressed: _loading || _code.text.trim().length != 6
+            onPressed:
+                _loading ||
+                    _code.text.trim().length != 6 ||
+                    _token.text.trim().isEmpty
                 ? null
                 : _accept,
           ),

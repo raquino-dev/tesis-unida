@@ -22,6 +22,7 @@ class MockSecurityRepository implements SecurityRepository {
     await Future.delayed(const Duration(milliseconds: 250));
     final stamp = DateTime.now().millisecondsSinceEpoch;
     _session = MockSessionEntity(
+      id: 'session_$stamp',
       accessToken: 'mock.jwt.access.$stamp',
       refreshToken: 'mock_refresh_$stamp',
       expiresAt: DateTime.now().add(const Duration(minutes: 15)),
@@ -50,6 +51,7 @@ class MockSecurityRepository implements SecurityRepository {
     final id = 'otp_${_sequence++}';
     final challenge = OtpChallengeEntity(
       id: id,
+      reason: reason,
       maskedDestination: 'ro***@correo.com.py',
       demoCode: '123456',
       expiresAt: DateTime.now().add(const Duration(minutes: 5)),
@@ -60,7 +62,7 @@ class MockSecurityRepository implements SecurityRepository {
   }
 
   @override
-  Future<bool> validateOtp(String challengeId, String code) async {
+  Future<String?> validateOtp(String challengeId, String code) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final challenge = _challenges[challengeId];
     final valid =
@@ -73,7 +75,28 @@ class MockSecurityRepository implements SecurityRepository {
       successful: valid,
     );
     if (valid) _challenges.remove(challengeId);
-    return valid;
+    return valid ? 'verification_${_sequence++}' : null;
+  }
+
+  @override
+  Future<List<ActiveSessionEntity>> getActiveSessions() async {
+    final session = _session;
+    if (session == null) return const [];
+    return [
+      ActiveSessionEntity(
+        id: session.id,
+        deviceName: 'Dispositivo de demostración',
+        platform: 'Android',
+        issuedAt: session.expiresAt.subtract(const Duration(minutes: 15)),
+        expiresAt: session.expiresAt,
+        current: true,
+      ),
+    ];
+  }
+
+  @override
+  Future<void> revokeSession(String sessionId) async {
+    if (_session?.id == sessionId) _session = null;
   }
 
   @override

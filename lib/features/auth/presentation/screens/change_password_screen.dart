@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../app/router/app_routes.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../security/domain/security_entity.dart';
@@ -36,12 +38,12 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       setState(() => _error = 'Las contraseñas no coinciden.');
       return;
     }
-    final verified = await requestOtpVerification(
+    final verificationId = await requestOtpVerification(
       context,
       ref,
       reason: 'Cambio de contraseña',
     );
-    if (!verified || !mounted) return;
+    if (verificationId == null || !mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -52,6 +54,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
           .changePassword(
             currentPassword: _current.text,
             newPassword: _next.text,
+            otpVerificationId: verificationId,
           );
       await ref
           .read(securityRepositoryProvider)
@@ -60,13 +63,16 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
             'Contraseña actualizada',
           );
       ref.invalidate(securityEventsProvider);
+      await ref.read(currentUserProvider.notifier).logout();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Contraseña actualizada correctamente.'),
+            content: Text(
+              'Contraseña actualizada. Iniciá sesión nuevamente.',
+            ),
           ),
         );
-        Navigator.pop(context);
+        context.go(AppRoutes.login);
       }
     } catch (error) {
       setState(() {

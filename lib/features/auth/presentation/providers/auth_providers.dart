@@ -1,14 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../family/presentation/family_providers.dart';
 import '../../data/repositories/mock_auth_repository.dart';
+import '../../data/repositories/api_auth_repository.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../../security/presentation/security_providers.dart';
 import '../../../../core/services/pilot_local_store.dart';
+import '../../../../core/config/app_environment.dart';
+import '../../../../core/network/api_providers.dart';
 
-final authRepositoryProvider = Provider<AuthRepository>(
-  (ref) => MockAuthRepository(ref.watch(familyRepositoryProvider)),
-);
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  if (AppEnvironment.useApi) {
+    return ApiAuthRepository(ref.watch(apiClientProvider));
+  }
+  return MockAuthRepository(ref.watch(familyRepositoryProvider));
+});
 
 /// Usuario actual mock. Null cuando no hay sesión iniciada.
 class CurrentUserNotifier extends StateNotifier<UserEntity?> {

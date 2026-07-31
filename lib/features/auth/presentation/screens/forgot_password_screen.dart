@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/config/app_environment.dart';
 import '../../../../app/theme/app_theme_extension.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
@@ -57,7 +58,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 AppButton(
                   label: 'Ingresar código de recuperación',
                   onPressed: () => context.push(
-                    '${AppRoutes.resetPassword}?token=RECUPERA-123',
+                    AppEnvironment.useApi
+                        ? AppRoutes.resetPassword
+                        : '${AppRoutes.resetPassword}?token=RECUPERA-123',
                   ),
                 ),
               ],

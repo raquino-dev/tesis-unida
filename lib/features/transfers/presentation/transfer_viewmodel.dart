@@ -1,12 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/app_failure.dart';
+import '../../../core/config/app_environment.dart';
+import '../../../core/network/api_providers.dart';
 import '../../../core/utils/view_state.dart';
 import '../../accounts/presentation/account_providers.dart';
+import '../data/api_transfer_repository.dart';
 import '../data/mock_transfer_repository.dart';
 import '../domain/transfer_entity.dart';
 import '../domain/transfer_repository.dart';
 
 final transferRepositoryProvider = Provider<TransferRepository>((ref) {
+  if (AppEnvironment.useApi) {
+    return ApiTransferRepository(
+      ref.watch(apiClientProvider),
+      ref.watch(accountRepositoryProvider),
+    );
+  }
   return MockTransferRepository(ref.watch(accountRepositoryProvider));
 });
 
@@ -43,6 +52,17 @@ class TransferViewModel extends StateNotifier<ViewState<TransferEntity>> {
   }
 
   void reset() => state = const ViewState.empty();
+
+  Future<String?> cancel(TransferEntity transfer) async {
+    try {
+      await _ref.read(transferRepositoryProvider).cancelTransfer(transfer);
+      await _ref.read(accountListViewModelProvider.notifier).load();
+      _ref.invalidate(transferHistoryProvider);
+      return null;
+    } on AppFailure catch (e) {
+      return e.message;
+    }
+  }
 }
 
 final transferViewModelProvider =

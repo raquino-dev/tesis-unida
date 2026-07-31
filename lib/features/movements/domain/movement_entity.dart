@@ -50,6 +50,7 @@ class MovementEntity {
   final OcrStatus? ocrStatus;
   final String? attachmentPath;
   final String? attachmentName;
+  final String? documentId;
 
   /// Id del registro recurrente que originó este movimiento, cuando aplica.
   final String? recurringSourceId;
@@ -67,6 +68,7 @@ class MovementEntity {
     this.ocrStatus,
     this.attachmentPath,
     this.attachmentName,
+    this.documentId,
     this.recurringSourceId,
   });
 
@@ -85,6 +87,7 @@ class MovementEntity {
     OcrStatus? ocrStatus,
     String? attachmentPath,
     String? attachmentName,
+    String? documentId,
     String? recurringSourceId,
   }) {
     return MovementEntity(
@@ -100,6 +103,7 @@ class MovementEntity {
       ocrStatus: ocrStatus ?? this.ocrStatus,
       attachmentPath: attachmentPath ?? this.attachmentPath,
       attachmentName: attachmentName ?? this.attachmentName,
+      documentId: documentId ?? this.documentId,
       recurringSourceId: recurringSourceId ?? this.recurringSourceId,
     );
   }

@@ -24,6 +24,8 @@ class MockSubscriptionRepository implements SubscriptionRepository {
   static const _plans = [
     SubscriptionPlan(
       id: PlanId.free,
+      code: 'gratis',
+      productId: '',
       name: 'Free',
       price: 0,
       period: 'Siempre',
@@ -37,6 +39,8 @@ class MockSubscriptionRepository implements SubscriptionRepository {
     ),
     SubscriptionPlan(
       id: PlanId.premiumMonthly,
+      code: 'premium-mensual',
+      productId: 'premium_monthly',
       name: 'Premium mensual',
       price: 39000,
       period: 'por mes',
@@ -50,6 +54,8 @@ class MockSubscriptionRepository implements SubscriptionRepository {
     ),
     SubscriptionPlan(
       id: PlanId.premiumAnnual,
+      code: 'premium-anual',
+      productId: 'premium_yearly',
       name: 'Premium anual',
       price: 390000,
       period: 'por año',
@@ -73,7 +79,10 @@ class MockSubscriptionRepository implements SubscriptionRepository {
   }
 
   @override
-  Future<SubscriptionEntity> purchase(PlanId plan) async {
+  Future<SubscriptionEntity> purchase(
+    PlanId plan, [
+    String verificationOtpId = '00000000-0000-0000-0000-000000000000',
+  ]) async {
     await Future.delayed(const Duration(milliseconds: 1400));
     if (plan == PlanId.free) {
       throw const AppFailure('Seleccioná un plan premium para continuar.');

@@ -27,6 +27,8 @@ class FamilyMemberEntity {
   final String email;
   final FamilyRole role;
   final DateTime joinedAt;
+  final int version;
+  final String? userId;
 
   const FamilyMemberEntity({
     required this.id,
@@ -34,6 +36,8 @@ class FamilyMemberEntity {
     required this.email,
     required this.role,
     required this.joinedAt,
+    this.version = 1,
+    this.userId,
   });
 
   FamilyMemberEntity copyWith({FamilyRole? role}) {
@@ -43,6 +47,8 @@ class FamilyMemberEntity {
       email: email,
       role: role ?? this.role,
       joinedAt: joinedAt,
+      version: version,
+      userId: userId,
     );
   }
 }
@@ -52,12 +58,18 @@ class FamilyGroupEntity {
   final String name;
   final List<FamilyMemberEntity> members;
   final List<AccountEntity> sharedAccounts;
+  final FamilyRole currentRole;
+  final String? currentMemberId;
+  final int version;
 
   const FamilyGroupEntity({
     required this.id,
     required this.name,
     required this.members,
     this.sharedAccounts = const [],
+    this.currentRole = FamilyRole.owner,
+    this.currentMemberId,
+    this.version = 1,
   });
 
   FamilyGroupEntity copyWith({
@@ -70,6 +82,9 @@ class FamilyGroupEntity {
       name: name ?? this.name,
       members: members ?? this.members,
       sharedAccounts: sharedAccounts ?? this.sharedAccounts,
+      currentRole: currentRole,
+      currentMemberId: currentMemberId,
+      version: version,
     );
   }
 }
@@ -87,6 +102,7 @@ class FamilyMovementEntity {
   final String description;
   final String createdByMemberId;
   final String createdByMemberName;
+  final int version;
 
   const FamilyMovementEntity({
     required this.id,
@@ -98,6 +114,7 @@ class FamilyMovementEntity {
     required this.description,
     required this.createdByMemberId,
     required this.createdByMemberName,
+    this.version = 1,
   });
 }
 
@@ -114,6 +131,8 @@ class FamilyInvitationEntity {
   final DateTime createdAt;
   final String invitedName;
   final FamilyRole role;
+  final String? token;
+  final int version;
 
   const FamilyInvitationEntity({
     required this.id,
@@ -124,6 +143,8 @@ class FamilyInvitationEntity {
     required this.createdAt,
     this.invitedName = 'Integrante invitado',
     this.role = FamilyRole.member,
+    this.token,
+    this.version = 1,
   });
 
   FamilyInvitationEntity copyWith({FamilyInvitationStatus? status}) {
@@ -136,6 +157,8 @@ class FamilyInvitationEntity {
       createdAt: createdAt,
       invitedName: invitedName,
       role: role,
+      token: token,
+      version: version,
     );
   }
 }
@@ -173,12 +196,18 @@ class FamilyBudgetEntity {
   final String categoryName;
   final double amount;
   final double spent;
+  final String? categoryId;
+  final String period;
+  final int version;
 
   const FamilyBudgetEntity({
     required this.id,
     required this.categoryName,
     required this.amount,
     required this.spent,
+    this.categoryId,
+    this.period = 'mensual',
+    this.version = 1,
   });
   double get progress => amount <= 0 ? 0 : (spent / amount).clamp(0, 1.2);
 }

@@ -236,6 +236,15 @@ class _TransferScreenState extends ConsumerState<TransferScreen> {
                                         fontSize: 11.5,
                                       ),
                                     ),
+                                    if (t.isCancelled)
+                                      Text(
+                                        'Anulada',
+                                        style: TextStyle(
+                                          color: colors.error,
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ),
@@ -247,6 +256,26 @@ class _TransferScreenState extends ConsumerState<TransferScreen> {
                                   fontSize: 13,
                                 ),
                               ),
+                              if (!t.isCancelled)
+                                IconButton(
+                                  tooltip: 'Anular transferencia',
+                                  icon: const Icon(Icons.undo_rounded),
+                                  color: colors.error,
+                                  onPressed: () async {
+                                    final error = await ref
+                                        .read(
+                                          transferViewModelProvider.notifier,
+                                        )
+                                        .cancel(t);
+                                    if (error != null && context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(content: Text(error)),
+                                      );
+                                    }
+                                  },
+                                ),
                             ],
                           ),
                         ),
