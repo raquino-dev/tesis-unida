@@ -81,8 +81,13 @@ FCM se habilita sin guardar configuración real en Git:
 ```
 
 El build sin estos parámetros conserva el modo demo y omite la inicialización
-de Firebase. Para una prueba real, el APK/AAB debe instalarse desde Internal
-testing con una cuenta incluida como license tester.
+de Firebase. En producción, Crashlytics captura fallos fatales cuando
+`USE_REAL_API=true`; no deben añadirse datos financieros, tokens ni documentos
+como claves o logs de diagnóstico. Coloque el `google-services.json` descargado
+de Firebase en `android/app/` (está excluido de Git) para que Gradle active
+automáticamente los plugins Google Services y Crashlytics. Para una prueba real,
+el APK/AAB debe instalarse desde Internal testing con una cuenta incluida como
+license tester.
 
 La configuración de firma y las instrucciones de distribución se encuentran en [docs/BETA_DISTRIBUTION.md](docs/BETA_DISTRIBUTION.md).
 

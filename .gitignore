@@ -65,13 +65,35 @@ app.*.map.json
 .env
 .env.*
 !.env.example
+!.env.*.example
 google-services.json
 GoogleService-Info.plist
+firebase_app_id_file.json
 **/service-account*.json
 **/*serviceAccount*.json
+**/*service-account*.json
 **/credentials*.json
 **/secrets*.json
 firebase_options.dart
+
+# Firebase CLI local state (keep .firebaserc and firebase.json versioned)
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
+# Local signing and Play Console publishing credentials
+play-account*.json
+play-service-account*.json
+upload-keystore.properties
+
+# Local tool and test output
+.fvm/
+test-results/
+integration_test/screenshots/
+*.lcov
+*.tmp
+*.bak
+*.orig
 
 # Local IDE and Apple build state
 **/xcuserdata/

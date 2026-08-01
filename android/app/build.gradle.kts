@@ -8,6 +8,12 @@ plugins {
 }
 
 val keystoreProperties = Properties()
+val hasFirebaseConfiguration = file("google-services.json").exists()
+if (hasFirebaseConfiguration) {
+    pluginManager.apply("com.google.gms.google-services")
+    pluginManager.apply("com.google.firebase.crashlytics")
+}
+
 val keystorePropertiesFile = rootProject.file("key.properties")
 val hasReleaseSigning = keystorePropertiesFile.exists()
 if (hasReleaseSigning) {

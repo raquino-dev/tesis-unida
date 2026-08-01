@@ -26,13 +26,21 @@ class AppEnvironment {
     defaultValue: 'premium_yearly',
   );
 
-  static const firebaseApiKey = String.fromEnvironment('FIREBASE_API_KEY');
-  static const firebaseAppId = String.fromEnvironment('FIREBASE_APP_ID');
+  static const firebaseApiKey = String.fromEnvironment(
+    'FIREBASE_API_KEY',
+    defaultValue: 'AIzaSyCM77v5DU2sSA4j_UTwBov5nMTfY6EGCS4',
+  );
+  static const firebaseAppId = String.fromEnvironment(
+    'FIREBASE_APP_ID',
+    defaultValue: '1:874909933539:android:885f26c9a43616ab4dcad6',
+  );
   static const firebaseMessagingSenderId = String.fromEnvironment(
     'FIREBASE_MESSAGING_SENDER_ID',
+    defaultValue: '874909933539',
   );
   static const firebaseProjectId = String.fromEnvironment(
     'FIREBASE_PROJECT_ID',
+    defaultValue: 'finanzas-piloto-ra-2026',
   );
 
   static bool get firebaseConfigured =>
