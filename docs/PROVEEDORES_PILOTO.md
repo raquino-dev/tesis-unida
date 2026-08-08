@@ -93,11 +93,12 @@ de Git.
 | Acceso SSH de despliegue | Clave dedicada configurada para el servidor; no se usa la clave predeterminada de Lightsail |
 | Runtime del servidor | Docker 29.1.3 y Docker Compose 2.40.3 instalados; servicio Docker habilitado |
 | Utilidades de operación | Certbot, cliente PostgreSQL, `curl`, `jq` y `openssl` instalados |
-| Código de backend en servidor | Repositorio clonado en `/opt/finanzas/repo`, rama `integracionFront`, revisión `9d9eff1ceb15d384238628ca6d61521ed1bac8fe` |
+| Código de backend en servidor | Repositorio clonado en `/opt/finanzas/repo`, rama `main`, revisión `470c542`; el remoto del servidor sigue exclusivamente `origin/main` |
 | Acceso del servidor a GitHub | Deploy key dedicada, de solo lectura, limitada al repositorio del backend |
 | Validación de backend | Suite de pruebas ejecutada correctamente en contenedor Docker |
 | TLS de la API | Certificado Let's Encrypt emitido para `api.rodrigoaquino.com`; vence el 6 de noviembre de 2026 y tiene renovación automática habilitada |
 | Stack de producción | Migrador completado; API y Nginx saludables, Worker en ejecución; API publicada en 80/443 mediante Nginx |
+| Validación E2E de API | Cuenta sintética aislada: registro `201`, sesión `201`, perfil/cuentas/categorías `200` contra `https://api.rodrigoaquino.com/api/v1` |
 | Red interna Docker | API `172.30.0.3`, Nginx `172.30.0.2`, Worker `172.30.0.4`; evita colisiones con las IP fijas del proxy |
 | Protección de secretos | PFX, CA y JSON FCM montados como solo lectura para el UID del contenedor; archivos fuera de Git |
 | Endurecimiento Nginx | Sistema de archivos de solo lectura; sólo conserva `CHOWN`, `SETGID` y `SETUID` para iniciar workers no privilegiados |
@@ -149,15 +150,76 @@ de Git.
 | Google Analytics | Deshabilitado durante el piloto inicial |
 | Gemini en Firebase | Deshabilitado |
 | Google Developer Program | No inscrito |
-| Verificación Flutter | `flutter analyze`, APK debug y 38 pruebas correctas |
+| Verificación Flutter | `flutter analyze` sin incidencias, APK debug compilado e instalado en emulador Android; 38 pruebas correctas en la validación previa |
+
+### Validación de clientes
+
+- **Web:** Crashlytics queda excluido cuando `kIsWeb` es verdadero, por lo que la
+  aplicación inicia correctamente. La API de producción rechaza deliberadamente el
+  origen local `http://127.0.0.1:7357`: el preflight `OPTIONS` devuelve `405` y no
+  expone cabeceras CORS. Esto no afecta a Android. Si el piloto incluye un cliente
+  web, se deberá autorizar de forma explícita su dominio HTTPS y el método
+  `OPTIONS`; no se habilitarán orígenes comodín.
+- **Android:** se instalaron las Android Command-line Tools oficiales, se aceptaron
+  las cinco licencias pendientes del SDK y `flutter doctor -v` quedó sin alertas.
+  El AVD `Medium_Phone_API_36.1` inicia correctamente y ejecuta una compilación
+  debug contra la API real mediante `USE_REAL_API=true`. El registro de una cuenta
+  sintética aislada completó el recorrido hasta el consentimiento del piloto y la
+  solicitud de permiso de notificaciones del sistema, ambos aceptados en el
+  emulador. La cuenta llegó al Centro del piloto con las encuestas y el formulario
+  de retroalimentación disponibles. El formulario también
+  rechazó correctamente una contraseña sin carácter especial y contraseñas no
+  coincidentes antes de enviar la solicitud.
+
+### Hallazgos de la validación financiera
+
+- La creación de cuentas sintéticas y su lectura posterior desde la API se
+  completaron correctamente. Una transferencia con saldo de origen `0` queda
+  deshabilitada en el cliente, como corresponde. Tras registrar un ingreso
+  sintético, la transferencia interna de `Gs. 50.000` se persistió y apareció
+  en el historial con confirmación de éxito.
+- Se corrigió la serialización del color de categorías: Flutter estaba enviando
+  `#AARRGGBB`, mientras que el contrato y la columna de Supabase admiten
+  `#RRGGBB`. El síntoma era un `500` al crear una categoría; ahora se elimina el
+  canal alfa antes de enviar la solicitud. La creación de la categoría de ingreso
+  fue repetida en Android contra producción y completó correctamente.
+- El flujo actual de tarjeta de crédito se validó con una tarjeta sintética:
+  alias, cuenta asociada, línea total, disponible y fechas de cierre/vencimiento.
+  El alcance del piloto queda cerrado sin almacenar emisor ni últimos cuatro
+  dígitos; tampoco se guarda PAN, CVV ni fecha de vencimiento del plástico.
+- Recurrencias: se creó y persistió desde Android un ingreso mensual sintético de
+  Gs. 25.000 para `Caja piloto100000`, con la categoría `Ingreso piloto`. También
+  se validaron las transiciones activa → pausada → activa desde la aplicación.
 
 ### Acciones ligadas al despliegue o a Play Console
 
 - Validar un envío push de extremo a extremo desde Lightsail y documentar la
   rotación de la credencial.
-- Inyectar `google-services.json` de forma segura en el pipeline de GitHub Actions.
 - Registrar en Firebase la huella de la clave de firma de producción y la huella de
   Google Play App Signing cuando estén disponibles.
+
+### Automatización de entrega desde `main`
+
+- El flujo del backend `Deploy pilot` se activa al llegar cambios de backend a
+  `main` o manualmente; en ambos casos hace checkout explícito de `main`, ejecuta
+  pruebas, publica imágenes inmutables en GHCR y despliega mediante el entorno
+  protegido `pilot`.
+- El flujo de Flutter `Build pilot Android release` se ejecuta manualmente y hace
+  checkout explícito de `main`. Restaura en el runner los archivos ignorados,
+  analiza, prueba y publica un AAB firmado como artefacto temporal; todavía no
+  publica automáticamente en Play Console.
+- Secretos que deben existir en el entorno GitHub `pilot` del repositorio de
+  backend: `PILOT_HOST`, `PILOT_USER`, `PILOT_SSH_PRIVATE_KEY`,
+  `PILOT_SSH_KNOWN_HOSTS` y `GHCR_READ_TOKEN`. Todos están cargados. El token de
+  GHCR sólo tiene `read:packages` y no vence por decisión del titular; debe
+  rotarse trimestralmente y revocarse de inmediato ante cualquier sospecha de
+  exposición.
+- Secretos que deben existir en el entorno GitHub `pilot` del repositorio Flutter:
+  `FIREBASE_ANDROID_CONFIG_BASE64`, `PLAY_UPLOAD_KEYSTORE_BASE64`,
+  `PLAY_UPLOAD_KEY_ALIAS`, `PLAY_UPLOAD_KEY_PASSWORD` y
+  `PLAY_UPLOAD_STORE_PASSWORD`. Los valores de archivos se almacenan codificados
+  en Base64 y sólo se reconstruyen temporalmente dentro del runner. Todos están
+  cargados en el entorno `pilot`.
 
 ## Próximas altas
 
@@ -165,7 +227,7 @@ de Git.
 |---|---|
 | Firebase / Google Cloud | Listo para desarrollo; pendiente validación en despliegue |
 | Google Play Console | Cuenta verificada, aplicación creada y primera prueba interna activa |
-| GitHub Environment `pilot` | Pendiente |
+| GitHub Environment `pilot` | Creado en ambos repositorios; limitado a la rama `main`; secretos de despliegue y firma cargados |
 
 ## Google Play Console
 
