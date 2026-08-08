@@ -15,10 +15,37 @@ if (hasFirebaseConfiguration) {
 }
 
 val keystorePropertiesFile = rootProject.file("key.properties")
-val hasReleaseSigning = keystorePropertiesFile.exists()
-if (hasReleaseSigning) {
+val hasKeystoreProperties = keystorePropertiesFile.exists()
+if (hasKeystoreProperties) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
+
+val releaseKeyAlias = if (hasKeystoreProperties) {
+    keystoreProperties["keyAlias"] as String?
+} else {
+    System.getenv("PLAY_UPLOAD_KEY_ALIAS")
+}
+val releaseKeyPassword = if (hasKeystoreProperties) {
+    keystoreProperties["keyPassword"] as String?
+} else {
+    System.getenv("PLAY_UPLOAD_KEY_PASSWORD")
+}
+val releaseStoreFile = if (hasKeystoreProperties) {
+    keystoreProperties["storeFile"] as String?
+} else {
+    System.getenv("PLAY_UPLOAD_STORE_FILE")
+}
+val releaseStorePassword = if (hasKeystoreProperties) {
+    keystoreProperties["storePassword"] as String?
+} else {
+    System.getenv("PLAY_UPLOAD_STORE_PASSWORD")
+}
+val hasReleaseSigning = listOf(
+    releaseKeyAlias,
+    releaseKeyPassword,
+    releaseStoreFile,
+    releaseStorePassword,
+).all { !it.isNullOrBlank() }
 
 android {
     namespace = "com.tesis.finanzasinteligentes"
@@ -43,10 +70,10 @@ android {
     signingConfigs {
         if (hasReleaseSigning) {
             create("release") {
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
-                storeFile = file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+                storeFile = file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
             }
         }
     }
