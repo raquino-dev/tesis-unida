@@ -48,13 +48,16 @@ jobs:
           flutter analyze
           flutter test
 
-      - name: Build signed Android App Bundle
+      - name: Build signed production Android App Bundle
         env:
           PLAY_UPLOAD_KEY_ALIAS: ${{ secrets.PLAY_UPLOAD_KEY_ALIAS }}
           PLAY_UPLOAD_KEY_PASSWORD: ${{ secrets.PLAY_UPLOAD_KEY_PASSWORD }}
           PLAY_UPLOAD_STORE_PASSWORD: ${{ secrets.PLAY_UPLOAD_STORE_PASSWORD }}
           PLAY_UPLOAD_STORE_FILE: ${{ runner.temp }}/upload-keystore.jks
-        run: flutter build appbundle --release
+        run: |
+          flutter build appbundle --release \
+            --dart-define=USE_REAL_API=true \
+            --dart-define=API_BASE_URL=https://api.rodrigoaquino.com/api/v1
 
       - name: Publish App Bundle artifact
         uses: actions/upload-artifact@v4

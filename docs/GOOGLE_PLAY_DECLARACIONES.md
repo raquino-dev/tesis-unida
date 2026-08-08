@@ -33,16 +33,12 @@ Estado aplicado en Play Console para la versión interna `0.1.0-internal.1`.
 
 ## Acceso para revisión
 
-La AAB interna utiliza repositorios mock de forma predeterminada y requiere inicio
-de sesión. Google Play puede revisar el flujo usando credenciales sintéticas:
-
-- correo: `rodrigo.aquino@correo.com.py`
-- contraseña: `demo1234`
-- instrucciones: iniciar sesión con “Recordar sesión” activado; no se requiere
-  OTP en este flujo.
-
-Estas credenciales no corresponden a una cuenta real y la contraseña no se
-reutiliza en ningún proveedor.
+La AAB interna se conecta al backend productivo del piloto y requiere inicio de
+sesión. Para revisión y pruebas, se puede registrar una cuenta de prueba desde la
+pantalla de registro usando un correo controlado por quien prueba la aplicación.
+No se solicitan datos bancarios, PAN, CVV, fecha de vencimiento ni documentos
+reales; las tarjetas se representan únicamente por un alias. Las transferencias y
+los pagos son registros simulados dentro de la aplicación.
 
 ## Pendientes previos a completar la ficha
 

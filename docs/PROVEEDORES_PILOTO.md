@@ -203,11 +203,25 @@ de Git.
 - El flujo del backend `Deploy pilot` se activa al llegar cambios de backend a
   `main` o manualmente; en ambos casos hace checkout explícito de `main`, ejecuta
   pruebas, publica imágenes inmutables en GHCR y despliega mediante el entorno
-  protegido `pilot`.
+  protegido `pilot`. Antes de iniciar Compose reconstruye en Lightsail el
+  directorio `deploy/secrets` desde las copias persistentes protegidas del
+  servidor (CA de Supabase, certificado de protección de datos, cuenta técnica
+  de Google y certificado/clave TLS); esos archivos nunca viajan por GitHub ni
+  quedan en Git. El script de despliegue se ejecuta con `sudo` no interactivo,
+  limitado al usuario técnico de Lightsail, para acceder al socket Docker y a
+  esos archivos protegidos. La autenticación contra GHCR también se realiza como
+  `root`, que es quien ejecuta Docker Compose; las tres imágenes inmutables se
+  agregan explícitamente al archivo de entorno temporal de cada despliegue. Los
+  secretos montados para API y Worker se copian como `root:1654`, modo `640`:
+  el grupo coincide con el usuario no privilegiado `app` de los contenedores y
+  evita abrir lectura a otros usuarios del host.
 - El flujo de Flutter `Build pilot Android release` se ejecuta manualmente y hace
   checkout explícito de `main`. Restaura en el runner los archivos ignorados,
   analiza, prueba y publica un AAB firmado como artefacto temporal; todavía no
-  publica automáticamente en Play Console.
+  publica automáticamente en Play Console. El AAB distribuible se compila siempre
+  con `USE_REAL_API=true` y `API_BASE_URL=https://api.rodrigoaquino.com/api/v1`;
+  por tanto, las pruebas internas usan el backend desplegado y no los repositorios
+  mock predeterminados.
 - Secretos que deben existir en el entorno GitHub `pilot` del repositorio de
   backend: `PILOT_HOST`, `PILOT_USER`, `PILOT_SSH_PRIVATE_KEY`,
   `PILOT_SSH_KNOWN_HOSTS` y `GHCR_READ_TOKEN`. Todos están cargados. El token de
