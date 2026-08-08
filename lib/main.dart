@@ -8,7 +8,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'app/app.dart';
 import 'core/config/app_environment.dart';
-import 'core/config/firebase_options.dart';
+import 'core/config/pilot_firebase_options.dart';
 import 'core/services/pilot_local_store.dart';
 import 'features/notifications/services/push_notification_service.dart';
 

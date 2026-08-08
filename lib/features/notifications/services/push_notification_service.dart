@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/router/app_routes.dart';
 import '../../../core/config/app_environment.dart';
-import '../../../core/config/firebase_options.dart';
+import '../../../core/config/pilot_firebase_options.dart';
 import '../../../core/services/pilot_local_store.dart';
 import '../data/notification_repository.dart';
 
