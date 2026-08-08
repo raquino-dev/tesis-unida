@@ -222,6 +222,11 @@ de Git.
   con `USE_REAL_API=true` y `API_BASE_URL=https://api.rodrigoaquino.com/api/v1`;
   por tanto, las pruebas internas usan el backend desplegado y no los repositorios
   mock predeterminados.
+- La configuración pública de Firebase usada por Flutter se versiona en
+  `lib/core/config/pilot_firebase_options.dart` y toma sus valores de
+  `AppEnvironment`. No contiene cuentas de servicio, llaves privadas ni
+  secretos de administración; los archivos específicos de Android y las
+  credenciales de firma se restauran únicamente desde secretos de GitHub.
 - Secretos que deben existir en el entorno GitHub `pilot` del repositorio de
   backend: `PILOT_HOST`, `PILOT_USER`, `PILOT_SSH_PRIVATE_KEY`,
   `PILOT_SSH_KNOWN_HOSTS` y `GHCR_READ_TOKEN`. Todos están cargados. El token de
