@@ -1,14 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/view_state.dart';
+import '../../../../core/config/app_environment.dart';
+import '../../../../core/network/api_providers.dart';
+import '../../data/api_ocr_repository.dart';
 import '../../data/mock_ocr_repository.dart';
 import '../../domain/ocr_repository.dart';
 import '../../domain/ocr_result_entity.dart';
 import '../../../../core/services/attachment_picker_service.dart';
 import '../../../../core/services/pilot_local_store.dart';
 
-final ocrRepositoryProvider = Provider<OcrRepository>(
-  (ref) => MockOcrRepository(),
-);
+final ocrRepositoryProvider = Provider<OcrRepository>((ref) {
+  if (AppEnvironment.useApi) {
+    return ApiOcrRepository(ref.watch(apiClientProvider));
+  }
+  return MockOcrRepository();
+});
 
 class OcrViewModel extends StateNotifier<ViewState<OcrResultEntity>> {
   final Ref _ref;

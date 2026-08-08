@@ -17,7 +17,21 @@ class AlertDetailScreen extends ConsumerWidget {
     final colors = context.colors;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalle de alerta')),
+      appBar: AppBar(
+        title: const Text('Detalle de alerta'),
+        actions: [
+          IconButton(
+            tooltip: 'Archivar alerta',
+            icon: const Icon(Icons.archive_outlined),
+            onPressed: () async {
+              await ref.read(alertRepositoryProvider).archive(alertId);
+              ref.invalidate(alertListViewModelProvider);
+              ref.invalidate(alertDetailProvider(alertId));
+              if (context.mounted) Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
       body: asyncAlert.when(
         loading: () => const AppLoadingState(),
         error: (e, _) =>

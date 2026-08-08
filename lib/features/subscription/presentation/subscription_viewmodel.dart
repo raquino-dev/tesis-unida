@@ -1,13 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/app_failure.dart';
+import '../../../core/config/app_environment.dart';
+import '../../../core/network/api_providers.dart';
 import '../../../core/utils/view_state.dart';
+import '../data/api_subscription_repository.dart';
 import '../data/mock_subscription_repository.dart';
 import '../domain/subscription_entity.dart';
 import '../domain/subscription_repository.dart';
 
-final subscriptionRepositoryProvider = Provider<SubscriptionRepository>(
-  (ref) => MockSubscriptionRepository(),
-);
+final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {
+  if (!AppEnvironment.useApi) return MockSubscriptionRepository();
+  final repository = ApiSubscriptionRepository(ref.watch(apiClientProvider));
+  ref.onDispose(repository.dispose);
+  return repository;
+});
 
 class SubscriptionViewModel
     extends StateNotifier<ViewState<SubscriptionEntity>> {
@@ -25,10 +31,12 @@ class SubscriptionViewModel
     }
   }
 
-  Future<void> purchase(PlanId plan) async {
+  Future<void> purchase(PlanId plan, String verificationOtpId) async {
     state = const ViewState.loading();
     try {
-      state = ViewState.success(await _repository.purchase(plan));
+      state = ViewState.success(
+        await _repository.purchase(plan, verificationOtpId),
+      );
     } on AppFailure catch (e) {
       state = ViewState.error(e.message);
     }

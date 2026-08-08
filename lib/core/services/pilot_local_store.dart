@@ -19,6 +19,8 @@ class PilotLocalStore {
   static const _onboardingKey = 'pilot.onboarding.completed';
   static const _sessionKey = 'pilot.session.active';
   static const _refreshTokenKey = 'pilot.refresh.token';
+  static const _accessTokenKey = 'pilot.access.token';
+  static const _sessionIdKey = 'pilot.session.id';
   static const _consentKey = 'pilot.consent.accepted';
   static const _preSurveyKey = 'pilot.survey.pre.completed';
   static const _postSurveyKey = 'pilot.survey.post.completed';
@@ -30,6 +32,8 @@ class PilotLocalStore {
   static const _planKey = 'pilot.subscription.plan';
   static const _pushKey = 'pilot.notifications.push';
   static const _weeklyKey = 'pilot.notifications.weekly';
+  static const _pushDeviceIdKey = 'pilot.notifications.device.id';
+  static const _pushDeviceVersionKey = 'pilot.notifications.device.version';
 
   static Future<void> initialize() async {
     _preferences = await SharedPreferences.getInstance();
@@ -59,11 +63,62 @@ class PilotLocalStore {
     }
   }
 
+  static Future<void> saveApiSession({
+    required String accessToken,
+    required String refreshToken,
+    required String sessionId,
+  }) async {
+    await _setBool(_sessionKey, true);
+    try {
+      await Future.wait([
+        _secureStorage.write(key: _accessTokenKey, value: accessToken),
+        _secureStorage.write(key: _refreshTokenKey, value: refreshToken),
+        _secureStorage.write(key: _sessionIdKey, value: sessionId),
+      ]);
+    } catch (_) {
+      _memory[_accessTokenKey] = accessToken;
+      _memory[_refreshTokenKey] = refreshToken;
+      _memory[_sessionIdKey] = sessionId;
+    }
+  }
+
+  static Future<String?> readAccessToken() async {
+    try {
+      return await _secureStorage.read(key: _accessTokenKey);
+    } catch (_) {
+      return _memory[_accessTokenKey] as String?;
+    }
+  }
+
+  static Future<String?> readRefreshToken() async {
+    try {
+      return await _secureStorage.read(key: _refreshTokenKey);
+    } catch (_) {
+      return _memory[_refreshTokenKey] as String?;
+    }
+  }
+
+  static Future<String?> readSessionId() async {
+    try {
+      return await _secureStorage.read(key: _sessionIdKey);
+    } catch (_) {
+      return _memory[_sessionIdKey] as String?;
+    }
+  }
+
   static Future<void> clearSession() async {
     await _setBool(_sessionKey, false);
     try {
-      await _secureStorage.delete(key: _refreshTokenKey);
-    } catch (_) {}
+      await Future.wait([
+        _secureStorage.delete(key: _accessTokenKey),
+        _secureStorage.delete(key: _refreshTokenKey),
+        _secureStorage.delete(key: _sessionIdKey),
+      ]);
+    } catch (_) {
+      _memory.remove(_accessTokenKey);
+      _memory.remove(_refreshTokenKey);
+      _memory.remove(_sessionIdKey);
+    }
   }
 
   static bool get consentAccepted => _getBool(_consentKey);
@@ -97,6 +152,22 @@ class PilotLocalStore {
       _setBool(_pushKey, enabled);
   static Future<void> saveWeeklySummary(bool enabled) =>
       _setBool(_weeklyKey, enabled);
+
+  static String? get pushDeviceId =>
+      _preferences?.getString(_pushDeviceIdKey) ??
+      _memory[_pushDeviceIdKey] as String?;
+  static int? get pushDeviceVersion =>
+      _preferences?.getInt(_pushDeviceVersionKey) ??
+      _memory[_pushDeviceVersionKey] as int?;
+  static Future<void> savePushDevice({
+    required String id,
+    required int version,
+  }) async {
+    _memory[_pushDeviceIdKey] = id;
+    _memory[_pushDeviceVersionKey] = version;
+    await _preferences?.setString(_pushDeviceIdKey, id);
+    await _preferences?.setInt(_pushDeviceVersionKey, version);
+  }
 
   static int get monthlyOcrCount {
     _resetOcrCounterIfNeeded();

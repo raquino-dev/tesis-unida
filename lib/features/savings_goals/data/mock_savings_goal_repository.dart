@@ -48,7 +48,11 @@ class MockSavingsGoalRepository implements SavingsGoalRepository {
   }
 
   @override
-  Future<SavingsGoalEntity> contribute(String id, double amount) async {
+  Future<SavingsGoalEntity> contribute(
+    String id,
+    double amount, {
+    required String accountId,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 400));
     if (amount <= 0) throw const AppFailure('Ingresá un aporte válido.');
     final index = _goals.indexWhere((goal) => goal.id == id);
@@ -57,6 +61,14 @@ class MockSavingsGoalRepository implements SavingsGoalRepository {
       savedAmount: _goals[index].savedAmount + amount,
     );
     return _goals[index];
+  }
+
+  @override
+  Future<SavingsGoalEntity> updateGoal(SavingsGoalEntity goal) async {
+    final index = _goals.indexWhere((item) => item.id == goal.id);
+    if (index < 0) throw const AppFailure('Meta no encontrada.');
+    _goals[index] = goal;
+    return goal;
   }
 
   @override

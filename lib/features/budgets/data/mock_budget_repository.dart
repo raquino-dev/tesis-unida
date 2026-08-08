@@ -6,8 +6,8 @@ import '../domain/budget_repository.dart';
 
 BudgetPeriod _periodFromString(String value) {
   switch (value) {
-    case 'quarterly':
-      return BudgetPeriod.quarterly;
+    case 'weekly':
+      return BudgetPeriod.weekly;
     case 'annual':
       return BudgetPeriod.annual;
     default:

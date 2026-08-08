@@ -260,9 +260,12 @@ Tipos iniciales: `efectivo`, `banco`, `billetera`, `ahorro`, `otro`. Índice `(u
 
 #### `finanzas.tarjetas_credito`
 
-`id`, `usuario_id`, `cuenta_pago_id NULL`, `nombre`, `emisor`, `ultimos_cuatro char(4)`, `limite_credito bigint`, `saldo_utilizado bigint`, `dia_cierre smallint`, `dia_vencimiento smallint`, `moneda`, `color`, `eliminado_en`, columnas comunes.
+`id`, `usuario_id`, `cuenta_pago_id NULL`, `alias`, `limite_credito bigint`, `saldo_utilizado bigint`, `dia_cierre smallint`, `dia_vencimiento smallint`, `moneda`, `color`, `eliminado_en`, columnas comunes.
 
-Checks para últimos cuatro dígitos, días 1–31, límite positivo y saldo no negativo. No se guarda PAN, CVV ni fecha completa de tarjeta.
+Alias único entre tarjetas activas del mismo usuario; checks para días 1–31,
+límite positivo y saldo no negativo. No se solicita ni guarda emisor, últimos
+cuatro, PAN, CVV, expiración, nombre impreso, token bancario ni ningún dato del
+plástico.
 
 ### M0022_FinanzasMovimientos
 

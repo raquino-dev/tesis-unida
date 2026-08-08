@@ -10,6 +10,8 @@ class TransferEntity {
   final double amount;
   final DateTime date;
   final String note;
+  final bool isCancelled;
+  final int version;
 
   const TransferEntity({
     required this.id,
@@ -18,5 +20,18 @@ class TransferEntity {
     required this.amount,
     required this.date,
     this.note = '',
+    this.isCancelled = false,
+    this.version = 1,
   });
+
+  TransferEntity copyWith({bool? isCancelled, int? version}) => TransferEntity(
+    id: id,
+    fromAccount: fromAccount,
+    toAccount: toAccount,
+    amount: amount,
+    date: date,
+    note: note,
+    isCancelled: isCancelled ?? this.isCancelled,
+    version: version ?? this.version,
+  );
 }

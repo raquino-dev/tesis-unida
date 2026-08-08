@@ -105,13 +105,13 @@ class SubscriptionScreen extends ConsumerWidget {
                   plan: plan,
                   isCurrent: plan.id == subscription.currentPlan,
                   onSelect: () async {
-                    final verified = await requestOtpVerification(
+                    final verificationId = await requestOtpVerification(
                       context,
                       ref,
                       reason: 'Activar plan premium',
                     );
-                    if (!verified) return;
-                    await viewModel.purchase(plan.id);
+                    if (verificationId == null) return;
+                    await viewModel.purchase(plan.id, verificationId);
                     await ref
                         .read(securityRepositoryProvider)
                         .recordEvent(
@@ -224,6 +224,8 @@ class _PlanCard extends StatelessWidget {
           Text(
             plan.price == 0
                 ? 'Gratis'
+                : plan.storePrice != null
+                ? '${plan.storePrice} ${plan.period}'
                 : '${CurrencyFormatter.format(plan.price)} ${plan.period}',
             style: TextStyle(
               color: colors.primary,

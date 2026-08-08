@@ -1,12 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/config/app_environment.dart';
 import '../../../core/errors/app_failure.dart';
+import '../../../core/network/api_providers.dart';
 import '../../../core/utils/view_state.dart';
 import '../../accounts/presentation/account_providers.dart';
+import '../data/api_family_repository.dart';
 import '../data/mock_family_repository.dart';
 import '../domain/family_entity.dart';
 import '../domain/family_repository.dart';
 
 final familyRepositoryProvider = Provider<FamilyRepository>((ref) {
+  if (AppEnvironment.useApi) {
+    return ApiFamilyRepository(ref.watch(apiClientProvider));
+  }
   return MockFamilyRepository(ref.watch(accountRepositoryProvider));
 });
 
@@ -160,6 +166,10 @@ final familyInvitationsProvider = FutureProvider<List<FamilyInvitationEntity>>((
   ref,
 ) {
   return ref.watch(familyRepositoryProvider).getInvitations();
+});
+
+final familyCategoriesProvider = FutureProvider((ref) {
+  return ref.watch(familyRepositoryProvider).getFamilyCategories();
 });
 
 final treasuryOperationsProvider =

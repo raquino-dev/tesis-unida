@@ -28,6 +28,7 @@ class MockAuthRepository implements AuthRepository {
   Future<UserEntity> login({
     required String email,
     required String password,
+    bool rememberDevice = true,
   }) async {
     await Future.delayed(const Duration(milliseconds: 900));
     final normalizedEmail = email.trim().toLowerCase();
@@ -49,8 +50,15 @@ class MockAuthRepository implements AuthRepository {
     required String name,
     required String email,
     required String password,
+    required bool acceptsTerms,
   }) async {
     await Future.delayed(const Duration(milliseconds: 1100));
+    if (!acceptsTerms) {
+      throw const AppFailure(
+        'Debés aceptar los términos y la política de privacidad.',
+        code: 'terms_required',
+      );
+    }
     if (password.length < 6) {
       throw const AppFailure(
         'La contraseña debe tener al menos 6 caracteres.',
@@ -100,6 +108,7 @@ class MockAuthRepository implements AuthRepository {
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,
+    required String otpVerificationId,
   }) async {
     await Future.delayed(const Duration(milliseconds: 700));
     if (currentPassword.length < 4) {
@@ -128,7 +137,10 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> deleteAccount({required String password}) async {
+  Future<void> deleteAccount({
+    required String password,
+    required String otpVerificationId,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 1000));
     if (password.length < 4) {
       throw const AppFailure(

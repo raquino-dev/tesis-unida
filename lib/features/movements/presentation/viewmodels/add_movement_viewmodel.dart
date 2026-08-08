@@ -22,6 +22,7 @@ class AddMovementViewModel extends StateNotifier<ViewState<MovementEntity>> {
     OcrStatus? ocrStatus,
     String? attachmentPath,
     String? attachmentName,
+    String? documentId,
   }) async {
     if (amount <= 0) {
       state = const ViewState.error('Ingresá un monto válido.');
@@ -47,6 +48,7 @@ class AddMovementViewModel extends StateNotifier<ViewState<MovementEntity>> {
         ocrStatus: ocrStatus,
         attachmentPath: attachmentPath,
         attachmentName: attachmentName,
+        documentId: documentId,
       );
       final result = existingId == null
           ? await repository.addMovement(movement)

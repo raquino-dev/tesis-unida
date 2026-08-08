@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../core/errors/app_failure.dart';
+import '../../../../core/config/app_environment.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../providers/auth_providers.dart';
@@ -68,8 +69,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
-          const Text(
-            'Ingresá el código recibido por correo y elegí una contraseña nueva. En el prototipo podés usar RECUPERA-123.',
+          Text(
+            AppEnvironment.useApi
+                ? 'Ingresá el código recibido por correo y elegí una contraseña nueva.'
+                : 'Ingresá el código recibido por correo y elegí una contraseña nueva. En el prototipo podés usar RECUPERA-123.',
           ),
           const SizedBox(height: AppSpacing.lg),
           AppTextField(label: 'Código de recuperación', controller: _token),

@@ -1,6 +1,9 @@
+import 'package:flutter/material.dart';
+
 import '../../../core/errors/app_failure.dart';
 import '../../../mock/mock_data.dart';
 import '../../accounts/domain/account_repository.dart';
+import '../../categories/domain/category_entity.dart';
 import '../domain/family_entity.dart';
 import '../domain/family_repository.dart';
 
@@ -57,6 +60,7 @@ class MockFamilyRepository implements FamilyRepository {
           joinedAt: DateTime.now(),
         ),
       ],
+      currentMemberId: 'you',
     );
     return _group!;
   }
@@ -211,13 +215,14 @@ class MockFamilyRepository implements FamilyRepository {
       createdAt: DateTime.now(),
       invitedName: invitedName,
       role: role,
+      token: 'mock-token-${_memberSequence - 1}',
     );
     _invitations.insert(0, invitation);
     return invitation;
   }
 
   @override
-  Future<FamilyGroupEntity> acceptInvitation(String code) async {
+  Future<FamilyGroupEntity> acceptInvitation(String token, String code) async {
     await Future.delayed(const Duration(milliseconds: 550));
     final index = _invitations.indexWhere(
       (item) =>
@@ -263,12 +268,37 @@ class MockFamilyRepository implements FamilyRepository {
   }
 
   @override
-  Future<void> deleteFamilyGroup() async {
+  Future<void> deleteFamilyGroup(String otpVerificationId) async {
     await Future.delayed(const Duration(milliseconds: 500));
     _group = null;
     _movements.clear();
     _invitations.clear();
     _treasury.clear();
+  }
+
+  @override
+  Future<List<CategoryEntity>> getFamilyCategories() =>
+      _categoryRepositoryForFamily();
+
+  Future<List<CategoryEntity>> _categoryRepositoryForFamily() async {
+    return [
+      CategoryEntity(
+        id: 'family_food',
+        name: 'Alimentación',
+        icon: Icons.restaurant_outlined,
+        color: Colors.orange,
+        type: CategoryType.expense,
+        inUse: true,
+      ),
+      CategoryEntity(
+        id: 'family_services',
+        name: 'Servicios',
+        icon: Icons.home_outlined,
+        color: Colors.blue,
+        type: CategoryType.expense,
+        inUse: true,
+      ),
+    ];
   }
 
   double get _treasuryBalance => _treasury.fold(0, (sum, operation) {
@@ -347,6 +377,9 @@ class MockFamilyRepository implements FamilyRepository {
       categoryName: budget.categoryName,
       amount: budget.amount,
       spent: budget.spent,
+      categoryId: budget.categoryId,
+      period: budget.period,
+      version: budget.version,
     );
     final index = _budgets.indexWhere((item) => item.id == saved.id);
     if (index < 0) {

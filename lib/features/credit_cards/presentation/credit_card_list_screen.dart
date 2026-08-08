@@ -251,7 +251,7 @@ class _CreditCardEditorSheetState
               AppTextField(
                 label: 'Nombre o alias',
                 controller: _alias,
-                hint: 'Ej. Itaú Mastercard',
+                hint: 'Ej. Compras del hogar',
               ),
               const SizedBox(height: AppSpacing.md),
               Text(

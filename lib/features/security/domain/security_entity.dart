@@ -24,12 +24,14 @@ class SecurityEventEntity {
 }
 
 class MockSessionEntity {
+  final String id;
   final String accessToken;
   final String refreshToken;
   final DateTime expiresAt;
   final bool trustedDevice;
 
   const MockSessionEntity({
+    required this.id,
     required this.accessToken,
     required this.refreshToken,
     required this.expiresAt,
@@ -39,14 +41,34 @@ class MockSessionEntity {
 
 class OtpChallengeEntity {
   final String id;
+  final String reason;
   final String maskedDestination;
-  final String demoCode;
+  final String? demoCode;
   final DateTime expiresAt;
 
   const OtpChallengeEntity({
     required this.id,
+    required this.reason,
     required this.maskedDestination,
-    required this.demoCode,
+    this.demoCode,
     required this.expiresAt,
+  });
+}
+
+class ActiveSessionEntity {
+  final String id;
+  final String deviceName;
+  final String platform;
+  final DateTime issuedAt;
+  final DateTime expiresAt;
+  final bool current;
+
+  const ActiveSessionEntity({
+    required this.id,
+    required this.deviceName,
+    required this.platform,
+    required this.issuedAt,
+    required this.expiresAt,
+    required this.current,
   });
 }

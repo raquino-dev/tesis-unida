@@ -16,13 +16,10 @@ import '../../../core/widgets/app_text_field.dart';
 import '../../accounts/domain/account_entity.dart';
 import '../../accounts/presentation/account_providers.dart';
 import '../../categories/domain/category_entity.dart';
-import '../../categories/presentation/category_providers.dart';
 import '../../security/presentation/widgets/otp_verification_dialog.dart';
 import '../domain/family_entity.dart';
 import '../domain/family_repository.dart';
 import 'family_providers.dart';
-
-const _currentMemberId = 'you';
 
 class FamilyScreen extends ConsumerWidget {
   const FamilyScreen({super.key});
@@ -148,11 +145,12 @@ class _FamilyOverview extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.colors;
+    final currentMemberId = group.currentMemberId ?? 'you';
     final me = group.members.firstWhere(
-      (m) => m.id == _currentMemberId,
+      (m) => m.id == currentMemberId,
       orElse: () => group.members.first,
     );
-    final canManage = me.role.canManageGroup;
+    final canManage = group.currentRole.canManageGroup;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(
@@ -226,7 +224,7 @@ class _FamilyOverview extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${m.name}${m.id == _currentMemberId ? ' (vos)' : ''}',
+                          '${m.name}${m.id == currentMemberId ? ' (vos)' : ''}',
                           style: TextStyle(
                             color: colors.textPrimary,
                             fontWeight: FontWeight.w600,
@@ -330,7 +328,9 @@ class _FamilyOverview extends ConsumerWidget {
                                           : invitation.userIdentifier,
                                     ),
                                     subtitle: Text(
-                                      'Código: ${invitation.code}',
+                                      invitation.code.isEmpty
+                                          ? 'Rol: ${invitation.role.label}'
+                                          : 'Código: ${invitation.code}',
                                     ),
                                     trailing: IconButton(
                                       tooltip: 'Revocar invitación',
@@ -425,13 +425,15 @@ class _FamilyOverview extends ConsumerWidget {
             label: 'Eliminar grupo familiar',
             variant: AppButtonVariant.ghost,
             onPressed: () async {
-              final verified = await requestOtpVerification(
+              final verificationId = await requestOtpVerification(
                 context,
                 ref,
                 reason: 'Eliminar grupo familiar',
               );
-              if (!verified) return;
-              await ref.read(familyRepositoryProvider).deleteFamilyGroup();
+              if (verificationId == null) return;
+              await ref
+                  .read(familyRepositoryProvider)
+                  .deleteFamilyGroup(verificationId);
               await ref.read(familyViewModelProvider.notifier).load();
             },
           ),
@@ -497,7 +499,7 @@ class _FamilyFilterSheetState extends ConsumerState<_FamilyFilterSheet> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final categoriesState = ref.watch(categoryListViewModelProvider);
+    final categoriesState = ref.watch(familyCategoriesProvider);
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -596,9 +598,8 @@ class _FamilyFilterSheetState extends ConsumerState<_FamilyFilterSheet> {
             const SizedBox(height: 8),
             categoriesState.when(
               loading: () => const LinearProgressIndicator(),
-              error: (_) => const SizedBox.shrink(),
-              empty: () => const SizedBox.shrink(),
-              success: (categories) => Wrap(
+              error: (_, _) => const SizedBox.shrink(),
+              data: (categories) => Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: categories.map((c) {
@@ -837,7 +838,9 @@ class _InviteMemberSheetState extends ConsumerState<_InviteMemberSheet> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                'Invitación creada. Código demo: ${invitation.code}',
+                                invitation.token == null
+                                    ? 'Invitación creada. Código: ${invitation.code}'
+                                    : 'Invitación creada. Código: ${invitation.code} · Token: ${invitation.token}',
                               ),
                             ),
                           );
@@ -977,7 +980,7 @@ class _AddFamilyMovementSheetState
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final categoriesState = ref.watch(categoryListViewModelProvider);
+    final categoriesState = ref.watch(familyCategoriesProvider);
     _account ??= widget.group.sharedAccounts.first;
 
     return Padding(
@@ -1084,9 +1087,11 @@ class _AddFamilyMovementSheetState
               const SizedBox(height: 8),
               categoriesState.when(
                 loading: () => const LinearProgressIndicator(),
-                error: (_) => const SizedBox.shrink(),
-                empty: () => const SizedBox.shrink(),
-                success: (categories) {
+                error: (_, _) => const SizedBox.shrink(),
+                data: (categories) {
+                  if (categories.isEmpty) {
+                    return const Text('No hay categorías familiares.');
+                  }
                   _category ??= categories.first;
                   return Wrap(
                     spacing: 8,

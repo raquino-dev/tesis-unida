@@ -5,7 +5,9 @@ abstract class SecurityRepository {
   Future<MockSessionEntity?> getSession();
   Future<void> clearSession();
   Future<OtpChallengeEntity> requestOtp(String reason);
-  Future<bool> validateOtp(String challengeId, String code);
+  Future<String?> validateOtp(String challengeId, String code);
+  Future<List<ActiveSessionEntity>> getActiveSessions();
+  Future<void> revokeSession(String sessionId);
   Future<bool> authenticateBiometrically();
   Future<void> setBiometricsEnabled(bool enabled);
   Future<bool> isBiometricsEnabled();

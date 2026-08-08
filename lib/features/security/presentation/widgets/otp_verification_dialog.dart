@@ -8,7 +8,7 @@ import '../../../../core/widgets/app_text_field.dart';
 import '../../domain/security_entity.dart';
 import '../security_providers.dart';
 
-Future<bool> requestOtpVerification(
+Future<String?> requestOtpVerification(
   BuildContext context,
   WidgetRef ref, {
   required String reason,
@@ -16,13 +16,12 @@ Future<bool> requestOtpVerification(
   final challenge = await ref
       .read(securityRepositoryProvider)
       .requestOtp(reason);
-  if (!context.mounted) return false;
-  return await showDialog<bool>(
+  if (!context.mounted) return null;
+  return showDialog<String>(
         context: context,
         barrierDismissible: false,
         builder: (_) => _OtpVerificationDialog(challenge: challenge),
-      ) ??
-      false;
+      );
 }
 
 class _OtpVerificationDialog extends ConsumerStatefulWidget {
@@ -75,10 +74,11 @@ class _OtpVerificationDialogState
             'Enviado a ${_challenge.maskedDestination}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          Text(
-            'Código de demostración: ${_challenge.demoCode}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          if (_challenge.demoCode != null)
+            Text(
+              'Código de demostración: ${_challenge.demoCode}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           Text(
             _remaining.isNegative
                 ? 'Código vencido'
@@ -107,7 +107,7 @@ class _OtpVerificationDialogState
               : () async {
                   final replacement = await ref
                       .read(securityRepositoryProvider)
-                      .requestOtp('Reenvío de código');
+                      .requestOtp(_challenge.reason);
                   if (!mounted) return;
                   setState(() {
                     _challenge = replacement;
@@ -120,7 +120,7 @@ class _OtpVerificationDialogState
           child: const Text('Reenviar'),
         ),
         TextButton(
-          onPressed: _loading ? null : () => Navigator.pop(context, false),
+          onPressed: _loading ? null : () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
         SizedBox(
@@ -132,13 +132,13 @@ class _OtpVerificationDialogState
                 ? null
                 : () async {
                     setState(() => _loading = true);
-                    final valid = await ref
+                    final verificationId = await ref
                         .read(securityRepositoryProvider)
                         .validateOtp(_challenge.id, _code.text.trim());
                     ref.invalidate(securityEventsProvider);
                     if (!mounted) return;
-                    if (valid) {
-                      Navigator.pop(this.context, true);
+                    if (verificationId != null) {
+                      Navigator.pop(this.context, verificationId);
                     } else {
                       setState(() {
                         _loading = false;

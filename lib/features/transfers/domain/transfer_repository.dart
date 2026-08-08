@@ -10,4 +10,6 @@ abstract class TransferRepository {
     required DateTime date,
     String note = '',
   });
+
+  Future<void> cancelTransfer(TransferEntity transfer);
 }

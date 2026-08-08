@@ -1,13 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart' show DateTimeRange;
+import '../../../../core/config/app_environment.dart';
+import '../../../../core/network/api_providers.dart';
 import '../../../../core/utils/view_state.dart';
 import '../../../categories/presentation/category_providers.dart';
 import '../../data/mock_report_repository.dart';
+import '../../data/api_report_repository.dart';
 import '../../domain/report_entity.dart';
 import '../../domain/report_repository.dart';
 import '../../../movements/presentation/viewmodels/movement_providers.dart';
 
 final reportRepositoryProvider = Provider<ReportRepository>((ref) {
+  if (AppEnvironment.useApi) {
+    return ApiReportRepository(
+      ref.watch(apiClientProvider),
+      ref.watch(categoryRepositoryProvider),
+    );
+  }
   return MockReportRepository(
     ref.watch(categoryRepositoryProvider),
     ref.watch(movementRepositoryProvider),

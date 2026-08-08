@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/config/app_environment.dart';
+import '../../../core/network/api_providers.dart';
 import '../../../core/utils/view_state.dart';
 import '../../movements/presentation/viewmodels/movement_list_viewmodel.dart';
 import '../../movements/presentation/viewmodels/movement_providers.dart';
 import '../../transfers/presentation/transfer_viewmodel.dart';
 import '../data/mock_export_repository.dart';
+import '../data/api_export_repository.dart';
 import '../domain/export_entity.dart';
 import '../domain/export_repository.dart';
 
 final exportRepositoryProvider = Provider<ExportRepository>((ref) {
+  if (AppEnvironment.useApi) {
+    return ApiExportRepository(ref.watch(apiClientProvider));
+  }
   return MockExportRepository(
     ref.watch(movementRepositoryProvider),
     ref.watch(transferRepositoryProvider),
@@ -36,10 +42,9 @@ class ExportViewModel extends StateNotifier<ViewState<ExportRecord>> {
             filtersSummary: filtersSummary,
           );
       state = ViewState.success(record);
-    } catch (e) {
-      state = const ViewState.error(
-        'No pudimos generar la exportación. Intentá nuevamente.',
-      );
+      _ref.invalidate(exportHistoryProvider);
+    } catch (error) {
+      state = ViewState.error(error.toString());
     }
   }
 

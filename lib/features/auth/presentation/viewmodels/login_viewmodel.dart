@@ -6,6 +6,7 @@ import '../providers/auth_providers.dart';
 import '../../../security/domain/security_entity.dart';
 import '../../../security/presentation/security_providers.dart';
 import '../../../../core/services/pilot_local_store.dart';
+import '../../../../core/config/app_environment.dart';
 
 class LoginViewModel extends StateNotifier<ViewState<UserEntity>> {
   final Ref _ref;
@@ -25,12 +26,18 @@ class LoginViewModel extends StateNotifier<ViewState<UserEntity>> {
     state = const ViewState.loading();
     try {
       final repository = _ref.read(authRepositoryProvider);
-      final user = await repository.login(email: email, password: password);
+      final user = await repository.login(
+        email: email,
+        password: password,
+        rememberDevice: rememberSession,
+      );
       _ref.read(currentUserProvider.notifier).setUser(user);
-      final session = await _ref
-          .read(securityRepositoryProvider)
-          .createSession(trustedDevice: rememberSession);
-      await PilotLocalStore.saveSession(session.refreshToken);
+      if (!AppEnvironment.useApi) {
+        final session = await _ref
+            .read(securityRepositoryProvider)
+            .createSession(trustedDevice: rememberSession);
+        await PilotLocalStore.saveSession(session.refreshToken);
+      }
       await PilotLocalStore.recordMetric(
         'login_completed',
         data: {'trustedDevice': rememberSession},

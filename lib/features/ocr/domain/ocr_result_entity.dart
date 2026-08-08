@@ -12,6 +12,10 @@ class OcrResultEntity {
   final String documentReference;
   final String? documentPath;
   final String? documentName;
+  final String? documentId;
+  final String? processingId;
+  final int processingVersion;
+  final List<String> warnings;
 
   const OcrResultEntity({
     required this.amount,
@@ -24,5 +28,35 @@ class OcrResultEntity {
     required this.documentReference,
     this.documentPath,
     this.documentName,
+    this.documentId,
+    this.processingId,
+    this.processingVersion = 1,
+    this.warnings = const [],
   });
+
+  OcrResultEntity copyWith({
+    double? amount,
+    DateTime? date,
+    String? merchant,
+    String? suggestedCategoryId,
+    double? confidence,
+    OcrStatus? status,
+    int? processingVersion,
+    List<String>? warnings,
+  }) => OcrResultEntity(
+    amount: amount ?? this.amount,
+    date: date ?? this.date,
+    merchant: merchant ?? this.merchant,
+    suggestedCategoryId: suggestedCategoryId ?? this.suggestedCategoryId,
+    confidence: confidence ?? this.confidence,
+    status: status ?? this.status,
+    source: source,
+    documentReference: documentReference,
+    documentPath: documentPath,
+    documentName: documentName,
+    documentId: documentId,
+    processingId: processingId,
+    processingVersion: processingVersion ?? this.processingVersion,
+    warnings: warnings ?? this.warnings,
+  );
 }

@@ -1,4 +1,5 @@
 import 'family_entity.dart';
+import '../../categories/domain/category_entity.dart';
 
 /// Filtros combinables para movimientos de la caja compartida.
 class FamilyMovementFilters {
@@ -82,10 +83,11 @@ abstract class FamilyRepository {
     String invitedName = 'Integrante invitado',
     FamilyRole role = FamilyRole.member,
   });
-  Future<FamilyGroupEntity> acceptInvitation(String code);
+  Future<FamilyGroupEntity> acceptInvitation(String token, String code);
   Future<void> revokeInvitation(String invitationId);
   Future<List<FamilyInvitationEntity>> getInvitations();
-  Future<void> deleteFamilyGroup();
+  Future<void> deleteFamilyGroup(String otpVerificationId);
+  Future<List<CategoryEntity>> getFamilyCategories();
   Future<List<TreasuryOperationEntity>> getTreasuryOperations();
   Future<TreasuryOperationEntity> addTreasuryOperation(
     TreasuryOperationEntity operation,

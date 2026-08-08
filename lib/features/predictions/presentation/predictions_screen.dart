@@ -143,6 +143,11 @@ class PredictionsScreen extends ConsumerWidget {
                         height: 1.4,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Modelo ${prediction.modelVersion} · generado ${DateFormatter.medium(prediction.generatedAt)}',
+                      style: TextStyle(color: colors.textMuted, fontSize: 11.5),
+                    ),
                   ],
                 ),
               ),

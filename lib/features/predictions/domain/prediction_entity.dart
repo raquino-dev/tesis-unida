@@ -31,6 +31,8 @@ class PredictionEntity {
   final List<PredictionHistoryPoint> history;
   final int historyMonths;
   final bool isPreliminary;
+  final String modelVersion;
+  final DateTime generatedAt;
 
   const PredictionEntity({
     required this.projectedExpense,
@@ -41,5 +43,7 @@ class PredictionEntity {
     required this.history,
     required this.historyMonths,
     required this.isPreliminary,
+    this.modelVersion = 'prototipo-local',
+    required this.generatedAt,
   });
 }

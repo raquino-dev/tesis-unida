@@ -7,14 +7,22 @@ class DeleteAccountViewModel extends StateNotifier<ViewState<bool>> {
   final Ref _ref;
   DeleteAccountViewModel(this._ref) : super(const ViewState.empty());
 
-  Future<void> deleteAccount(String password) async {
+  Future<void> deleteAccount(
+    String password, {
+    required String otpVerificationId,
+  }) async {
     if (password.isEmpty) {
       state = const ViewState.error('Ingresá tu contraseña para confirmar.');
       return;
     }
     state = const ViewState.loading();
     try {
-      await _ref.read(authRepositoryProvider).deleteAccount(password: password);
+      await _ref
+          .read(authRepositoryProvider)
+          .deleteAccount(
+            password: password,
+            otpVerificationId: otpVerificationId,
+          );
       await _ref.read(currentUserProvider.notifier).logout();
       state = const ViewState.success(true);
     } on AppFailure catch (e) {

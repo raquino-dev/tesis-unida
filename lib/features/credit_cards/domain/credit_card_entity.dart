@@ -13,6 +13,8 @@ class CreditCardEntity {
   final DateTime? closingDateOverride;
   final double totalLimit;
   final double usedLimit;
+  final String color;
+  final int version;
 
   const CreditCardEntity({
     required this.id,
@@ -23,6 +25,8 @@ class CreditCardEntity {
     this.closingDateOverride,
     required this.totalLimit,
     required this.usedLimit,
+    this.color = '#6868A6',
+    this.version = 1,
   });
 
   /// La línea disponible siempre se deriva de total - utilizada, nunca se
@@ -63,6 +67,8 @@ class CreditCardEntity {
     bool clearClosingOverride = false,
     double? totalLimit,
     double? usedLimit,
+    String? color,
+    int? version,
   }) {
     return CreditCardEntity(
       id: id,
@@ -75,6 +81,8 @@ class CreditCardEntity {
           : (closingDateOverride ?? this.closingDateOverride),
       totalLimit: totalLimit ?? this.totalLimit,
       usedLimit: usedLimit ?? this.usedLimit,
+      color: color ?? this.color,
+      version: version ?? this.version,
     );
   }
 }

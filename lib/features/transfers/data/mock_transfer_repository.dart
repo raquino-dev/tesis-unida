@@ -75,4 +75,25 @@ class MockTransferRepository implements TransferRepository {
     _transfers.add(transfer);
     return transfer;
   }
+
+  @override
+  Future<void> cancelTransfer(TransferEntity transfer) async {
+    final index = _transfers.indexWhere((item) => item.id == transfer.id);
+    if (index == -1) throw const AppFailure('Transferencia no encontrada.');
+    if (_transfers[index].isCancelled) return;
+    await _accountRepository.updateAccount(
+      transfer.fromAccount.copyWith(
+        initialBalance: transfer.fromAccount.initialBalance + transfer.amount,
+      ),
+    );
+    await _accountRepository.updateAccount(
+      transfer.toAccount.copyWith(
+        initialBalance: transfer.toAccount.initialBalance - transfer.amount,
+      ),
+    );
+    _transfers[index] = transfer.copyWith(
+      isCancelled: true,
+      version: transfer.version + 1,
+    );
+  }
 }

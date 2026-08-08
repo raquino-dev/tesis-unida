@@ -1,13 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/config/app_environment.dart';
 import '../../../core/errors/app_failure.dart';
+import '../../../core/network/api_providers.dart';
 import '../../../core/utils/view_state.dart';
 import '../../categories/presentation/category_providers.dart';
+import '../data/api_budget_repository.dart';
 import '../data/mock_budget_repository.dart';
 import '../domain/budget_entity.dart';
 import '../domain/budget_repository.dart';
 
 final budgetRepositoryProvider = Provider<BudgetRepository>(
-  (ref) => MockBudgetRepository(ref.watch(categoryRepositoryProvider)),
+  (ref) => AppEnvironment.useApi
+      ? ApiBudgetRepository(
+          ref.watch(apiClientProvider),
+          ref.watch(categoryRepositoryProvider),
+        )
+      : MockBudgetRepository(ref.watch(categoryRepositoryProvider)),
 );
 
 class BudgetOverview {

@@ -86,11 +86,17 @@ class SavingsGoalsScreen extends ConsumerWidget {
                           ),
                         ),
                         IconButton(
-                          onPressed: () => ref
-                              .read(savingsGoalProvider.notifier)
-                              .delete(goal.id),
-                          icon: const Icon(Icons.delete_outline_rounded),
+                          onPressed: () => _openCreate(context, goal),
+                          icon: const Icon(Icons.edit_outlined),
                         ),
+                        if (goal.savedAmount <= 0)
+                          IconButton(
+                            tooltip: 'Eliminar meta',
+                            onPressed: () => ref
+                                .read(savingsGoalProvider.notifier)
+                                .delete(goal.id),
+                            icon: const Icon(Icons.delete_outline_rounded),
+                          ),
                       ],
                     ),
                     LinearProgressIndicator(value: goal.progress),
@@ -121,11 +127,12 @@ class SavingsGoalsScreen extends ConsumerWidget {
     );
   }
 
-  void _openCreate(BuildContext context) => showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    builder: (_) => const _CreateGoalSheet(),
-  );
+  void _openCreate(BuildContext context, [SavingsGoalEntity? goal]) =>
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _CreateGoalSheet(goal: goal),
+      );
   void _openContribution(BuildContext context, SavingsGoalEntity goal) =>
       showModalBottomSheet(
         context: context,
@@ -135,21 +142,33 @@ class SavingsGoalsScreen extends ConsumerWidget {
 }
 
 class _CreateGoalSheet extends ConsumerStatefulWidget {
-  const _CreateGoalSheet();
+  final SavingsGoalEntity? goal;
+  const _CreateGoalSheet({this.goal});
   @override
   ConsumerState<_CreateGoalSheet> createState() => _CreateGoalSheetState();
 }
 
 class _CreateGoalSheetState extends ConsumerState<_CreateGoalSheet> {
-  final _name = TextEditingController();
-  final _target = TextEditingController();
-  SavingsGoalScope _scope = SavingsGoalScope.private;
-  DateTime _targetDate = DateTime.now().add(const Duration(days: 180));
+  late final _name = TextEditingController(text: widget.goal?.name ?? '');
+  late final _target = TextEditingController(
+    text: widget.goal?.targetAmount.toStringAsFixed(0) ?? '',
+  );
+  late SavingsGoalScope _scope = widget.goal?.scope ?? SavingsGoalScope.private;
+  late DateTime _targetDate =
+      widget.goal?.targetDate ?? DateTime.now().add(const Duration(days: 180));
+  late String? _accountId = widget.goal?.accountId;
   String? _error;
 
   @override
   Widget build(BuildContext context) {
     final familyState = ref.watch(familyViewModelProvider);
+    final accountsState = ref.watch(accountListViewModelProvider);
+    final familyGroup = familyState.when(
+      loading: () => null,
+      error: (_) => null,
+      empty: () => null,
+      success: (group) => group,
+    );
     final hasFamily = familyState.when(
       loading: () => false,
       error: (_) => false,
@@ -188,7 +207,44 @@ class _CreateGoalSheetState extends ConsumerState<_CreateGoalSheet> {
               ),
             ],
             selected: {_scope},
-            onSelectionChanged: (value) => setState(() => _scope = value.first),
+            onSelectionChanged: widget.goal == null
+                ? (value) => setState(() {
+                    _scope = value.first;
+                    _accountId = null;
+                  })
+                : null,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Cuenta de la meta'),
+          ),
+          const SizedBox(height: 8),
+          accountsState.when(
+            loading: () => const LinearProgressIndicator(),
+            error: (_) => const Text('No pudimos cargar tus cuentas.'),
+            empty: () => const Text('No tenés cuentas disponibles.'),
+            success: (personalAccounts) {
+              final accounts = _scope == SavingsGoalScope.family
+                  ? (familyGroup?.sharedAccounts ?? const <AccountEntity>[])
+                  : personalAccounts;
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: accounts
+                    .where((account) => account.isActive)
+                    .map(
+                      (account) => ChoiceChip(
+                        label: Text(account.name),
+                        selected: _accountId == account.id,
+                        onSelected: widget.goal == null
+                            ? (_) => setState(() => _accountId = account.id)
+                            : null,
+                      ),
+                    )
+                    .toList(),
+              );
+            },
           ),
           const SizedBox(height: AppSpacing.md),
           AppCard(
@@ -217,11 +273,14 @@ class _CreateGoalSheetState extends ConsumerState<_CreateGoalSheet> {
           ],
           const SizedBox(height: AppSpacing.lg),
           AppButton(
-            label: 'Crear meta',
+            label: widget.goal == null ? 'Crear meta' : 'Guardar cambios',
             onPressed: () async {
               if (_name.text.trim().isEmpty ||
-                  (double.tryParse(_target.text) ?? 0) <= 0) {
-                setState(() => _error = 'Completá un nombre y monto válidos.');
+                  (double.tryParse(_target.text) ?? 0) <= 0 ||
+                  _accountId == null) {
+                setState(
+                  () => _error = 'Completá nombre, monto y cuenta de la meta.',
+                );
                 return;
               }
               if (_scope == SavingsGoalScope.family && !hasFamily) {
@@ -231,18 +290,28 @@ class _CreateGoalSheetState extends ConsumerState<_CreateGoalSheet> {
                 );
                 return;
               }
-              await ref
-                  .read(savingsGoalProvider.notifier)
-                  .create(
-                    SavingsGoalEntity(
-                      id: '',
-                      name: _name.text.trim(),
-                      targetAmount: double.tryParse(_target.text) ?? 0,
-                      savedAmount: 0,
-                      targetDate: _targetDate,
-                      scope: _scope,
-                    ),
-                  );
+              final goal = SavingsGoalEntity(
+                id: widget.goal?.id ?? '',
+                name: _name.text.trim(),
+                targetAmount: double.tryParse(_target.text) ?? 0,
+                savedAmount: widget.goal?.savedAmount ?? 0,
+                targetDate: _targetDate,
+                scope: _scope,
+                accountId: _accountId,
+                accountName: widget.goal?.accountName,
+                familyGroupId: _scope == SavingsGoalScope.family
+                    ? familyGroup?.id
+                    : null,
+                version: widget.goal?.version ?? 1,
+              );
+              final notifier = ref.read(savingsGoalProvider.notifier);
+              final error = widget.goal == null
+                  ? await notifier.create(goal)
+                  : await notifier.update(goal);
+              if (error != null) {
+                setState(() => _error = error);
+                return;
+              }
               if (context.mounted) Navigator.pop(context);
             },
           ),
@@ -262,6 +331,7 @@ class _ContributionSheet extends ConsumerStatefulWidget {
 class _ContributionSheetState extends ConsumerState<_ContributionSheet> {
   final _amount = TextEditingController();
   AccountEntity? _account;
+  String? _error;
   @override
   Widget build(BuildContext context) {
     final accountsState = ref.watch(accountListViewModelProvider);
@@ -298,7 +368,10 @@ class _ContributionSheetState extends ConsumerState<_ContributionSheet> {
             success: (accounts) => Wrap(
               spacing: 8,
               children: accounts
-                  .where((account) => account.isActive)
+                  .where(
+                    (account) =>
+                        account.isActive && account.id != widget.goal.accountId,
+                  )
                   .map(
                     (account) => ChoiceChip(
                       label: Text(account.name),
@@ -309,18 +382,32 @@ class _ContributionSheetState extends ConsumerState<_ContributionSheet> {
                   .toList(),
             ),
           ),
+          if (_error != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(_error!, style: TextStyle(color: context.colors.error)),
+          ],
           const SizedBox(height: AppSpacing.lg),
           AppButton(
             label: 'Registrar aporte',
             onPressed: _account == null
                 ? null
                 : () async {
-                    await ref
+                    final amount = double.tryParse(_amount.text) ?? 0;
+                    if (amount <= 0) {
+                      setState(() => _error = 'Ingresá un aporte válido.');
+                      return;
+                    }
+                    final error = await ref
                         .read(savingsGoalProvider.notifier)
                         .contribute(
                           widget.goal.id,
-                          double.tryParse(_amount.text) ?? 0,
+                          amount,
+                          accountId: _account!.id,
                         );
+                    if (error != null) {
+                      setState(() => _error = error);
+                      return;
+                    }
                     await PilotLocalStore.recordMetric(
                       'savings_goal_contribution',
                       data: {

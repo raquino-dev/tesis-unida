@@ -1,13 +1,24 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/config/app_environment.dart';
+import '../../../../core/network/api_providers.dart';
 import '../../../../core/utils/view_state.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../categories/presentation/category_providers.dart';
 import '../../../recurring_movements/presentation/recurring_movement_providers.dart';
 import '../../data/mock_dashboard_repository.dart';
+import '../../data/api_dashboard_repository.dart';
 import '../../domain/dashboard_repository.dart';
 import '../../domain/dashboard_summary_entity.dart';
 import '../../../movements/presentation/viewmodels/movement_providers.dart';
 
 final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
+  if (AppEnvironment.useApi) {
+    return ApiDashboardRepository(
+      ref.watch(apiClientProvider),
+      ref.watch(authRepositoryProvider),
+      ref.watch(categoryRepositoryProvider),
+    );
+  }
   return MockDashboardRepository(
     ref.watch(categoryRepositoryProvider),
     ref.watch(recurringMovementRepositoryProvider),

@@ -12,6 +12,8 @@ class MockScoreRepository implements ScoreRepository {
       positiveFactors: MockData.scorePositiveFactors,
       negativeFactors: MockData.scoreNegativeFactors,
       recommendations: MockData.scoreRecommendations,
+      periodStart: DateTime(DateTime.now().year, DateTime.now().month, 1),
+      periodEnd: DateTime.now(),
       history: MockData.scoreHistory
           .map(
             (h) => ScoreHistoryPoint(

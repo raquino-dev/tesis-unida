@@ -10,6 +10,8 @@ class AlertEntity {
   final String dataUsed;
   final String impact;
   final String recommendation;
+  final bool isRead;
+  final int version;
 
   const AlertEntity({
     required this.id,
@@ -21,5 +23,21 @@ class AlertEntity {
     required this.dataUsed,
     required this.impact,
     required this.recommendation,
+    this.isRead = false,
+    this.version = 1,
   });
+
+  AlertEntity copyWith({bool? isRead, int? version}) => AlertEntity(
+    id: id,
+    title: title,
+    message: message,
+    level: level,
+    date: date,
+    whatHappened: whatHappened,
+    dataUsed: dataUsed,
+    impact: impact,
+    recommendation: recommendation,
+    isRead: isRead ?? this.isRead,
+    version: version ?? this.version,
+  );
 }

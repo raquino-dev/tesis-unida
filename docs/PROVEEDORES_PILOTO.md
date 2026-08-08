@@ -1,0 +1,198 @@
+# Inventario de proveedores del piloto
+
+Actualizado: 31 de julio de 2026.
+
+Este archivo contiene únicamente identificadores no secretos. Contraseñas, tokens,
+credenciales JSON, claves IAM, certificados privados y datos de pago se almacenan fuera
+de Git.
+
+## Identidad del proyecto
+
+| Concepto | Valor |
+|---|---|
+| Dominio | `rodrigoaquino.com` |
+| API prevista | `api.rodrigoaquino.com` |
+| Correo administrativo | `rodrigoaquino.dev@gmail.com` |
+| Application ID Android | `com.tesis.finanzasinteligentes` |
+| Región regional principal | `us-east-1` / North Virginia |
+
+## Cloudflare
+
+| Concepto | Estado |
+|---|---|
+| Cuenta | Creada |
+| Zona `rodrigoaquino.com` | Activa |
+| Plan | Free |
+| SSL/TLS | Full (Strict) |
+| `api.rodrigoaquino.com` | A → `107.23.27.225`, DNS-only, TTL Auto |
+| DKIM de SES | 3 CNAME publicados, DNS-only, TTL Auto |
+| MAIL FROM de SES | MX y SPF publicados para `bounce.rodrigoaquino.com` |
+| DMARC | TXT `_dmarc` con política inicial `p=none` |
+
+## Supabase
+
+| Concepto | Valor |
+|---|---|
+| Organización | `finanzas-inteligentes-piloto` |
+| Tipo | Educational |
+| Plan actual | Free |
+| Proyecto | `finanzas-inteligentes-piloto` |
+| Project reference | `qzeipkqfmtfgrstnjtrw` |
+| Región | East US (North Virginia), `us-east-1` |
+| Estado | Healthy |
+| Estado del bloque | Cerrado para desarrollo y pruebas |
+| Data API / PostgREST | Deshabilitada |
+| SSL obligatorio | Activo para todas las conexiones entrantes |
+| Backup administrado | No disponible en Free; actualizar a Pro antes del piloto |
+| Host directo | `db.qzeipkqfmtfgrstnjtrw.supabase.co:5432` |
+| Session pooler | `aws-0-us-east-1.pooler.supabase.com:5432` |
+| Roles de aplicación | `finanzas_migrador`, `finanzas_api`, `finanzas_worker` |
+| Seguridad de roles | LOGIN, sin superusuario, sin crear roles/BBDD, sin bypass RLS |
+| Propietario del esquema | `finanzas_migrador` mediante ejecución real de EF |
+| Migraciones | M0001–M0019 aplicadas correctamente |
+| Conexiones verificadas | Migrador, API y Worker mediante Supavisor session mode/TLS; API revalidada después de activar SSL obligatorio |
+| Credenciales | Contraseñas independientes guardadas en el Llavero de macOS |
+| CA TLS | CA oficial `prod-ca-2021.crt` instalada exclusivamente en Lightsail; conexiones con `verify-full` confirmadas |
+
+### Uso de conexiones
+
+- Migrador, API y Worker en Lightsail: Supavisor session mode IPv4 y TLS `verify-full`.
+  El host directo no resuelve desde el plan actual; se utiliza el pooler de sesión.
+- API y Worker: session pooler IPv4, con usuarios PostgreSQL distintos.
+- Flutter: nunca recibe una conexión PostgreSQL ni claves Supabase.
+
+### Acciones ligadas al despliegue o al inicio del piloto
+
+- Configurar la copia lógica cifrada desde Lightsail hacia el bucket de respaldos.
+- Mantener la CA oficial fuera de Git y renovarla únicamente si Supabase publica una nueva.
+- Actualizar la organización a Pro antes de almacenar datos reales de participantes.
+
+## AWS
+
+| Concepto | Estado |
+|---|---|
+| Cuenta | Creada |
+| Región operativa principal | `us-east-1` |
+| MFA del usuario raíz | Activo mediante clave de paso |
+| Claves de acceso del usuario raíz | Ninguna |
+| Presupuesto mensual | `finanzas-inteligentes-piloto-mensual`, USD 35 |
+| Alertas de presupuesto | 50% real, 80% previsto y 100% real al correo administrativo |
+| Acciones automáticas de presupuesto | Ninguna |
+| Identidad administrativa no raíz | Usuario IAM `rodrigo-admin`, acceso de consola |
+| Grupo administrativo | `administradores`, política `AdministratorAccess` |
+| Contraseña del administrador | Definitiva; almacenada fuera de Git |
+| MFA de `rodrigo-admin` | Activo mediante clave de paso |
+| Claves de acceso de `rodrigo-admin` | Ninguna |
+| IAM Identity Center | No activado para conservar el plan y los créditos gratuitos |
+| Instancia Lightsail | `finanzas-inteligentes-piloto-api`, Ubuntu 24.04 LTS |
+| Plan Lightsail | General Purpose, 4 GB RAM, 2 vCPU, 80 GB SSD, USD 24/mes |
+| Zona y red | `us-east-1a`, dual-stack |
+| IP estática | `finanzas-inteligentes-piloto-ip` → `107.23.27.225` |
+| Firewall web | HTTP/80 y HTTPS/443 para IPv4 e IPv6 |
+| SSH/22 | Abierto temporalmente; restringir después de definir el despliegue automatizado |
+| Acceso SSH de despliegue | Clave dedicada configurada para el servidor; no se usa la clave predeterminada de Lightsail |
+| Runtime del servidor | Docker 29.1.3 y Docker Compose 2.40.3 instalados; servicio Docker habilitado |
+| Utilidades de operación | Certbot, cliente PostgreSQL, `curl`, `jq` y `openssl` instalados |
+| Código de backend en servidor | Repositorio clonado en `/opt/finanzas/repo`, rama `integracionFront`, revisión `9d9eff1ceb15d384238628ca6d61521ed1bac8fe` |
+| Acceso del servidor a GitHub | Deploy key dedicada, de solo lectura, limitada al repositorio del backend |
+| Validación de backend | Suite de pruebas ejecutada correctamente en contenedor Docker |
+| TLS de la API | Certificado Let's Encrypt emitido para `api.rodrigoaquino.com`; vence el 6 de noviembre de 2026 y tiene renovación automática habilitada |
+| Stack de producción | Migrador completado; API y Nginx saludables, Worker en ejecución; API publicada en 80/443 mediante Nginx |
+| Red interna Docker | API `172.30.0.3`, Nginx `172.30.0.2`, Worker `172.30.0.4`; evita colisiones con las IP fijas del proxy |
+| Protección de secretos | PFX, CA y JSON FCM montados como solo lectura para el UID del contenedor; archivos fuera de Git |
+| Endurecimiento Nginx | Sistema de archivos de solo lectura; sólo conserva `CHOWN`, `SETGID` y `SETUID` para iniciar workers no privilegiados |
+| Claves AWS de servicios | Creadas solo para API, Worker y respaldo; guardadas exclusivamente en archivos protegidos del servidor, fuera de Git |
+| Snapshots automáticos | Deshabilitados; pendiente decidir ventana y costo de respaldo |
+| Etiquetas | `project=finanzas-inteligentes`, `environment=pilot`, `component=api-worker` |
+| Bucket de documentos | `finanzas-inteligentes-piloto-documentos-502704535236` |
+| Seguridad de documentos | Privado, ACL deshabilitadas, bloqueo público, versionado y SSE-S3 |
+| Ciclo de vida de documentos | Multipart incompletos: 7 días; versiones no actuales: 30 días |
+| Bucket de respaldos | `finanzas-inteligentes-piloto-backups-502704535236` |
+| Seguridad de respaldos | Privado, ACL deshabilitadas, bloqueo público, versionado y SSE-S3 |
+| Ciclo de vida de respaldos | Prefijo `piloto/`: actuales 35 días; no actuales 7 días |
+| Identidad SES | `rodrigoaquino.com` verificado, Easy DKIM RSA 2048 correcto |
+| Remitente previsto | `no-reply@rodrigoaquino.com` |
+| MAIL FROM personalizado | `bounce.rodrigoaquino.com`, verificado |
+| Política IAM de API | `FinanzasPilotoApiPolicy`, acceso mínimo a documentos `piloto/*` |
+| Política IAM de Worker | `FinanzasPilotoWorkerPolicy`, S3 + Textract + SES restringido al remitente |
+| Política IAM de respaldo | `FinanzasPilotoBackupPolicy`, lectura/escritura en respaldos `piloto/*` |
+| Usuarios técnicos | `finanzas-api-piloto`, `finanzas-worker-piloto`, `finanzas-backup-piloto` |
+| Acceso de usuarios técnicos | Sin consola; claves de acceso mínimas creadas durante la instalación y custodiadas exclusivamente en el servidor |
+
+### Pendiente operativo en AWS
+
+- Solicitar salida del sandbox de SES para poder enviar a destinatarios no verificados.
+- Restringir SSH/22 cuando quede definido el mecanismo de despliegue y recuperación.
+- Decidir si se habilitan snapshots automáticos de Lightsail.
+
+## Firebase / Google Cloud
+
+| Concepto | Estado |
+|---|---|
+| Cuenta propietaria | `rodrigoaquino.dev@gmail.com` |
+| Proyecto | `Finanzas Inteligentes Piloto` |
+| Project ID | `finanzas-piloto-ra-2026` |
+| Project number / FCM sender ID | `874909933539` |
+| Plan Firebase | Spark |
+| Aplicación Android | `com.tesis.finanzasinteligentes` |
+| Firebase App ID | `1:874909933539:android:885f26c9a43616ab4dcad6` |
+| Alias Android | `Finanzas Inteligentes Piloto Android` |
+| Estado del bloque | Listo para desarrollo, pruebas locales y envío desde el Worker desplegado |
+| Cloud Messaging HTTP v1 | Habilitado |
+| Cloud Messaging heredado | Inhabilitado |
+| Cuenta técnica FCM | `finanzas-fcm-piloto@finanzas-piloto-ra-2026.iam.gserviceaccount.com` |
+| Rol técnico | Administrador de la API de Firebase Cloud Messaging |
+| Claves de la cuenta técnica | Una clave JSON de despliegue custodiada exclusivamente en Lightsail; nunca se almacena en Git |
+| SHA-1 de depuración | Registrada en Firebase |
+| Clave API Android | Restringida al paquete y SHA-1 de depuración |
+| Configuración Android | `android/app/google-services.json`, instalada localmente y excluida de Git |
+| Google Analytics | Deshabilitado durante el piloto inicial |
+| Gemini en Firebase | Deshabilitado |
+| Google Developer Program | No inscrito |
+| Verificación Flutter | `flutter analyze`, APK debug y 38 pruebas correctas |
+
+### Acciones ligadas al despliegue o a Play Console
+
+- Validar un envío push de extremo a extremo desde Lightsail y documentar la
+  rotación de la credencial.
+- Inyectar `google-services.json` de forma segura en el pipeline de GitHub Actions.
+- Registrar en Firebase la huella de la clave de firma de producción y la huella de
+  Google Play App Signing cuando estén disponibles.
+
+## Próximas altas
+
+| Proveedor | Estado |
+|---|---|
+| Firebase / Google Cloud | Listo para desarrollo; pendiente validación en despliegue |
+| Google Play Console | Cuenta verificada, aplicación creada y primera prueba interna activa |
+| GitHub Environment `pilot` | Pendiente |
+
+## Google Play Console
+
+| Concepto | Estado |
+|---|---|
+| Cuenta propietaria | `rodrigoaquino.dev@gmail.com` |
+| Tipo de cuenta | Personal / desarrollador individual |
+| Nombre público del desarrollador | `Rodrigo Aquino Dev` |
+| Tarifa de registro | Cuenta habilitada en Play Console; el panel ya no muestra el pago como pendiente |
+| Perfil de pagos | Creado y vinculado por el titular |
+| Correo público | `rodrigoaquino.dev@gmail.com`, verificado |
+| Consentimiento de perfil público | Confirmado por el titular |
+| Experiencia declarada | Flutter/Android, backend ASP.NET Core, PostgreSQL, FCM y Play Billing de prueba |
+| Plan de publicación | 1 aplicación durante los próximos 12 meses |
+| Monetización declarada | Sí, mediante suscripciones |
+| Funciones financieras declaradas | `Asesoramiento financiero` y `Otro`, con alcance educativo; no presta servicios financieros regulados ni mueve dinero real |
+| Contacto administrativo | Nombre, correo y teléfono cargados; idioma `Español (Latinoamérica)` |
+| Verificación de identidad y dirección | Verificada por Google |
+| Verificación de dispositivo | Ya no aparece como tarea pendiente en el panel principal |
+| Verificación de teléfono | Completada por el titular |
+| Aplicación | `Finanzas Inteligentes` creada con el paquete `com.tesis.finanzasinteligentes` |
+| ID interno de Play Console | `4974144832414097501` |
+| Prueba interna | Lista `Piloto interno` aplicada con 1 verificador; segmento activo y versión disponible |
+| Clave de carga | RSA 4096 creada; `.jks` ignorado por Git y contraseña almacenada en el llavero de macOS |
+| Primera versión interna | `0.1.0-internal.1` (`0.1.0+1`) publicada y activa para verificadores internos |
+| Enlace de participación interna | `https://play.google.com/apps/internaltest/4701655854951520496` |
+| Configuración obligatoria | 7 de 11 tareas completadas: acceso de revisión, anuncios, público adulto, Gobierno, finanzas, salud y categoría/contacto |
+| Categoría y contacto público | Aplicación de `Finanzas`; `rodrigoaquino.dev@gmail.com`; `https://rodrigoaquino.com` |
+| ID de publicidad | Declarado como no utilizado |
+| Acceso a producción | Requiere una prueba cerrada con al menos 12 verificadores durante 14 días |

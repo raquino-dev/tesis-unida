@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme_extension.dart';
+import '../../../core/config/app_environment.dart';
+import '../../../core/errors/app_failure.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_card.dart';
 import 'security_providers.dart';
@@ -12,6 +14,7 @@ class SecurityCenterScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final events = ref.watch(securityEventsProvider);
+    final sessions = ref.watch(activeSessionsProvider);
     final biometrics = ref.watch(biometricsEnabledProvider);
     final colors = context.colors;
     return Scaffold(
@@ -32,11 +35,20 @@ class SecurityCenterScreen extends ConsumerWidget {
                   ),
                   value: biometrics,
                   onChanged: (value) async {
-                    await ref
-                        .read(securityRepositoryProvider)
-                        .setBiometricsEnabled(value);
-                    ref.read(biometricsEnabledProvider.notifier).state = value;
-                    ref.invalidate(securityEventsProvider);
+                    try {
+                      await ref
+                          .read(securityRepositoryProvider)
+                          .setBiometricsEnabled(value);
+                      ref.read(biometricsEnabledProvider.notifier).state =
+                          value;
+                      ref.invalidate(securityEventsProvider);
+                    } on AppFailure catch (failure) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(failure.message)),
+                        );
+                      }
+                    }
                   },
                 ),
                 const Divider(),
@@ -45,7 +57,9 @@ class SecurityCenterScreen extends ConsumerWidget {
                   leading: const Icon(Icons.key_rounded),
                   title: const Text('Sesión protegida'),
                   subtitle: const Text(
-                    'JWT y refresh token simulados en memoria',
+                    AppEnvironment.useApi
+                        ? 'JWT y refresh token protegidos en el dispositivo'
+                        : 'JWT y refresh token de demostración',
                   ),
                   trailing: const Icon(Icons.check_circle_outline_rounded),
                 ),
@@ -77,6 +91,63 @@ class SecurityCenterScreen extends ConsumerWidget {
                 ],
               ],
             ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            'Sesiones activas',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          sessions.when(
+            loading: () => const LinearProgressIndicator(),
+            error: (error, _) => Text('$error'),
+            data: (items) => items.isEmpty
+                ? Text(
+                    'No hay sesiones activas.',
+                    style: TextStyle(color: colors.textSecondary),
+                  )
+                : Column(
+                    children: items
+                        .map(
+                          (session) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: AppCard(
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(
+                                  Icons.devices_rounded,
+                                ),
+                                title: Text(session.deviceName),
+                                subtitle: Text(
+                                  '${session.platform} · vence ${DateFormatter.medium(session.expiresAt)}',
+                                ),
+                                trailing: session.current
+                                    ? const Text('Actual')
+                                    : IconButton(
+                                        tooltip: 'Cerrar sesión',
+                                        icon: const Icon(
+                                          Icons.logout_rounded,
+                                        ),
+                                        onPressed: () async {
+                                          await ref
+                                              .read(
+                                                securityRepositoryProvider,
+                                              )
+                                              .revokeSession(session.id);
+                                          ref.invalidate(
+                                            activeSessionsProvider,
+                                          );
+                                          ref.invalidate(
+                                            securityEventsProvider,
+                                          );
+                                        },
+                                      ),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(

@@ -15,10 +15,10 @@ void main() {
       expect(session.refreshToken, isNotEmpty);
 
       final challenge = await repository.requestOtp('Prueba');
-      expect(await repository.validateOtp(challenge.id, '000000'), isFalse);
+      expect(await repository.validateOtp(challenge.id, '000000'), isNull);
       expect(
-        await repository.validateOtp(challenge.id, challenge.demoCode),
-        isTrue,
+        await repository.validateOtp(challenge.id, challenge.demoCode!),
+        isNotNull,
       );
       expect(await repository.getEvents(), isNotEmpty);
     });
@@ -37,7 +37,11 @@ void main() {
           scope: SavingsGoalScope.family,
         ),
       );
-      final updated = await repository.contribute(created.id, 500000);
+      final updated = await repository.contribute(
+        created.id,
+        500000,
+        accountId: 'acc_test',
+      );
       expect(updated.savedAmount, 500000);
       expect(updated.scope, SavingsGoalScope.family);
     });

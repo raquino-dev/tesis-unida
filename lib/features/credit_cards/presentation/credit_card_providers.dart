@@ -1,12 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/app_failure.dart';
+import '../../../core/config/app_environment.dart';
+import '../../../core/network/api_providers.dart';
 import '../../../core/utils/view_state.dart';
 import '../../accounts/presentation/account_providers.dart';
+import '../data/api_credit_card_repository.dart';
 import '../data/mock_credit_card_repository.dart';
 import '../domain/credit_card_entity.dart';
 import '../domain/credit_card_repository.dart';
 
 final creditCardRepositoryProvider = Provider<CreditCardRepository>((ref) {
+  if (AppEnvironment.useApi) {
+    return ApiCreditCardRepository(
+      ref.watch(apiClientProvider),
+      ref.watch(accountRepositoryProvider),
+    );
+  }
   return MockCreditCardRepository(ref.watch(accountRepositoryProvider));
 });
 
