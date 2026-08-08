@@ -1,5 +1,4 @@
-import 'dart:ui';
-
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -19,15 +18,17 @@ void main() async {
   await PilotLocalStore.initialize();
   if (AppEnvironment.firebaseConfigured) {
     await Firebase.initializeApp(options: PilotFirebaseOptions.current);
-    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
-      AppEnvironment.useApi,
-    );
-    FlutterError.onError =
-        FirebaseCrashlytics.instance.recordFlutterFatalError;
-    PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-      return true;
-    };
+    if (!kIsWeb) {
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+        AppEnvironment.useApi,
+      );
+      FlutterError.onError =
+          FirebaseCrashlytics.instance.recordFlutterFatalError;
+      PlatformDispatcher.instance.onError = (error, stack) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        return true;
+      };
+    }
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   }
   runApp(const ProviderScope(child: FinanzasApp()));

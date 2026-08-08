@@ -62,8 +62,10 @@ class ApiCategoryRepository implements CategoryRepository {
       CategoryType.both => 'ambos',
     },
     'icono': category.icon.codePoint.toRadixString(16),
+    // La API y la columna `finanzas.categorias.color` usan el formato CSS
+    // `#RRGGBB`; el canal alfa de Flutter no forma parte del contrato.
     'color':
-        '#${category.color.toARGB32().toRadixString(16).padLeft(8, '0')}',
+        '#${(category.color.toARGB32() & 0x00ffffff).toRadixString(16).padLeft(6, '0')}',
   };
 
   CategoryEntity _fromJson(Map<String, dynamic> json) {
