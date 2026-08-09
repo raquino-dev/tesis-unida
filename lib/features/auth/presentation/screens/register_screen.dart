@@ -97,9 +97,28 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 onChanged: (value) =>
                     setState(() => _acceptsTerms = value ?? false),
                 controlAffinity: ListTileControlAffinity.leading,
-                title: const Text(
-                  'Acepto los términos y la política de privacidad.',
-                  style: TextStyle(fontSize: 13),
+                title: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    const Text('Acepto los ', style: TextStyle(fontSize: 13)),
+                    TextButton(
+                      onPressed: () => _showLegalDocument(
+                        context,
+                        title: 'Términos y condiciones',
+                        content: _termsAndConditions,
+                      ),
+                      child: const Text('términos y condiciones'),
+                    ),
+                    const Text(' y la ', style: TextStyle(fontSize: 13)),
+                    TextButton(
+                      onPressed: () => _showLegalDocument(
+                        context,
+                        title: 'Política de privacidad',
+                        content: _privacyPolicy,
+                      ),
+                      child: const Text('política de privacidad.'),
+                    ),
+                  ],
                 ),
               ),
               if (errorMessage != null) ...[
@@ -129,4 +148,46 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ),
     );
   }
+
+  Future<void> _showLegalDocument(
+    BuildContext context, {
+    required String title,
+    required String content,
+  }) => showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (context) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.md),
+            Flexible(child: SingleChildScrollView(child: Text(content))),
+            const SizedBox(height: AppSpacing.md),
+            AppButton(
+              label: 'Entendido',
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  static const _termsAndConditions =
+      'Finanzas Inteligentes es un prototipo académico para una prueba piloto. '
+      'No constituye asesoramiento financiero ni realiza transferencias de dinero reales. '
+      'Las funcionalidades de presupuesto, proyección, suscripciones y comprobantes '
+      'se utilizan únicamente para la evaluación descrita en la tesis. Podés dejar de '
+      'usar la aplicación y solicitar la eliminación de tu perfil en cualquier momento.';
+
+  static const _privacyPolicy =
+      'La aplicación procesa los datos necesarios para brindar las funcionalidades '
+      'del piloto y para evaluar facilidad de uso, utilidad y seguridad. Los datos no '
+      'se venden ni se comparten con fines comerciales. Se aplican medidas de acceso '
+      'autenticado, auditoría y minimización de datos. Podés consultar o solicitar la '
+      'eliminación de tus datos contactando al investigador.';
 }
