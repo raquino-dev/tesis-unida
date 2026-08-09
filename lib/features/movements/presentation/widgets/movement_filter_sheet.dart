@@ -5,6 +5,7 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_theme_extension.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../../core/widgets/app_searchable_selector.dart';
 import '../../../accounts/presentation/account_providers.dart';
 import '../../../categories/presentation/category_providers.dart';
 import '../viewmodels/movement_list_viewmodel.dart';
@@ -144,39 +145,33 @@ class _MovementFilterSheetState extends ConsumerState<MovementFilterSheet> {
                 loading: () => const LinearProgressIndicator(),
                 error: (_) => const SizedBox.shrink(),
                 empty: () => const SizedBox.shrink(),
-                success: (categories) => Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: categories.map((c) {
-                    final selected = _draft.categoryId == c.id;
-                    return GestureDetector(
-                      onTap: () => setState(
-                        () => _draft = selected
-                            ? _draft.copyWith(clearCategory: true)
-                            : _draft.copyWith(categoryId: c.id),
+                success: (categories) => Column(
+                  children: [
+                    AppSearchableSingleSelector(
+                      items: categories,
+                      idOf: (item) => item.id,
+                      labelOf: (item) => item.name,
+                      leadingOf: (item) => Icon(item.icon, color: item.color),
+                      value: categories
+                          .where((item) => item.id == _draft.categoryId)
+                          .firstOrNull,
+                      hint: 'Todas las categorías',
+                      searchHint: 'Buscar categorías',
+                      onChanged: (value) => setState(
+                        () => _draft = _draft.copyWith(categoryId: value.id),
                       ),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 9,
-                        ),
-                        decoration: BoxDecoration(
-                          color: selected ? c.color : colors.surfaceElevated,
-                          borderRadius: AppRadius.pillRadius,
-                        ),
-                        child: Text(
-                          c.name,
-                          style: TextStyle(
-                            color: selected
-                                ? Colors.white
-                                : colors.textSecondary,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
+                    ),
+                    if (_draft.categoryId != null)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => setState(
+                            () => _draft = _draft.copyWith(clearCategory: true),
                           ),
+                          child: const Text('Quitar filtro'),
                         ),
                       ),
-                    );
-                  }).toList(),
+                  ],
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -193,54 +188,34 @@ class _MovementFilterSheetState extends ConsumerState<MovementFilterSheet> {
                 loading: () => const LinearProgressIndicator(),
                 error: (_) => const SizedBox.shrink(),
                 empty: () => const SizedBox.shrink(),
-                success: (accounts) => Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: accounts.map((a) {
-                    final selected = _draft.accountId == a.id;
-                    return GestureDetector(
-                      onTap: () => setState(
-                        () => _draft = selected
-                            ? _draft.copyWith(clearAccount: true)
-                            : _draft.copyWith(accountId: a.id),
+                success: (accounts) => Column(
+                  children: [
+                    AppSearchableSingleSelector(
+                      items: accounts,
+                      idOf: (item) => item.id,
+                      labelOf: (item) => item.name,
+                      leadingOf: (item) =>
+                          Icon(item.icon, color: colors.primary),
+                      value: accounts
+                          .where((item) => item.id == _draft.accountId)
+                          .firstOrNull,
+                      hint: 'Todas las cuentas',
+                      searchHint: 'Buscar cuentas',
+                      onChanged: (value) => setState(
+                        () => _draft = _draft.copyWith(accountId: value.id),
                       ),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 9,
-                        ),
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? colors.primary
-                              : colors.surfaceElevated,
-                          borderRadius: AppRadius.pillRadius,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              a.icon,
-                              size: 13,
-                              color: selected
-                                  ? Colors.white
-                                  : colors.textSecondary,
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              a.name,
-                              style: TextStyle(
-                                color: selected
-                                    ? Colors.white
-                                    : colors.textSecondary,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                    ),
+                    if (_draft.accountId != null)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => setState(
+                            () => _draft = _draft.copyWith(clearAccount: true),
+                          ),
+                          child: const Text('Quitar filtro'),
                         ),
                       ),
-                    );
-                  }).toList(),
+                  ],
                 ),
               ),
               const SizedBox(height: AppSpacing.md),

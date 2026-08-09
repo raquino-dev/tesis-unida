@@ -10,6 +10,7 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_section_header.dart';
 import '../../../core/widgets/app_state_view.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/widgets/app_searchable_selector.dart';
 import '../../categories/domain/category_entity.dart';
 import '../../categories/presentation/category_providers.dart';
 import '../domain/budget_entity.dart';
@@ -364,55 +365,21 @@ class _BudgetEditorSheetState extends ConsumerState<_BudgetEditorSheet> {
                 loading: () => const LinearProgressIndicator(),
                 error: (_) => const SizedBox.shrink(),
                 empty: () => const SizedBox.shrink(),
-                success: (categories) => Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: categories.map((c) {
-                    final selected = _categories.any((s) => s.id == c.id);
-                    return GestureDetector(
-                      onTap: () => setState(() {
-                        if (selected) {
-                          _categories.removeWhere((s) => s.id == c.id);
-                        } else {
-                          _categories.add(c);
-                        }
-                      }),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 9,
-                        ),
-                        decoration: BoxDecoration(
-                          color: selected ? c.color : colors.surfaceElevated,
-                          borderRadius: AppRadius.pillRadius,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              c.icon,
-                              size: 14,
-                              color: selected
-                                  ? Colors.white
-                                  : colors.textSecondary,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              c.name,
-                              style: TextStyle(
-                                color: selected
-                                    ? Colors.white
-                                    : colors.textSecondary,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
+                success: (categories) =>
+                    AppSearchableMultiSelector<CategoryEntity>(
+                      items: categories,
+                      idOf: (item) => item.id,
+                      labelOf: (item) => item.name,
+                      leadingOf: (item) => Icon(item.icon, color: item.color),
+                      values: _categories,
+                      hint: 'Buscar y seleccionar categorías',
+                      searchHint: 'Buscar categorías',
+                      onChanged: (values) => setState(
+                        () => _categories
+                          ..clear()
+                          ..addAll(values),
                       ),
-                    );
-                  }).toList(),
-                ),
+                    ),
               ),
               if (_errorMessage != null) ...[
                 const SizedBox(height: AppSpacing.sm),

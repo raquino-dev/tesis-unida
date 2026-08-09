@@ -13,6 +13,7 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_section_header.dart';
 import '../../../core/widgets/app_state_view.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/widgets/app_searchable_selector.dart';
 import '../../accounts/domain/account_entity.dart';
 import '../../accounts/presentation/account_providers.dart';
 import '../../categories/domain/category_entity.dart';
@@ -893,55 +894,30 @@ class _SharedAccountsSheet extends ConsumerWidget {
               'No tenés cuentas registradas.',
               style: TextStyle(color: colors.textSecondary, fontSize: 13),
             ),
-            success: (accounts) => Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: accounts.map((a) {
-                final selected = group.sharedAccounts.any((s) => s.id == a.id);
-                return GestureDetector(
-                  onTap: () {
-                    final viewModel = ref.read(
-                      familyViewModelProvider.notifier,
-                    );
-                    if (selected) {
-                      viewModel.removeSharedAccount(a.id);
-                    } else {
-                      viewModel.addSharedAccount(a.id);
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 9,
-                    ),
-                    decoration: BoxDecoration(
-                      color: selected ? colors.primary : colors.surfaceElevated,
-                      borderRadius: AppRadius.pillRadius,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          a.icon,
-                          size: 14,
-                          color: selected ? Colors.white : colors.textSecondary,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          a.name,
-                          style: TextStyle(
-                            color: selected
-                                ? Colors.white
-                                : colors.textSecondary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
+            success: (accounts) => AppSearchableMultiSelector<AccountEntity>(
+              items: accounts,
+              idOf: (item) => item.id,
+              labelOf: (item) => item.name,
+              leadingOf: (item) => Icon(item.icon, color: colors.primary),
+              values: group.sharedAccounts,
+              hint: 'Buscar y seleccionar cuentas compartidas',
+              searchHint: 'Buscar cuentas',
+              onChanged: (selected) {
+                final viewModel = ref.read(familyViewModelProvider.notifier);
+                final selectedIds = selected.map((item) => item.id).toSet();
+                for (final account in group.sharedAccounts) {
+                  if (!selectedIds.contains(account.id)) {
+                    viewModel.removeSharedAccount(account.id);
+                  }
+                }
+                for (final account in selected) {
+                  if (!group.sharedAccounts.any(
+                    (item) => item.id == account.id,
+                  )) {
+                    viewModel.addSharedAccount(account.id);
+                  }
+                }
+              },
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -1093,35 +1069,15 @@ class _AddFamilyMovementSheetState
                     return const Text('No hay categorías familiares.');
                   }
                   _category ??= categories.first;
-                  return Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: categories.map((c) {
-                      final selected = _category?.id == c.id;
-                      return GestureDetector(
-                        onTap: () => setState(() => _category = c),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 9,
-                          ),
-                          decoration: BoxDecoration(
-                            color: selected ? c.color : colors.surfaceElevated,
-                            borderRadius: AppRadius.pillRadius,
-                          ),
-                          child: Text(
-                            c.name,
-                            style: TextStyle(
-                              color: selected
-                                  ? Colors.white
-                                  : colors.textSecondary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                  return AppSearchableSingleSelector<CategoryEntity>(
+                    items: categories,
+                    idOf: (item) => item.id,
+                    labelOf: (item) => item.name,
+                    leadingOf: (item) => Icon(item.icon, color: item.color),
+                    value: _category,
+                    hint: 'Seleccionar categoría',
+                    searchHint: 'Buscar categorías',
+                    onChanged: (value) => setState(() => _category = value),
                   );
                 },
               ),
@@ -1135,35 +1091,15 @@ class _AddFamilyMovementSheetState
                 ),
               ),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: widget.group.sharedAccounts.map((a) {
-                  final selected = _account?.id == a.id;
-                  return GestureDetector(
-                    onTap: () => setState(() => _account = a),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 9,
-                      ),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? colors.primary
-                            : colors.surfaceElevated,
-                        borderRadius: AppRadius.pillRadius,
-                      ),
-                      child: Text(
-                        a.name,
-                        style: TextStyle(
-                          color: selected ? Colors.white : colors.textSecondary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+              AppSearchableSingleSelector<AccountEntity>(
+                items: widget.group.sharedAccounts,
+                idOf: (item) => item.id,
+                labelOf: (item) => item.name,
+                leadingOf: (item) => Icon(item.icon, color: colors.primary),
+                value: _account,
+                hint: 'Seleccionar cuenta compartida',
+                searchHint: 'Buscar cuentas compartidas',
+                onChanged: (value) => setState(() => _account = value),
               ),
               if (_error != null) ...[
                 const SizedBox(height: AppSpacing.sm),
