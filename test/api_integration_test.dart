@@ -739,7 +739,9 @@ void main() {
                 'categoriaSugeridaId': null,
                 'cdcSifen': 'CDC-TEST',
               },
-              'advertencias': <String>[],
+              'advertencias': <String>[
+                'Amazon Textract no detectó una fecha válida.',
+              ],
               'iniciadoEn': '2026-07-30T15:00:01Z',
               'finalizadoEn': '2026-07-30T15:00:02Z',
               'version': 2,
@@ -840,6 +842,9 @@ void main() {
         documentPath: xml.path,
         documentName: xml.uri.pathSegments.last,
       );
+      expect(detected.warnings, [
+        'No se detectó una fecha válida. Completala manualmente.',
+      ]);
       final corrected = await ocr.correctReceipt(
         detected,
         amount: detected.amount,

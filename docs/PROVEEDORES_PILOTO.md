@@ -285,6 +285,9 @@ de Git.
 | Primera versión interna | `0.1.0-internal.2` (`0.1.0+2`) publicada y activa para verificadores internos |
 | Productos de suscripción | `premium_monthly` y `premium_yearly` activos. Planes básicos con renovación automática: `monthly` por PYG 39.000/mes y `annual` por PYG 390.000/año, disponibles solo en Paraguay |
 | Prueba de licencia | Configurada con la cuenta verificadora del piloto; las compras de prueba no generan un cargo real |
+| Evidencia de facturación | Compra de suscripción validada correctamente en la aplicación y en el backend del piloto |
+| Evidencia de correo OTP | Entrega y verificación OTP por Amazon SES validadas correctamente |
+| RTDN de Google Play | Tópico `projects/finanzas-piloto-ra-2026/topics/finanzas-play-rtdn` y suscripción autenticada `finanzas-play-rtdn-push` creados. La prueba de Play llegó al webhook con JWT validado y respondió `204 No Content`; el backend reconoce notificaciones de prueba sin modificar suscripciones. |
 | Enlace de participación interna | `https://play.google.com/apps/internaltest/4701655854951520496` |
 | Configuración obligatoria | 7 de 11 tareas completadas: acceso de revisión, anuncios, público adulto, Gobierno, finanzas, salud y categoría/contacto |
 | Categoría y contacto público | Aplicación de `Finanzas`; `rodrigoaquino.dev@gmail.com`; `https://rodrigoaquino.com` |

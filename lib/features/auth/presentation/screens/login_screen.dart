@@ -18,7 +18,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _email = TextEditingController(text: 'rodrigo.aquino@correo.com.py');
+  final _email = TextEditingController();
   final _password = TextEditingController();
   bool _rememberSession = true;
 
