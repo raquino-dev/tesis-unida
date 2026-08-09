@@ -74,76 +74,92 @@ class DashboardScreen extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.lg),
                 AppSectionHeader(
                   title: 'Categorías principales',
-                  actionLabel: 'Ver reportes',
-                  onAction: () => context.push(AppRoutes.reports),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                AppCard(
-                  child: Column(
-                    children: summary.topCategories.map((tc) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: tc.category.color.withValues(
-                                  alpha: 0.16,
-                                ),
-                                borderRadius: AppRadius.smRadius,
-                              ),
-                              child: Icon(
-                                tc.category.icon,
-                                size: 18,
-                                color: tc.category.color,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    tc.category.name,
-                                    style: TextStyle(
-                                      color: context.colors.textPrimary,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13.5,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: LinearProgressIndicator(
-                                      value: tc.percentage,
-                                      minHeight: 5,
-                                      backgroundColor:
-                                          context.colors.surfaceElevated,
-                                      valueColor: AlwaysStoppedAnimation(
-                                        tc.category.color,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              CurrencyFormatter.formatCompact(tc.amount),
-                              style: TextStyle(
-                                color: context.colors.textSecondary,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
+                  actionLabel: summary.topCategories.isEmpty
+                      ? 'Agregar categoría'
+                      : 'Ver reportes',
+                  onAction: () => context.push(
+                    summary.topCategories.isEmpty
+                        ? AppRoutes.categories
+                        : AppRoutes.reports,
                   ),
                 ),
+                const SizedBox(height: AppSpacing.sm),
+                if (summary.topCategories.isEmpty)
+                  _DashboardEmptyCard(
+                    icon: Icons.category_outlined,
+                    title: 'Aún no tenés categorías con movimientos',
+                    message:
+                        'Agregá una categoría y registrá movimientos para ver cómo se distribuyen tus gastos.',
+                    actionLabel: 'Gestionar categorías',
+                    onAction: () => context.push(AppRoutes.categories),
+                  )
+                else
+                  AppCard(
+                    child: Column(
+                      children: summary.topCategories.map((tc) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: tc.category.color.withValues(
+                                    alpha: 0.16,
+                                  ),
+                                  borderRadius: AppRadius.smRadius,
+                                ),
+                                child: Icon(
+                                  tc.category.icon,
+                                  size: 18,
+                                  color: tc.category.color,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tc.category.name,
+                                      style: TextStyle(
+                                        color: context.colors.textPrimary,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(4),
+                                      child: LinearProgressIndicator(
+                                        value: tc.percentage,
+                                        minHeight: 5,
+                                        backgroundColor:
+                                            context.colors.surfaceElevated,
+                                        valueColor: AlwaysStoppedAnimation(
+                                          tc.category.color,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                CurrencyFormatter.formatCompact(tc.amount),
+                                style: TextStyle(
+                                  color: context.colors.textSecondary,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 const SizedBox(height: AppSpacing.lg),
                 AppSectionHeader(
                   title: 'Alertas inteligentes',
@@ -151,78 +167,96 @@ class DashboardScreen extends ConsumerWidget {
                   onAction: () => context.push(AppRoutes.alerts),
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                ...summary.alertHighlights.map(
-                  (a) => Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                    child: AppCard(
-                      elevation: AppCardElevation.elevated,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.insights_rounded,
-                            color: context.colors.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              a,
-                              style: TextStyle(
-                                color: context.colors.textSecondary,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                AppSectionHeader(title: 'Próximos gastos recurrentes'),
-                const SizedBox(height: AppSpacing.sm),
-                AppCard(
-                  child: Column(
-                    children: summary.upcomingRecurring.map((item) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                if (summary.alertHighlights.isEmpty)
+                  const _DashboardEmptyCard(
+                    icon: Icons.notifications_none_rounded,
+                    title: 'No hay alertas por ahora',
+                    message:
+                        'Tus finanzas no requieren una acción inmediata. Te avisaremos si detectamos algo importante.',
+                  )
+                else
+                  ...summary.alertHighlights.map(
+                    (a) => Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                      child: AppCard(
+                        elevation: AppCardElevation.elevated,
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.name,
-                                  style: TextStyle(
-                                    color: context.colors.textPrimary,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13.5,
-                                  ),
-                                ),
-                                Text(
-                                  DateFormatter.medium(item.date),
-                                  style: TextStyle(
-                                    color: context.colors.textMuted,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+                            Icon(
+                              Icons.insights_rounded,
+                              color: context.colors.primary,
+                              size: 20,
                             ),
-                            Text(
-                              CurrencyFormatter.format(item.amount),
-                              style: TextStyle(
-                                color: context.colors.textSecondary,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                a,
+                                style: TextStyle(
+                                  color: context.colors.textSecondary,
+                                  fontSize: 13,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      );
-                    }).toList(),
+                      ),
+                    ),
                   ),
-                ),
+                const SizedBox(height: AppSpacing.lg),
+                AppSectionHeader(title: 'Próximos gastos recurrentes'),
+                const SizedBox(height: AppSpacing.sm),
+                if (summary.upcomingRecurring.isEmpty)
+                  _DashboardEmptyCard(
+                    icon: Icons.event_repeat_outlined,
+                    title: 'No tenés gastos recurrentes próximos',
+                    message:
+                        'Configurá uno para anticipar pagos como alquiler, servicios o suscripciones.',
+                    actionLabel: 'Crear gasto recurrente',
+                    onAction: () => context.push(AppRoutes.recurringMovements),
+                  )
+                else
+                  AppCard(
+                    child: Column(
+                      children: summary.upcomingRecurring.map((item) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.name,
+                                    style: TextStyle(
+                                      color: context.colors.textPrimary,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13.5,
+                                    ),
+                                  ),
+                                  Text(
+                                    DateFormatter.medium(item.date),
+                                    style: TextStyle(
+                                      color: context.colors.textMuted,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                CurrencyFormatter.format(item.amount),
+                                style: TextStyle(
+                                  color: context.colors.textSecondary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -230,6 +264,57 @@ class DashboardScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _DashboardEmptyCard extends StatelessWidget {
+  const _DashboardEmptyCard({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: context.colors.primary),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 4),
+              Text(
+                message,
+                style: TextStyle(
+                  color: context.colors.textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+              if (actionLabel != null && onAction != null) ...[
+                const SizedBox(height: AppSpacing.xs),
+                TextButton.icon(
+                  onPressed: onAction,
+                  icon: const Icon(Icons.add_circle_outline, size: 18),
+                  label: Text(actionLabel!),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 enum AppBadgeToneSuccess { success, error }

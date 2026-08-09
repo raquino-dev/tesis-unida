@@ -7,6 +7,7 @@ import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/widgets/app_searchable_selector.dart';
 import '../domain/savings_goal_entity.dart';
 import 'savings_goal_providers.dart';
 import '../../family/presentation/family_providers.dart';
@@ -228,21 +229,22 @@ class _CreateGoalSheetState extends ConsumerState<_CreateGoalSheet> {
               final accounts = _scope == SavingsGoalScope.family
                   ? (familyGroup?.sharedAccounts ?? const <AccountEntity>[])
                   : personalAccounts;
-              return Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: accounts
-                    .where((account) => account.isActive)
-                    .map(
-                      (account) => ChoiceChip(
-                        label: Text(account.name),
-                        selected: _accountId == account.id,
-                        onSelected: widget.goal == null
-                            ? (_) => setState(() => _accountId = account.id)
-                            : null,
-                      ),
-                    )
-                    .toList(),
+              final active = accounts
+                  .where((account) => account.isActive)
+                  .toList();
+              return AppSearchableSingleSelector<AccountEntity>(
+                items: active,
+                idOf: (item) => item.id,
+                labelOf: (item) => item.name,
+                leadingOf: (item) =>
+                    Icon(item.icon, color: context.colors.primary),
+                value: active
+                    .where((account) => account.id == _accountId)
+                    .firstOrNull,
+                hint: 'Seleccionar cuenta',
+                searchHint: 'Buscar cuentas',
+                enabled: widget.goal == null,
+                onChanged: (value) => setState(() => _accountId = value.id),
               );
             },
           ),
@@ -365,22 +367,25 @@ class _ContributionSheetState extends ConsumerState<_ContributionSheet> {
             loading: () => const LinearProgressIndicator(),
             error: (_) => const Text('No pudimos cargar tus cuentas.'),
             empty: () => const Text('No tenés cuentas disponibles.'),
-            success: (accounts) => Wrap(
-              spacing: 8,
-              children: accounts
+            success: (accounts) {
+              final available = accounts
                   .where(
                     (account) =>
                         account.isActive && account.id != widget.goal.accountId,
                   )
-                  .map(
-                    (account) => ChoiceChip(
-                      label: Text(account.name),
-                      selected: _account?.id == account.id,
-                      onSelected: (_) => setState(() => _account = account),
-                    ),
-                  )
-                  .toList(),
-            ),
+                  .toList();
+              return AppSearchableSingleSelector<AccountEntity>(
+                items: available,
+                idOf: (item) => item.id,
+                labelOf: (item) => item.name,
+                leadingOf: (item) =>
+                    Icon(item.icon, color: context.colors.primary),
+                value: _account,
+                hint: 'Seleccionar cuenta',
+                searchHint: 'Buscar cuentas',
+                onChanged: (value) => setState(() => _account = value),
+              );
+            },
           ),
           if (_error != null) ...[
             const SizedBox(height: AppSpacing.sm),

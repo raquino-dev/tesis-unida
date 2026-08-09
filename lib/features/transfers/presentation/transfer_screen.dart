@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../app/theme/app_radius.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme_extension.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -8,6 +7,7 @@ import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/widgets/app_searchable_selector.dart';
 import '../../accounts/domain/account_entity.dart';
 import '../../accounts/presentation/account_providers.dart';
 import 'transfer_viewmodel.dart';
@@ -301,43 +301,15 @@ class _AccountPicker extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: accounts.map((a) {
-        final selected = a.id == selectedId;
-        return GestureDetector(
-          onTap: () => onSelect(a),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-            decoration: BoxDecoration(
-              color: selected ? colors.primary : colors.surfaceElevated,
-              borderRadius: AppRadius.pillRadius,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  a.icon,
-                  size: 14,
-                  color: selected ? Colors.white : colors.textSecondary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  a.name,
-                  style: TextStyle(
-                    color: selected ? Colors.white : colors.textSecondary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
+  Widget build(BuildContext context) =>
+      AppSearchableSingleSelector<AccountEntity>(
+        items: accounts,
+        idOf: (item) => item.id,
+        labelOf: (item) => item.name,
+        leadingOf: (item) => Icon(item.icon, color: context.colors.primary),
+        value: accounts.where((item) => item.id == selectedId).firstOrNull,
+        hint: 'Seleccionar cuenta',
+        searchHint: 'Buscar cuentas',
+        onChanged: onSelect,
+      );
 }

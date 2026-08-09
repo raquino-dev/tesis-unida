@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
-import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_theme_extension.dart';
 import '../../../../core/utils/date_formatter.dart';
@@ -11,6 +10,7 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_state_view.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/app_searchable_selector.dart';
 import '../../../accounts/presentation/account_providers.dart';
 import '../../../categories/domain/category_entity.dart';
 import '../../../categories/presentation/category_providers.dart';
@@ -359,39 +359,24 @@ class _ResultReviewState extends ConsumerState<_ResultReview> {
               loading: () => const LinearProgressIndicator(),
               error: (_) => const SizedBox.shrink(),
               empty: () => const SizedBox.shrink(),
-              success: (categories) => Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: categories
+              success: (categories) {
+                final available = categories
                     .where((c) => c.type.appliesTo(CategoryType.expense))
-                    .map((c) {
-                      final selected = c.id == _categoryId;
-                      return GestureDetector(
-                        onTap: () => setState(() => _categoryId = c.id),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 9,
-                          ),
-                          decoration: BoxDecoration(
-                            color: selected ? c.color : colors.surfaceElevated,
-                            borderRadius: AppRadius.pillRadius,
-                          ),
-                          child: Text(
-                            c.name,
-                            style: TextStyle(
-                              color: selected
-                                  ? Colors.white
-                                  : colors.textSecondary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      );
-                    })
-                    .toList(),
-              ),
+                    .toList();
+                final selected = available
+                    .where((c) => c.id == _categoryId)
+                    .firstOrNull;
+                return AppSearchableSingleSelector<CategoryEntity>(
+                  items: available,
+                  idOf: (item) => item.id,
+                  labelOf: (item) => item.name,
+                  leadingOf: (item) => Icon(item.icon, color: item.color),
+                  value: selected,
+                  hint: 'Seleccionar categoría',
+                  searchHint: 'Buscar categorías',
+                  onChanged: (value) => setState(() => _categoryId = value.id),
+                );
+              },
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
@@ -413,50 +398,15 @@ class _ResultReviewState extends ConsumerState<_ResultReview> {
               success: (accounts) {
                 final active = accounts.where((a) => a.isActive).toList();
                 _accountId ??= active.isNotEmpty ? active.first.id : null;
-                return Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: active.map((a) {
-                    final selected = a.id == _accountId;
-                    return GestureDetector(
-                      onTap: () => setState(() => _accountId = a.id),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 9,
-                        ),
-                        decoration: BoxDecoration(
-                          color: selected
-                              ? colors.primary
-                              : colors.surfaceElevated,
-                          borderRadius: AppRadius.pillRadius,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              a.icon,
-                              size: 14,
-                              color: selected
-                                  ? Colors.white
-                                  : colors.textSecondary,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              a.name,
-                              style: TextStyle(
-                                color: selected
-                                    ? Colors.white
-                                    : colors.textSecondary,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
+                return AppSearchableSingleSelector(
+                  items: active,
+                  idOf: (item) => item.id,
+                  labelOf: (item) => item.name,
+                  leadingOf: (item) => Icon(item.icon, color: colors.primary),
+                  value: active.where((a) => a.id == _accountId).firstOrNull,
+                  hint: 'Seleccionar cuenta',
+                  searchHint: 'Buscar cuentas',
+                  onChanged: (value) => setState(() => _accountId = value.id),
                 );
               },
             ),

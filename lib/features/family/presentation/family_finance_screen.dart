@@ -7,6 +7,7 @@ import '../../../core/utils/currency_formatter.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/widgets/app_searchable_selector.dart';
 import '../domain/family_entity.dart';
 import 'family_providers.dart';
 import '../../accounts/domain/account_entity.dart';
@@ -266,19 +267,24 @@ class _TreasuryOperationSheetState
               error: (_) => const Text('No pudimos cargar tus cuentas.'),
               empty: () =>
                   const Text('Creá una cuenta antes de operar con la caja.'),
-              success: (accounts) => Wrap(
-                spacing: 8,
-                children: accounts
+              success: (accounts) {
+                final active = accounts
                     .where((account) => account.isActive)
-                    .map(
-                      (account) => ChoiceChip(
-                        label: Text(account.name),
-                        selected: _account?.id == account.id,
-                        onSelected: (_) => setState(() => _account = account),
-                      ),
-                    )
-                    .toList(),
-              ),
+                    .toList();
+                return AppSearchableSingleSelector<AccountEntity>(
+                  items: active,
+                  idOf: (item) => item.id,
+                  labelOf: (item) => item.name,
+                  leadingOf: (item) => Icon(
+                    item.icon,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  value: _account,
+                  hint: 'Seleccionar cuenta',
+                  searchHint: 'Buscar cuentas',
+                  onChanged: (value) => setState(() => _account = value),
+                );
+              },
             ),
           ],
           if (_error != null)
@@ -425,18 +431,15 @@ class _FamilyBudgetSheetState extends ConsumerState<_FamilyBudgetSheet> {
             error: (_, _) => const Text('No pudimos cargar las categorías.'),
             data: (categories) => categories.isEmpty
                 ? const Text('No hay categorías disponibles.')
-                : Wrap(
-                    spacing: 8,
-                    children: categories
-                        .map(
-                          (category) => ChoiceChip(
-                            label: Text(category.name),
-                            selected: _category?.id == category.id,
-                            onSelected: (_) =>
-                                setState(() => _category = category),
-                          ),
-                        )
-                        .toList(),
+                : AppSearchableSingleSelector<CategoryEntity>(
+                    items: categories,
+                    idOf: (item) => item.id,
+                    labelOf: (item) => item.name,
+                    leadingOf: (item) => Icon(item.icon, color: item.color),
+                    value: _category,
+                    hint: 'Seleccionar categoría',
+                    searchHint: 'Buscar categorías',
+                    onChanged: (value) => setState(() => _category = value),
                   ),
           ),
           const SizedBox(height: AppSpacing.md),

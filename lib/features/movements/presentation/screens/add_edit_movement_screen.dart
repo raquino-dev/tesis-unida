@@ -6,7 +6,7 @@ import '../../../../app/theme/app_theme_extension.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_card.dart';
-import '../../../../core/widgets/app_chip.dart';
+import '../../../../core/widgets/app_searchable_selector.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../accounts/domain/account_entity.dart';
 import '../../../accounts/presentation/account_providers.dart';
@@ -288,24 +288,6 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              if (_categories.isNotEmpty) ...[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _categories
-                      .map(
-                        (c) => AppChip(
-                          label: c.name,
-                          selected: true,
-                          accentColor: c.color,
-                          icon: c.icon,
-                          onRemove: () => setState(() => _categories.remove(c)),
-                        ),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(height: 10),
-              ],
               categoriesState.when(
                 loading: () => const LinearProgressIndicator(),
                 error: (_) => const SizedBox.shrink(),
@@ -316,46 +298,16 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
                       : CategoryType.income;
                   final available = categories
                       .where((c) => c.type.appliesTo(movementCategoryType))
-                      .where((c) => !_categories.any((s) => s.id == c.id))
                       .toList();
-                  if (available.isEmpty) return const SizedBox.shrink();
-                  return Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: available.map((c) {
-                      return GestureDetector(
-                        onTap: () => setState(() => _categories.add(c)),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 9,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colors.surfaceElevated,
-                            borderRadius: AppRadius.pillRadius,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                c.icon,
-                                size: 14,
-                                color: colors.textSecondary,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                c.name,
-                                style: TextStyle(
-                                  color: colors.textSecondary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                  return AppSearchableMultiSelector<CategoryEntity>(
+                    items: available,
+                    idOf: (item) => item.id,
+                    labelOf: (item) => item.name,
+                    leadingOf: (item) => Icon(item.icon, color: item.color),
+                    values: _categories,
+                    hint: 'Buscar y seleccionar categorías',
+                    searchHint: 'Buscar categorías',
+                    onChanged: (values) => setState(() => _categories = values),
                   );
                 },
               ),
@@ -379,50 +331,15 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
                 success: (accounts) {
                   final active = accounts.where((a) => a.isActive).toList();
                   _account ??= active.isNotEmpty ? active.first : null;
-                  return Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: active.map((a) {
-                      final selected = _account?.id == a.id;
-                      return GestureDetector(
-                        onTap: () => setState(() => _account = a),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 9,
-                          ),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? colors.primary
-                                : colors.surfaceElevated,
-                            borderRadius: AppRadius.pillRadius,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                a.icon,
-                                size: 14,
-                                color: selected
-                                    ? Colors.white
-                                    : colors.textSecondary,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                a.name,
-                                style: TextStyle(
-                                  color: selected
-                                      ? Colors.white
-                                      : colors.textSecondary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                  return AppSearchableSingleSelector<AccountEntity>(
+                    items: active,
+                    idOf: (item) => item.id,
+                    labelOf: (item) => item.name,
+                    leadingOf: (item) => Icon(item.icon, color: colors.primary),
+                    value: _account,
+                    hint: 'Seleccionar cuenta o método',
+                    searchHint: 'Buscar cuentas o métodos',
+                    onChanged: (value) => setState(() => _account = value),
                   );
                 },
               ),

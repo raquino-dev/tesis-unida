@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../app/theme/app_radius.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme_extension.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -9,6 +8,7 @@ import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_state_view.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/widgets/app_searchable_selector.dart';
 import '../../accounts/domain/account_entity.dart';
 import '../../accounts/presentation/account_providers.dart';
 import '../domain/credit_card_entity.dart';
@@ -274,37 +274,15 @@ class _CreditCardEditorSheetState
                   _account ??=
                       widget.card?.account ??
                       (accounts.isNotEmpty ? accounts.first : null);
-                  return Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: accounts.map((a) {
-                      final selected = _account?.id == a.id;
-                      return GestureDetector(
-                        onTap: () => setState(() => _account = a),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 9,
-                          ),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? colors.primary
-                                : colors.surfaceElevated,
-                            borderRadius: AppRadius.pillRadius,
-                          ),
-                          child: Text(
-                            a.name,
-                            style: TextStyle(
-                              color: selected
-                                  ? Colors.white
-                                  : colors.textSecondary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                  return AppSearchableSingleSelector<AccountEntity>(
+                    items: accounts,
+                    idOf: (item) => item.id,
+                    labelOf: (item) => item.name,
+                    leadingOf: (item) => Icon(item.icon, color: colors.primary),
+                    value: _account,
+                    hint: 'Seleccionar cuenta',
+                    searchHint: 'Buscar cuentas',
+                    onChanged: (value) => setState(() => _account = value),
                   );
                 },
               ),
