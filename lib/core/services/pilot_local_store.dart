@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,9 +35,29 @@ class PilotLocalStore {
   static const _weeklyKey = 'pilot.notifications.weekly';
   static const _pushDeviceIdKey = 'pilot.notifications.device.id';
   static const _pushDeviceVersionKey = 'pilot.notifications.device.version';
+  static const _installationIdKey = 'pilot.installation.id';
 
   static Future<void> initialize() async {
     _preferences = await SharedPreferences.getInstance();
+  }
+
+  /// Identificador aleatorio y estable de esta instalación.
+  ///
+  /// No utiliza datos del dispositivo y permite que cada tester mantenga sus
+  /// sesiones y token FCM aislados de los demás.
+  static Future<String> installationId() async {
+    final existing =
+        _preferences?.getString(_installationIdKey) ??
+        _memory[_installationIdKey] as String?;
+    if (existing != null && existing.isNotEmpty) return existing;
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    final value = bytes
+        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+        .join();
+    _memory[_installationIdKey] = value;
+    await _preferences?.setString(_installationIdKey, value);
+    return value;
   }
 
   static bool _getBool(String key, {bool fallback = false}) {
