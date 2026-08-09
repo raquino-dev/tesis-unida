@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/errors/app_failure.dart';
 import '../../../../core/utils/view_state.dart';
 import '../../../../core/config/app_environment.dart';
 import '../../../../core/network/api_providers.dart';
@@ -44,6 +45,8 @@ class OcrViewModel extends StateNotifier<ViewState<OcrResultEntity>> {
         },
       );
       state = ViewState.success(result);
+    } on AppFailure catch (error) {
+      state = ViewState.error(error.message);
     } on FormatException catch (error) {
       state = ViewState.error(error.message);
     } catch (_) {

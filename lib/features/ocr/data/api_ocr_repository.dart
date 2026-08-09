@@ -90,7 +90,10 @@ class ApiOcrRepository implements OcrRepository {
   }
 
   Future<Map<String, dynamic>> _waitForProcessing(String id) async {
-    for (var attempt = 0; attempt < 24; attempt++) {
+    // El procesamiento pasa por el worker y puede tardar más que una llamada
+    // HTTP convencional. Esperar hasta un minuto evita presentar un error
+    // prematuro cuando el resultado ya está por llegar.
+    for (var attempt = 0; attempt < 80; attempt++) {
       final json = (await _api.get('/procesamientos-documentales/$id')).object;
       final status = json['estado'] as String;
       if (status != 'pendiente' && status != 'procesando') return json;
@@ -112,7 +115,9 @@ class ApiOcrRepository implements OcrRepository {
     final detected =
         json['datosDetectados'] as Map<String, dynamic>? ?? const {};
     final warnings = (json['advertencias'] as List<dynamic>? ?? const [])
-        .cast<String>();
+        .cast<String>()
+        .map(_warningForUser)
+        .toList(growable: false);
     final rawDate = detected['fecha'] as String?;
     final cdc = detected['cdcSifen'] as String?;
     return OcrResultEntity(
@@ -160,6 +165,28 @@ class ApiOcrRepository implements OcrRepository {
     'incompleto' => OcrStatus.incomplete,
     _ => OcrStatus.failed,
   };
+
+  String _warningForUser(String warning) {
+    final normalized = warning.trim().toLowerCase();
+    if (normalized.contains('fecha válida')) {
+      return 'No se detectó una fecha válida. Completala manualmente.';
+    }
+    if (normalized.contains('total confiable')) {
+      return 'No se detectó un total confiable. Completalo manualmente.';
+    }
+    if (normalized.contains('comercio')) {
+      return 'No se detectó el comercio. Completalo manualmente.';
+    }
+    if (normalized.startsWith('amazon textract')) {
+      return warning
+          .replaceFirst(
+            RegExp(r'^Amazon Textract\s*', caseSensitive: false),
+            '',
+          )
+          .trimLeft();
+    }
+    return warning;
+  }
 
   String _key(String prefix) =>
       '$prefix-${DateTime.now().microsecondsSinceEpoch}';
