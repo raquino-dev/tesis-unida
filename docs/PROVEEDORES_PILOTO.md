@@ -238,7 +238,11 @@ de Git.
   `PLAY_UPLOAD_KEY_ALIAS`, `PLAY_UPLOAD_KEY_PASSWORD` y
   `PLAY_UPLOAD_STORE_PASSWORD`. Los valores de archivos se almacenan codificados
   en Base64 y sólo se reconstruyen temporalmente dentro del runner. Todos están
-  cargados en el entorno `pilot`.
+  cargados en el entorno `pilot`. Antes de la primera publicación se recuperó
+  en el Llavero del titular la contraseña del keystore de carga originalmente
+  registrado en Play. Su material privado no se documenta ni se versiona; ante
+  una pérdida futura debe solicitarse el restablecimiento de la clave de carga
+  desde Play Console.
 
 ## Próximas altas
 
@@ -271,7 +275,7 @@ de Git.
 | ID interno de Play Console | `4974144832414097501` |
 | Prueba interna | Lista `Piloto interno` aplicada con 1 verificador; segmento activo y versión disponible |
 | Clave de carga | RSA 4096 creada; `.jks` ignorado por Git y contraseña almacenada en el llavero de macOS |
-| Primera versión interna | `0.1.0-internal.1` (`0.1.0+1`) publicada y activa para verificadores internos |
+| Primera versión interna | `0.1.0-internal.2` (`0.1.0+2`) preparada para publicación en pruebas internas |
 | Enlace de participación interna | `https://play.google.com/apps/internaltest/4701655854951520496` |
 | Configuración obligatoria | 7 de 11 tareas completadas: acceso de revisión, anuncios, público adulto, Gobierno, finanzas, salud y categoría/contacto |
 | Categoría y contacto público | Aplicación de `Finanzas`; `rodrigoaquino.dev@gmail.com`; `https://rodrigoaquino.com` |
