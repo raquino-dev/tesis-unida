@@ -222,6 +222,13 @@ de Git.
   con `USE_REAL_API=true` y `API_BASE_URL=https://api.rodrigoaquino.com/api/v1`;
   por tanto, las pruebas internas usan el backend desplegado y no los repositorios
   mock predeterminados.
+- Cada instalación Android genera un identificador aleatorio persistente; se usa
+  para registrar sesiones y tokens FCM sin asociar a la app datos físicos del
+  dispositivo ni reutilizar el mismo identificador entre verificadores.
+- Después de crear una cuenta o iniciar sesión, la app reinicia la inicialización
+  de FCM para solicitar el permiso Android, registrar/actualizar el token y
+  asociarlo a esa instalación. La versión `0.1.0+3` incorpora esta corrección
+  para la siguiente distribución interna.
 - La configuración pública de Firebase usada por Flutter se versiona en
   `lib/core/config/pilot_firebase_options.dart` y toma sus valores de
   `AppEnvironment`. No contiene cuentas de servicio, llaves privadas ni
@@ -275,7 +282,9 @@ de Git.
 | ID interno de Play Console | `4974144832414097501` |
 | Prueba interna | Lista `Piloto interno` aplicada con 1 verificador; segmento activo y versión disponible |
 | Clave de carga | RSA 4096 creada; `.jks` ignorado por Git y contraseña almacenada en el llavero de macOS |
-| Primera versión interna | `0.1.0-internal.2` (`0.1.0+2`) preparada para publicación en pruebas internas |
+| Primera versión interna | `0.1.0-internal.2` (`0.1.0+2`) publicada y activa para verificadores internos |
+| Productos de suscripción | `premium_monthly` y `premium_yearly` activos. Planes básicos con renovación automática: `monthly` por PYG 39.000/mes y `annual` por PYG 390.000/año, disponibles solo en Paraguay |
+| Prueba de licencia | Configurada con la cuenta verificadora del piloto; las compras de prueba no generan un cargo real |
 | Enlace de participación interna | `https://play.google.com/apps/internaltest/4701655854951520496` |
 | Configuración obligatoria | 7 de 11 tareas completadas: acceso de revisión, anuncios, público adulto, Gobierno, finanzas, salud y categoría/contacto |
 | Categoría y contacto público | Aplicación de `Finanzas`; `rodrigoaquino.dev@gmail.com`; `https://rodrigoaquino.com` |

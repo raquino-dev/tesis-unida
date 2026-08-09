@@ -253,7 +253,7 @@ class ApiClient {
         authenticated: false,
         body: {
           'refreshToken': refreshToken,
-          'identificadorDispositivo': AppEnvironment.deviceId,
+          'identificadorDispositivo': await PilotLocalStore.installationId(),
         },
       );
       await saveSessionResponse(response.object);

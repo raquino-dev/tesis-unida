@@ -96,7 +96,7 @@ class NotificationRepository {
     final response = await _api.post(
       '/dispositivos',
       body: {
-        'identificadorInstalacion': AppEnvironment.deviceId,
+        'identificadorInstalacion': await PilotLocalStore.installationId(),
         'nombre': 'Aplicación móvil',
         'plataforma': Platform.operatingSystem,
         'versionSistema': Platform.operatingSystemVersion,

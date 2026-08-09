@@ -4,7 +4,7 @@
 
 - Nombre visible: `Finanzas Inteligentes`
 - Identificador Android: `com.tesis.finanzasinteligentes`
-- Versión actual del prototipo: `0.1.0+2`
+- Versión actual del prototipo: `0.1.0+3`
 - Los builds de prueba muestran una banda `PROTOTIPO` dentro de la aplicación.
 
 El identificador Android debe considerarse definitivo antes de registrar la app en Google Play.

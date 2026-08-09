@@ -1,4 +1,3 @@
-import '../../../../core/config/app_environment.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/services/pilot_local_store.dart';
 import '../../domain/entities/user_entity.dart';
@@ -15,6 +14,7 @@ class ApiAuthRepository implements AuthRepository {
     required String password,
     bool rememberDevice = true,
   }) async {
+    final installationId = await PilotLocalStore.installationId();
     final response = await _api.post(
       '/sesiones',
       authenticated: false,
@@ -23,7 +23,7 @@ class ApiAuthRepository implements AuthRepository {
         'contrasena': password,
         'recordarDispositivo': rememberDevice,
         'dispositivo': {
-          'identificador': AppEnvironment.deviceId,
+          'identificador': installationId,
           'nombre': 'Finanzas Inteligentes',
           'plataforma': 'android',
           'versionSistema': 'Android 10+',
@@ -116,10 +116,7 @@ class ApiAuthRepository implements AuthRepository {
   }) async {
     await _api.post(
       '/eliminaciones-perfil',
-      body: {
-        'contrasena': password,
-        'verificacionOtpId': otpVerificationId,
-      },
+      body: {'contrasena': password, 'verificacionOtpId': otpVerificationId},
     );
   }
 

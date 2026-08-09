@@ -5,6 +5,7 @@ import '../../domain/entities/user_entity.dart';
 import '../providers/auth_providers.dart';
 import '../../../security/domain/security_entity.dart';
 import '../../../security/presentation/security_providers.dart';
+import '../../../notifications/presentation/notification_providers.dart';
 import '../../../../core/services/pilot_local_store.dart';
 import '../../../../core/config/app_environment.dart';
 
@@ -43,6 +44,7 @@ class LoginViewModel extends StateNotifier<ViewState<UserEntity>> {
         data: {'trustedDevice': rememberSession},
       );
       _ref.invalidate(securityEventsProvider);
+      _ref.invalidate(pushInitializationProvider);
       state = ViewState.success(user);
     } on AppFailure catch (e) {
       state = ViewState.error(e.message);
