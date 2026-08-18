@@ -6,6 +6,9 @@ on:
 permissions:
   contents: read
 
+env:
+  FLUTTER_VERSION: 3.44.0
+
 concurrency:
   group: pilot-android-release
   cancel-in-progress: false
@@ -14,10 +17,10 @@ jobs:
   build-aab:
     name: Build signed AAB from main
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 60
     environment: pilot
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Las compilaciones distribuibles se hacen únicamente desde main.
           ref: main
@@ -36,15 +39,39 @@ jobs:
           printf '%s' "$PLAY_UPLOAD_KEYSTORE_BASE64" | base64 --decode \
             > "$RUNNER_TEMP/upload-keystore.jks"
 
-      - name: Install Flutter stable
+      - name: Restore Flutter SDK cache
+        id: flutter-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/flutter
+          key: flutter-${{ runner.os }}-${{ runner.arch }}-${{ env.FLUTTER_VERSION }}
+
+      - name: Install pinned Flutter SDK
+        if: steps.flutter-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --depth 1 --branch stable \
+          git clone --depth 1 --branch "$FLUTTER_VERSION" \
             https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter"
+
+      - name: Configure Flutter SDK
+        run: |
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/flutter/bin/flutter" config --no-analytics
+          "$RUNNER_TEMP/flutter/bin/flutter" precache --android
+
+      - name: Restore Pub and Gradle caches
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: android-build-${{ runner.os }}-${{ hashFiles('pubspec.lock', 'android/**/*.gradle', 'android/**/*.gradle.kts', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            android-build-${{ runner.os }}-
 
       - name: Resolve, analyze and test
         run: |
-          flutter pub get
+          flutter pub get --enforce-lockfile
           flutter analyze
           flutter test
 
@@ -57,10 +84,27 @@ jobs:
         run: |
           flutter build appbundle --release \
             --dart-define=USE_REAL_API=true \
-            --dart-define=API_BASE_URL=https://api.rodrigoaquino.com/api/v1
+            --dart-define=API_BASE_URL=https://api.rodrigoaquino.com/api/v1 &
+          build_pid=$!
+          (
+            while kill -0 "$build_pid" 2>/dev/null; do
+              sleep 60
+              if kill -0 "$build_pid" 2>/dev/null; then
+                echo "La compilación del AAB continúa..."
+              fi
+            done
+          ) &
+          heartbeat_pid=$!
+          set +e
+          wait "$build_pid"
+          build_status=$?
+          set -e
+          kill "$heartbeat_pid" 2>/dev/null || true
+          wait "$heartbeat_pid" 2>/dev/null || true
+          exit "$build_status"
 
       - name: Publish App Bundle artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: finanzas-inteligentes-pilot-aab-${{ github.sha }}
           path: build/app/outputs/bundle/release/app-release.aab
