@@ -48,6 +48,11 @@ dependencies:
   http: ^1.6.0
   http_parser: ^4.1.2
   crypto: ^3.0.6
+  sqlite3: ^3.5.0
+  path: ^1.9.1
+  path_provider: ^2.1.6
+  connectivity_plus: ^7.3.1
+  workmanager: ^0.10.7
   in_app_purchase: ^3.3.0
   firebase_core: ^4.12.1
   firebase_messaging: ^16.4.3
@@ -63,6 +68,11 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlite3mc
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -1,4 +1,5 @@
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/offline_models.dart';
 
 /// Finalidad específica del consentimiento informado de la prueba piloto.
 /// Se mantiene separada del consentimiento de tratamiento de datos que se
@@ -38,6 +39,11 @@ class ApiPilotConsentRepository {
     await _api.post(
       '/privacidad/consentimientos',
       body: {'versionPolitica': version, 'finalidad': pilotConsentPurpose},
+      offline: OfflineMutation(
+        entityType: 'consentimiento',
+        entityId: '$pilotConsentPurpose:$version',
+        optimisticResponse: const <String, dynamic>{},
+      ),
     );
   }
 }

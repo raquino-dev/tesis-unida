@@ -1,5 +1,7 @@
 import '../../../core/errors/app_failure.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/offline_models.dart';
+import '../../../core/utils/uuid_v4.dart';
 import '../../accounts/domain/account_entity.dart';
 import '../../accounts/domain/account_repository.dart';
 import '../../categories/domain/category_entity.dart';
@@ -33,9 +35,18 @@ class ApiRecurringMovementRepository implements RecurringMovementRepository {
   Future<RecurringMovementEntity> createRecurringMovement(
     RecurringMovementEntity recurring,
   ) async {
+    final id = uuidOrNew(recurring.id);
+    final optimistic = _json(recurring, id: id, version: 1);
     final response = await _api.post(
       '/movimientos-recurrentes',
-      body: _body(recurring),
+      body: {..._body(recurring), 'id': id},
+      offline: OfflineMutation(
+        entityType: 'movimiento_recurrente',
+        entityId: id,
+        optimisticResponse: optimistic,
+        collectionPath: '/movimientos-recurrentes',
+        collectionField: 'datos',
+      ),
     );
     return _fromJson(response.object, recurring.categories, [
       recurring.account,
@@ -46,10 +57,22 @@ class ApiRecurringMovementRepository implements RecurringMovementRepository {
   Future<RecurringMovementEntity> updateRecurringMovement(
     RecurringMovementEntity recurring,
   ) async {
+    final version = await _versionFor(recurring.id);
     final response = await _api.patch(
       '/movimientos-recurrentes/${recurring.id}',
       body: _body(recurring),
-      headers: {'If-Match': '"${await _versionFor(recurring.id)}"'},
+      headers: {'If-Match': '"$version"'},
+      offline: OfflineMutation(
+        entityType: 'movimiento_recurrente',
+        entityId: recurring.id,
+        optimisticResponse: _json(
+          recurring,
+          id: recurring.id,
+          version: version + 1,
+        ),
+        collectionPath: '/movimientos-recurrentes',
+        collectionField: 'datos',
+      ),
     );
     return _fromJson(response.object, recurring.categories, [
       recurring.account,
@@ -61,10 +84,23 @@ class ApiRecurringMovementRepository implements RecurringMovementRepository {
     RecurringMovementEntity recurring,
     RecurringStatus status,
   ) async {
+    final version = await _versionFor(recurring.id);
+    final updated = recurring.copyWith(status: status, version: version + 1);
     final response = await _api.patch(
       '/movimientos-recurrentes/${recurring.id}',
       body: {'estado': _statusToApi(status)},
-      headers: {'If-Match': '"${await _versionFor(recurring.id)}"'},
+      headers: {'If-Match': '"$version"'},
+      offline: OfflineMutation(
+        entityType: 'movimiento_recurrente',
+        entityId: recurring.id,
+        optimisticResponse: _json(
+          updated,
+          id: recurring.id,
+          version: version + 1,
+        ),
+        collectionPath: '/movimientos-recurrentes',
+        collectionField: 'datos',
+      ),
     );
     return _fromJson(response.object, recurring.categories, [
       recurring.account,
@@ -73,9 +109,17 @@ class ApiRecurringMovementRepository implements RecurringMovementRepository {
 
   @override
   Future<void> deleteRecurringMovement(String id) async {
+    final version = await _versionFor(id);
     await _api.delete(
       '/movimientos-recurrentes/$id',
-      headers: {'If-Match': '"${await _versionFor(id)}"'},
+      headers: {'If-Match': '"$version"'},
+      offline: OfflineMutation(
+        entityType: 'movimiento_recurrente',
+        entityId: id,
+        optimisticResponse: const <String, dynamic>{},
+        collectionPath: '/movimientos-recurrentes',
+        collectionField: 'datos',
+      ),
     );
     _versions.remove(id);
   }
@@ -97,6 +141,29 @@ class ApiRecurringMovementRepository implements RecurringMovementRepository {
     'fechaFin': recurring.endDate == null ? null : _date(recurring.endDate!),
     'frecuencia': _frequencyToApi(recurring.frequency),
     'cantidadOcurrencias': recurring.totalOccurrences,
+  };
+
+  Map<String, dynamic> _json(
+    RecurringMovementEntity recurring, {
+    required String id,
+    required int version,
+  }) => {
+    'id': id,
+    'tipo': recurring.type == MovementType.income ? 'ingreso' : 'gasto',
+    'monto': recurring.amount.round(),
+    'categorias': recurring.categories
+        .map((item) => {'id': item.id, 'nombre': item.name})
+        .toList(),
+    'cuenta': {'id': recurring.account.id, 'nombre': recurring.account.name},
+    'descripcion': recurring.description,
+    'fechaInicio': _date(recurring.startDate),
+    'fechaFin': recurring.endDate == null ? null : _date(recurring.endDate!),
+    'frecuencia': _frequencyToApi(recurring.frequency),
+    'cantidadOcurrencias': recurring.totalOccurrences,
+    'ocurrenciasCompletadas': recurring.completedOccurrences,
+    'proximaEjecucion': _date(recurring.nextExecutionDate),
+    'estado': _statusToApi(recurring.status),
+    'version': version,
   };
 
   RecurringMovementEntity _fromJson(

@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_mode_provider.dart';
 import '../core/config/app_environment.dart';
+import '../core/offline/offline_runtime.dart';
 import '../core/services/pilot_local_store.dart';
 import '../features/security/presentation/security_providers.dart';
 import '../features/notifications/presentation/notification_providers.dart';
@@ -46,7 +49,7 @@ class _BiometricGate extends ConsumerStatefulWidget {
 class _BiometricGateState extends ConsumerState<_BiometricGate>
     with WidgetsBindingObserver {
   bool _locked =
-      PilotLocalStore.hasSession && PilotLocalStore.biometricsEnabled;
+      PilotLocalStore.offlineSessionValid && PilotLocalStore.biometricsEnabled;
   bool _authenticating = false;
 
   @override
@@ -67,17 +70,18 @@ class _BiometricGateState extends ConsumerState<_BiometricGate>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused &&
-        PilotLocalStore.hasSession &&
+        PilotLocalStore.offlineSessionValid &&
         PilotLocalStore.biometricsEnabled) {
       setState(() => _locked = true);
-    } else if (state == AppLifecycleState.resumed && _locked) {
-      _unlock();
+    } else if (state == AppLifecycleState.resumed) {
+      unawaited(OfflineRuntime.instance.synchronize());
+      if (_locked) _unlock();
     }
   }
 
   Future<void> _unlock() async {
     if (_authenticating ||
-        !PilotLocalStore.hasSession ||
+        !PilotLocalStore.offlineSessionValid ||
         !PilotLocalStore.biometricsEnabled) {
       if (mounted && _locked) setState(() => _locked = false);
       return;

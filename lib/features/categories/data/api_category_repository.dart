@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/offline_models.dart';
+import '../../../core/utils/uuid_v4.dart';
 import '../domain/category_entity.dart';
 import '../domain/category_repository.dart';
 
@@ -19,10 +21,24 @@ class ApiCategoryRepository implements CategoryRepository {
   }
 
   @override
-  Future<CategoryEntity> createCategory(CategoryEntity category) async =>
-      _fromJson(
-        (await _api.post('/categorias', body: _body(category))).object,
-      );
+  Future<CategoryEntity> createCategory(CategoryEntity category) async {
+    final id = uuidOrNew(category.id);
+    final optimistic = _json(category, id: id, version: 1);
+    return _fromJson(
+      (
+        await _api.post(
+          '/categorias',
+          body: {..._body(category), 'id': id},
+          offline: OfflineMutation(
+            entityType: 'categoria',
+            entityId: id,
+            optimisticResponse: optimistic,
+            collectionPath: '/categorias',
+          ),
+        )
+      ).object,
+    );
+  }
 
   @override
   Future<CategoryEntity> updateCategory(CategoryEntity category) async {
@@ -33,6 +49,16 @@ class ApiCategoryRepository implements CategoryRepository {
           '/categorias/${category.id}',
           body: _body(category),
           headers: {'If-Match': '"$version"'},
+          offline: OfflineMutation(
+            entityType: 'categoria',
+            entityId: category.id,
+            optimisticResponse: _json(
+              category,
+              id: category.id,
+              version: version + 1,
+            ),
+            collectionPath: '/categorias',
+          ),
         )
       ).object,
     );
@@ -44,6 +70,12 @@ class ApiCategoryRepository implements CategoryRepository {
     await _api.delete(
       '/categorias/$id',
       headers: {'If-Match': '"$version"'},
+      offline: OfflineMutation(
+        entityType: 'categoria',
+        entityId: id,
+        optimisticResponse: const <String, dynamic>{},
+        collectionPath: '/categorias',
+      ),
     );
     _versions.remove(id);
   }
@@ -66,6 +98,17 @@ class ApiCategoryRepository implements CategoryRepository {
     // `#RRGGBB`; el canal alfa de Flutter no forma parte del contrato.
     'color':
         '#${(category.color.toARGB32() & 0x00ffffff).toRadixString(16).padLeft(6, '0')}',
+  };
+
+  Map<String, dynamic> _json(
+    CategoryEntity category, {
+    required String id,
+    required int version,
+  }) => {
+    'id': id,
+    ..._body(category),
+    'enUso': category.inUse,
+    'version': version,
   };
 
   CategoryEntity _fromJson(Map<String, dynamic> json) {

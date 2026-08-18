@@ -1,4 +1,6 @@
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/offline_models.dart';
+import '../../../core/utils/uuid_v4.dart';
 import '../domain/account_entity.dart';
 import '../domain/account_repository.dart';
 
@@ -17,7 +19,18 @@ class ApiAccountRepository implements AccountRepository {
 
   @override
   Future<AccountEntity> createAccount(AccountEntity account) async {
-    final response = await _api.post('/cuentas', body: _body(account));
+    final id = uuidOrNew(account.id);
+    final optimistic = _json(account, id: id, version: 1);
+    final response = await _api.post(
+      '/cuentas',
+      body: {..._body(account), 'id': id},
+      offline: OfflineMutation(
+        entityType: 'cuenta',
+        entityId: id,
+        optimisticResponse: optimistic,
+        collectionPath: '/cuentas',
+      ),
+    );
     return _fromJson(response.object);
   }
 
@@ -28,6 +41,12 @@ class ApiAccountRepository implements AccountRepository {
       '/cuentas/${account.id}',
       body: _body(account),
       headers: {'If-Match': '"$version"'},
+      offline: OfflineMutation(
+        entityType: 'cuenta',
+        entityId: account.id,
+        optimisticResponse: _json(account, id: account.id, version: version + 1),
+        collectionPath: '/cuentas',
+      ),
     );
     return _fromJson(response.object);
   }
@@ -38,6 +57,12 @@ class ApiAccountRepository implements AccountRepository {
     await _api.delete(
       '/cuentas/$id',
       headers: {'If-Match': '"$version"'},
+      offline: OfflineMutation(
+        entityType: 'cuenta',
+        entityId: id,
+        optimisticResponse: const <String, dynamic>{},
+        collectionPath: '/cuentas',
+      ),
     );
     _versions.remove(id);
   }
@@ -56,6 +81,22 @@ class ApiAccountRepository implements AccountRepository {
     'moneda': 'PYG',
     'icono': account.icon.codePoint.toRadixString(16),
     'incluidaEnTotal': account.isActive,
+  };
+
+  Map<String, dynamic> _json(
+    AccountEntity account, {
+    required String id,
+    required int version,
+  }) => {
+    'id': id,
+    'nombre': account.name,
+    'tipo': _typeToApi(account.type),
+    'saldoInicial': account.initialBalance.round(),
+    'saldoActual': account.initialBalance.round(),
+    'moneda': 'PYG',
+    'icono': account.icon.codePoint.toRadixString(16),
+    'incluidaEnTotal': account.isActive,
+    'version': version,
   };
 
   AccountEntity _fromJson(Map<String, dynamic> json) {
