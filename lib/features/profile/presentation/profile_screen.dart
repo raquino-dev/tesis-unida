@@ -9,6 +9,7 @@ import '../../../core/widgets/app_badge.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/offline/offline_runtime.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
 import '../../auth/presentation/viewmodels/delete_account_viewmodel.dart';
 import '../../subscription/presentation/subscription_viewmodel.dart';
@@ -37,7 +38,10 @@ class ProfileScreen extends ConsumerWidget {
                   radius: 28,
                   backgroundColor: colors.primary.withValues(alpha: 0.2),
                   child: Text(
-                    (user?.name ?? 'R').substring(0, 1),
+                    (user?.name.trim().isNotEmpty == true
+                            ? user!.name.trim()
+                            : 'U')
+                        .substring(0, 1),
                     style: TextStyle(
                       color: colors.primary,
                       fontSize: 22,
@@ -51,7 +55,7 @@ class ProfileScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        user?.name ?? 'Rodrigo Aquino',
+                        user?.name ?? 'Usuario',
                         style: TextStyle(
                           color: colors.textPrimary,
                           fontSize: 17,
@@ -183,6 +187,29 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.lg),
           AppCard(
             onTap: () async {
+              if (await OfflineRuntime.instance.hasPendingOperations()) {
+                if (!context.mounted) return;
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    title: const Text('Hay cambios sin sincronizar'),
+                    content: const Text(
+                      'Si cerrás sesión ahora, los cambios pendientes de este dispositivo se eliminarán.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext, false),
+                        child: const Text('Cancelar'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        child: const Text('Cerrar de todos modos'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed != true) return;
+              }
               await ref.read(currentUserProvider.notifier).logout();
               if (context.mounted) context.go(AppRoutes.login);
             },

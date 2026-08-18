@@ -8,6 +8,7 @@ import '../../../security/presentation/security_providers.dart';
 import '../../../../core/services/pilot_local_store.dart';
 import '../../../../core/config/app_environment.dart';
 import '../../../../core/network/api_providers.dart';
+import '../../../../core/offline/offline_runtime.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   if (AppEnvironment.useApi) {
@@ -21,7 +22,7 @@ class CurrentUserNotifier extends StateNotifier<UserEntity?> {
   final AuthRepository _repository;
   final Ref ref;
   CurrentUserNotifier(this._repository, this.ref) : super(null) {
-    if (PilotLocalStore.hasSession) loadCurrentUser();
+    if (PilotLocalStore.offlineSessionValid) loadCurrentUser();
   }
 
   Future<void> loadCurrentUser() async {
@@ -31,6 +32,7 @@ class CurrentUserNotifier extends StateNotifier<UserEntity?> {
   void setUser(UserEntity user) => state = user;
 
   Future<void> logout() async {
+    await OfflineRuntime.instance.clearCurrentUser();
     await _repository.logout();
     await ref.read(securityRepositoryProvider).clearSession();
     await PilotLocalStore.clearSession();

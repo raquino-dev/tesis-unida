@@ -1,4 +1,5 @@
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/offline_models.dart';
 
 class PilotInstrumentQuestion {
   const PilotInstrumentQuestion({
@@ -97,6 +98,11 @@ class ApiPilotInstrumentRepository {
     await _api.post(
       '/instrumentos-piloto/$code/respuestas',
       body: {'respuestas': answers.map((answer) => answer.toJson()).toList()},
+      offline: OfflineMutation(
+        entityType: 'respuesta_instrumento',
+        entityId: code,
+        optimisticResponse: const <String, dynamic>{},
+      ),
     );
   }
 }

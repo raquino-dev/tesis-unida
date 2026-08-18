@@ -17,6 +17,8 @@ final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
       ref.watch(apiClientProvider),
       ref.watch(authRepositoryProvider),
       ref.watch(categoryRepositoryProvider),
+      ref.watch(recurringMovementRepositoryProvider),
+      ref.watch(movementRepositoryProvider),
     );
   }
   return MockDashboardRepository(

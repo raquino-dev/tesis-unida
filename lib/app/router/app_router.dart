@@ -11,6 +11,7 @@ import '../../features/auth/presentation/screens/change_password_screen.dart';
 import '../../features/auth/presentation/screens/reset_password_screen.dart';
 import '../../features/auth/presentation/providers/auth_providers.dart';
 import '../../core/services/pilot_local_store.dart';
+import '../../core/widgets/offline_status_bar.dart';
 import '../../features/budgets/presentation/budgets_screen.dart';
 import '../../features/categories/presentation/category_list_screen.dart';
 import '../../features/credit_cards/presentation/credit_card_list_screen.dart';
@@ -40,7 +41,8 @@ final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final currentUser = ref.watch(currentUserProvider);
-  final authenticated = currentUser != null || PilotLocalStore.hasSession;
+  final authenticated =
+      currentUser != null || PilotLocalStore.offlineSessionValid;
   const publicRoutes = {
     AppRoutes.onboarding,
     AppRoutes.login,
@@ -126,7 +128,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.ocr,
-        builder: (context, state) => const OcrScanScreen(),
+        builder: (context, state) => const OnlineRequired(
+          featureName: 'Escaneo de comprobantes',
+          child: OcrScanScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.budgets,
@@ -151,7 +156,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.subscription,
-        builder: (context, state) => const SubscriptionScreen(),
+        builder: (context, state) => const OnlineRequired(
+          featureName: 'Suscripciones',
+          child: SubscriptionScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.settings,
@@ -175,9 +183,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.export,
-        builder: (context, state) => ExportScreen(
-          initialFilters:
-              state.extra as MovementFilters? ?? const MovementFilters(),
+        builder: (context, state) => OnlineRequired(
+          featureName: 'Exportación de datos',
+          child: ExportScreen(
+            initialFilters:
+                state.extra as MovementFilters? ?? const MovementFilters(),
+          ),
         ),
       ),
       GoRoute(
@@ -186,7 +197,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.transfers,
-        builder: (context, state) => const TransferScreen(),
+        builder: (context, state) => const OnlineRequired(
+          featureName: 'Transferencias entre cuentas',
+          child: TransferScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.recurringMovements,
@@ -194,26 +208,41 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.family,
-        builder: (context, state) => const FamilyScreen(),
+        builder: (context, state) => const OnlineRequired(
+          featureName: 'Colaboración familiar',
+          child: FamilyScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.invitationAcceptance,
-        builder: (context, state) => InvitationAcceptanceScreen(
-          initialCode: state.uri.queryParameters['code'],
-          initialToken: state.uri.queryParameters['token'],
+        builder: (context, state) => OnlineRequired(
+          featureName: 'Invitación familiar',
+          child: InvitationAcceptanceScreen(
+            initialCode: state.uri.queryParameters['code'],
+            initialToken: state.uri.queryParameters['token'],
+          ),
         ),
       ),
       GoRoute(
         path: AppRoutes.familyTreasury,
-        builder: (context, state) => const FamilyFinanceScreen(initialIndex: 0),
+        builder: (context, state) => const OnlineRequired(
+          featureName: 'Finanzas familiares',
+          child: FamilyFinanceScreen(initialIndex: 0),
+        ),
       ),
       GoRoute(
         path: AppRoutes.familyBudgets,
-        builder: (context, state) => const FamilyFinanceScreen(initialIndex: 1),
+        builder: (context, state) => const OnlineRequired(
+          featureName: 'Presupuestos familiares',
+          child: FamilyFinanceScreen(initialIndex: 1),
+        ),
       ),
       GoRoute(
         path: AppRoutes.familyReports,
-        builder: (context, state) => const FamilyFinanceScreen(initialIndex: 2),
+        builder: (context, state) => const OnlineRequired(
+          featureName: 'Reportes familiares',
+          child: FamilyFinanceScreen(initialIndex: 2),
+        ),
       ),
       GoRoute(
         path: AppRoutes.reports,

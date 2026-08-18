@@ -1,5 +1,7 @@
 import '../../../core/errors/app_failure.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/offline_models.dart';
+import '../../../core/utils/uuid_v4.dart';
 import '../../accounts/domain/account_entity.dart';
 import '../../accounts/domain/account_repository.dart';
 import '../domain/credit_card_entity.dart';
@@ -23,7 +25,18 @@ class ApiCreditCardRepository implements CreditCardRepository {
 
   @override
   Future<CreditCardEntity> createCreditCard(CreditCardEntity card) async {
-    final response = await _api.post('/tarjetas-credito', body: _body(card));
+    final id = uuidOrNew(card.id);
+    final response = await _api.post(
+      '/tarjetas-credito',
+      body: {..._body(card), 'id': id},
+      offline: OfflineMutation(
+        entityType: 'tarjeta_credito',
+        entityId: id,
+        optimisticResponse: _json(card, id: id, version: 1),
+        collectionPath: '/tarjetas-credito',
+        collectionField: 'datos',
+      ),
+    );
     return _fromJson(response.object, [card.account]);
   }
 
@@ -34,6 +47,13 @@ class ApiCreditCardRepository implements CreditCardRepository {
       '/tarjetas-credito/${card.id}',
       body: _body(card),
       headers: {'If-Match': '"$version"'},
+      offline: OfflineMutation(
+        entityType: 'tarjeta_credito',
+        entityId: card.id,
+        optimisticResponse: _json(card, id: card.id, version: version + 1),
+        collectionPath: '/tarjetas-credito',
+        collectionField: 'datos',
+      ),
     );
     return _fromJson(response.object, [card.account]);
   }
@@ -44,6 +64,13 @@ class ApiCreditCardRepository implements CreditCardRepository {
     await _api.delete(
       '/tarjetas-credito/$id',
       headers: {'If-Match': '"$version"'},
+      offline: OfflineMutation(
+        entityType: 'tarjeta_credito',
+        entityId: id,
+        optimisticResponse: const <String, dynamic>{},
+        collectionPath: '/tarjetas-credito',
+        collectionField: 'datos',
+      ),
     );
     _versions.remove(id);
   }
@@ -63,6 +90,28 @@ class ApiCreditCardRepository implements CreditCardRepository {
     'limiteCredito': card.totalLimit.round(),
     'moneda': 'PYG',
     'color': card.color,
+  };
+
+  Map<String, dynamic> _json(
+    CreditCardEntity card, {
+    required String id,
+    required int version,
+  }) => {
+    'id': id,
+    'alias': card.alias,
+    'cuentaPago': {
+      'id': card.account.id,
+      'nombre': card.account.name,
+      'tipo': card.account.type.name,
+    },
+    'diaCierre': card.closingDay,
+    'diaVencimiento': card.dueDay,
+    'limiteCredito': card.totalLimit.round(),
+    'saldoUtilizado': card.usedLimit.round(),
+    'creditoDisponible': card.availableLimit.round(),
+    'moneda': 'PYG',
+    'color': card.color,
+    'version': version,
   };
 
   CreditCardEntity _fromJson(

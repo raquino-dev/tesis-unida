@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/errors/app_failure.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/offline_models.dart';
+import '../../../core/utils/uuid_v4.dart';
 import '../../accounts/domain/account_entity.dart';
 import '../../accounts/domain/account_repository.dart';
 import '../../categories/domain/category_entity.dart';
@@ -46,21 +48,31 @@ class ApiMovementRepository implements MovementRepository {
 
   @override
   Future<MovementEntity> addMovement(MovementEntity movement) async {
+    final id = uuidOrNew(movement.id);
+    final body = {
+      'id': id,
+      'ambito': 'privado',
+      'cuentaId': movement.account.id,
+      'tipo': movement.type == MovementType.income ? 'ingreso' : 'gasto',
+      'monto': movement.amount.round(),
+      'descripcion': movement.description,
+      'fecha': _date(movement.date),
+      'hora': _time(movement.date),
+      'categoriaIds': movement.categories.map((item) => item.id).toList(),
+      if (movement.documentId != null) 'documentoId': movement.documentId,
+      if (movement.recurringSourceId != null)
+        'movimientoRecurrenteId': movement.recurringSourceId,
+    };
+    final optimistic = {...body, 'version': 1, 'estado': 'confirmado'};
     final response = await _api.post(
       '/movimientos',
-      body: {
-        'ambito': 'privado',
-        'cuentaId': movement.account.id,
-        'tipo': movement.type == MovementType.income ? 'ingreso' : 'gasto',
-        'monto': movement.amount.round(),
-        'descripcion': movement.description,
-        'fecha': _date(movement.date),
-        'hora': _time(movement.date),
-        'categoriaIds': movement.categories.map((item) => item.id).toList(),
-        if (movement.documentId != null) 'documentoId': movement.documentId,
-        if (movement.recurringSourceId != null)
-          'movimientoRecurrenteId': movement.recurringSourceId,
-      },
+      body: body,
+      offline: OfflineMutation(
+        entityType: 'movimiento',
+        entityId: id,
+        optimisticResponse: optimistic,
+        collectionPath: '/movimientos',
+      ),
     );
     return _fromJson(response.object, movement.categories, [movement.account]);
   }
@@ -91,6 +103,17 @@ class ApiMovementRepository implements MovementRepository {
         'categoriaIds': movement.categories.map((item) => item.id).toList(),
       },
       headers: {'If-Match': '"$version"'},
+      offline: OfflineMutation(
+        entityType: 'movimiento',
+        entityId: movement.id,
+        optimisticResponse: {
+          ...original,
+          'descripcion': movement.description,
+          'categoriaIds': movement.categories.map((item) => item.id).toList(),
+          'version': version + 1,
+        },
+        collectionPath: '/movimientos',
+      ),
     );
     return _fromJson(response.object, movement.categories, [movement.account]);
   }
@@ -101,6 +124,12 @@ class ApiMovementRepository implements MovementRepository {
     await _api.delete(
       '/movimientos/$id',
       headers: {'If-Match': '"${_versions[id]}"'},
+      offline: OfflineMutation(
+        entityType: 'movimiento',
+        entityId: id,
+        optimisticResponse: const <String, dynamic>{},
+        collectionPath: '/movimientos',
+      ),
     );
     _versions.remove(id);
     _raw.remove(id);

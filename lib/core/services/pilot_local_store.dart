@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -36,6 +37,7 @@ class PilotLocalStore {
   static const _pushDeviceIdKey = 'pilot.notifications.device.id';
   static const _pushDeviceVersionKey = 'pilot.notifications.device.version';
   static const _installationIdKey = 'pilot.installation.id';
+  static const _lastOnlineAuthenticationKey = 'pilot.auth.last_online';
 
   static Future<void> initialize() async {
     _preferences = await SharedPreferences.getInstance();
@@ -74,6 +76,23 @@ class PilotLocalStore {
 
   static bool get hasSession => _getBool(_sessionKey);
 
+  static bool get offlineSessionValid {
+    if (!hasSession) return false;
+    final raw = _preferences?.getString(_lastOnlineAuthenticationKey);
+    if (raw == null) return true; // Compatibilidad con instalaciones previas.
+    final timestamp = DateTime.tryParse(raw);
+    if (timestamp == null) return false;
+    return DateTime.now().toUtc().difference(timestamp.toUtc()) <=
+        const Duration(days: 7);
+  }
+
+  static Future<void> markOnlineAuthentication() async {
+    await _preferences?.setString(
+      _lastOnlineAuthenticationKey,
+      DateTime.now().toUtc().toIso8601String(),
+    );
+  }
+
   static Future<void> saveSession(String refreshToken) async {
     await _setBool(_sessionKey, true);
     try {
@@ -90,6 +109,7 @@ class PilotLocalStore {
     required String sessionId,
   }) async {
     await _setBool(_sessionKey, true);
+    await markOnlineAuthentication();
     try {
       await Future.wait([
         _secureStorage.write(key: _accessTokenKey, value: accessToken),
@@ -127,8 +147,41 @@ class PilotLocalStore {
     }
   }
 
+  /// Clave estable y no reversible para aislar la información financiera
+  /// almacenada localmente. Se deriva del sujeto del JWT y nunca persiste el
+  /// identificador del usuario en texto plano.
+  static Future<String?> currentUserStorageKey() async {
+    final accessToken = await readAccessToken();
+    if (accessToken != null) {
+      try {
+        final parts = accessToken.split('.');
+        if (parts.length == 3) {
+          final payload = utf8.decode(
+            base64Url.decode(base64Url.normalize(parts[1])),
+          );
+          final json = jsonDecode(payload) as Map<String, dynamic>;
+          final subject = json['sub']?.toString();
+          if (subject != null && subject.isNotEmpty) {
+            return _storageHash(subject);
+          }
+        }
+      } catch (_) {
+        // Un token de demostración puede no ser un JWT. Se usa la sesión como
+        // alternativa sin exponerla en la base local.
+      }
+    }
+    final sessionId = await readSessionId();
+    if (sessionId == null || sessionId.isEmpty) return null;
+    return _storageHash(sessionId);
+  }
+
+  static String _storageHash(String value) {
+    return sha256.convert(utf8.encode(value)).toString();
+  }
+
   static Future<void> clearSession() async {
     await _setBool(_sessionKey, false);
+    await _preferences?.remove(_lastOnlineAuthenticationKey);
     try {
       await Future.wait([
         _secureStorage.delete(key: _accessTokenKey),

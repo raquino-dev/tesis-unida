@@ -1,5 +1,7 @@
 import '../../../core/errors/app_failure.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/offline_models.dart';
+import '../../../core/utils/uuid_v4.dart';
 import '../../categories/domain/category_entity.dart';
 import '../../categories/domain/category_repository.dart';
 import '../domain/budget_entity.dart';
@@ -34,7 +36,19 @@ class ApiBudgetRepository implements BudgetRepository {
 
   @override
   Future<BudgetEntity> createBudget(BudgetEntity budget) async {
-    final response = await _api.post('/presupuestos', body: _body(budget));
+    final id = uuidOrNew(budget.id);
+    final optimistic = _json(budget, id: id, version: 1);
+    final response = await _api.post(
+      '/presupuestos',
+      body: {..._body(budget), 'id': id},
+      offline: OfflineMutation(
+        entityType: 'presupuesto',
+        entityId: id,
+        optimisticResponse: optimistic,
+        collectionPath: '/presupuestos',
+        collectionField: 'datos',
+      ),
+    );
     return _fromJson(response.object, budget.categories);
   }
 
@@ -44,15 +58,34 @@ class ApiBudgetRepository implements BudgetRepository {
       '/presupuestos/${budget.id}',
       body: _body(budget),
       headers: {'If-Match': '"${await _versionFor(budget.id)}"'},
+      offline: OfflineMutation(
+        entityType: 'presupuesto',
+        entityId: budget.id,
+        optimisticResponse: _json(
+          budget,
+          id: budget.id,
+          version: budget.version + 1,
+        ),
+        collectionPath: '/presupuestos',
+        collectionField: 'datos',
+      ),
     );
     return _fromJson(response.object, budget.categories);
   }
 
   @override
   Future<void> deleteBudget(String id) async {
+    final version = await _versionFor(id);
     await _api.delete(
       '/presupuestos/$id',
-      headers: {'If-Match': '"${await _versionFor(id)}"'},
+      headers: {'If-Match': '"$version"'},
+      offline: OfflineMutation(
+        entityType: 'presupuesto',
+        entityId: id,
+        optimisticResponse: const <String, dynamic>{},
+        collectionPath: '/presupuestos',
+        collectionField: 'datos',
+      ),
     );
     _versions.remove(id);
   }
@@ -71,6 +104,22 @@ class ApiBudgetRepository implements BudgetRepository {
     'monto': budget.amount.round(),
     'periodo': _periodToApi(budget.period),
     'categoriaIds': budget.categories.map((item) => item.id).toList(),
+  };
+
+  Map<String, dynamic> _json(
+    BudgetEntity budget, {
+    required String id,
+    required int version,
+  }) => {
+    'id': id,
+    'nombre': budget.name,
+    'monto': budget.amount.round(),
+    'gastado': budget.spent.round(),
+    'periodo': _periodToApi(budget.period),
+    'categorias': budget.categories
+        .map((item) => {'id': item.id, 'nombre': item.name})
+        .toList(),
+    'version': version,
   };
 
   BudgetEntity _fromJson(

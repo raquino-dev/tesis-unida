@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/widgets/app_bottom_nav.dart';
 import '../../core/widgets/app_speed_dial_fab.dart';
+import '../../core/widgets/offline_status_bar.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/movements/domain/movement_entity.dart';
 import '../../features/movements/presentation/screens/movement_list_screen.dart';
@@ -14,15 +16,15 @@ const _addIndex = 2;
 /// Contenedor de navegación principal con 5 tabs. El botón central de
 /// "Añadir" no navega directamente: se expande y revela las acciones
 /// principales (añadir gasto, añadir ingreso, escanear factura).
-class AppShell extends StatefulWidget {
+class AppShell extends ConsumerStatefulWidget {
   final int initialIndex;
   const AppShell({super.key, this.initialIndex = 0});
 
   @override
-  State<AppShell> createState() => _AppShellState();
+  ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends ConsumerState<AppShell> {
   late int _index = widget.initialIndex;
   bool _speedDialOpen = false;
 
@@ -51,7 +53,14 @@ class _AppShellState extends State<AppShell> {
     return Stack(
       children: [
         Scaffold(
-          body: IndexedStack(index: _index, children: _screens),
+          body: Column(
+            children: [
+              const OfflineStatusBar(),
+              Expanded(
+                child: IndexedStack(index: _index, children: _screens),
+              ),
+            ],
+          ),
           bottomNavigationBar: AppBottomNav(
             currentIndex: _index,
             onTap: _onTap,

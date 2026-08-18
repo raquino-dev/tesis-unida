@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -6,6 +7,8 @@ import 'package:http_parser/http_parser.dart';
 
 import '../config/app_environment.dart';
 import '../errors/app_failure.dart';
+import '../offline/offline_models.dart';
+import '../offline/offline_runtime.dart';
 import '../services/pilot_local_store.dart';
 
 class ApiResponse {
@@ -35,7 +38,12 @@ class ApiClient {
       baseUrl = (baseUrl ?? AppEnvironment.apiBaseUrl).replaceAll(
         RegExp(r'/$'),
         '',
-      );
+      ) {
+    OfflineRuntime.instance.registerSender(
+      _replayOfflineOperation,
+      puller: _pullIncrementalChanges,
+    );
+  }
 
   Future<ApiResponse> get(String path, {bool authenticated = true}) =>
       request('GET', path, authenticated: authenticated);
@@ -45,12 +53,14 @@ class ApiClient {
     Object? body,
     bool authenticated = true,
     Map<String, String> headers = const {},
+    OfflineMutation? offline,
   }) => request(
     'POST',
     path,
     body: body,
     authenticated: authenticated,
     headers: headers,
+    offline: offline,
   );
 
   Future<ApiResponse> put(
@@ -58,25 +68,29 @@ class ApiClient {
     Object? body,
     bool authenticated = true,
     Map<String, String> headers = const {},
+    OfflineMutation? offline,
   }) => request(
     'PUT',
     path,
     body: body,
     authenticated: authenticated,
     headers: headers,
+    offline: offline,
   );
 
   Future<ApiResponse> patch(
     String path, {
     Object? body,
     Map<String, String> headers = const {},
-  }) => request('PATCH', path, body: body, headers: headers);
+    OfflineMutation? offline,
+  }) => request('PATCH', path, body: body, headers: headers, offline: offline);
 
   Future<ApiResponse> delete(
     String path, {
     Object? body,
     Map<String, String> headers = const {},
-  }) => request('DELETE', path, body: body, headers: headers);
+    OfflineMutation? offline,
+  }) => request('DELETE', path, body: body, headers: headers, offline: offline);
 
   Future<ApiResponse> multipart(
     String path, {
@@ -162,7 +176,13 @@ class ApiClient {
     bool authenticated = true,
     Map<String, String> headers = const {},
     bool retryAfterRefresh = true,
+    OfflineMutation? offline,
+    bool allowOffline = true,
+    bool triggerSynchronization = true,
   }) async {
+    if (method == 'GET' && triggerSynchronization) {
+      await OfflineRuntime.instance.synchronize();
+    }
     final token = authenticated
         ? await PilotLocalStore.readAccessToken()
         : null;
@@ -184,10 +204,22 @@ class ApiClient {
     } on AppFailure {
       rethrow;
     } catch (_) {
-      throw const AppFailure(
+      const failure = AppFailure(
         'No se pudo conectar con el servidor.',
         code: 'network_error',
       );
+      if (allowOffline) {
+        final fallback = await _offlineFallback(
+          method,
+          path,
+          body,
+          headers,
+          offline,
+          failure,
+        );
+        if (fallback != null) return fallback;
+      }
+      throw failure;
     }
 
     if (response.statusCode == 401 &&
@@ -201,10 +233,160 @@ class ApiClient {
         authenticated: authenticated,
         headers: headers,
         retryAfterRefresh: false,
+        offline: offline,
+        allowOffline: allowOffline,
+        triggerSynchronization: triggerSynchronization,
       );
     }
+    if (allowOffline && _isTransientStatus(response.statusCode)) {
+      final failure = AppFailure(
+        'El servicio no está disponible temporalmente.',
+        code: 'http_${response.statusCode}',
+      );
+      final fallback = await _offlineFallback(
+        method,
+        path,
+        body,
+        headers,
+        offline,
+        failure,
+      );
+      if (fallback != null) return fallback;
+    }
+    final parsed = _response(response);
+    OfflineRuntime.instance.markNetworkRequestSucceeded();
+    if (method == 'GET' && authenticated && _canCache(path)) {
+      await OfflineRuntime.instance.cache(path, parsed.data);
+    }
+    if (triggerSynchronization) {
+      unawaited(OfflineRuntime.instance.synchronize());
+    }
+    return parsed;
+  }
 
-    return _response(response);
+  Future<ApiResponse?> _offlineFallback(
+    String method,
+    String path,
+    Object? body,
+    Map<String, String> headers,
+    OfflineMutation? mutation,
+    AppFailure failure,
+  ) async {
+    OfflineRuntime.instance.markNetworkRequestFailed(failure.message);
+    if (method == 'GET' && _canCache(path)) {
+      final cached = await OfflineRuntime.instance.cached(path);
+      if (cached != null) {
+        return ApiResponse(200, cached, const {'x-offline-cache': 'true'});
+      }
+    }
+    if (mutation != null) {
+      await OfflineRuntime.instance.enqueue(
+        method: method,
+        path: path,
+        body: body,
+        headers: headers,
+        mutation: mutation,
+      );
+      return ApiResponse(202, mutation.optimisticResponse, const {
+        'x-offline-pending': 'true',
+      });
+    }
+    return null;
+  }
+
+  bool _canCache(String path) {
+    const blocked = <String>[
+      '/suscripciones',
+      '/compras',
+      '/documentos-financieros',
+      '/procesamientos-documentales',
+      '/dispositivos',
+      '/notificaciones',
+      '/grupos-familiares',
+      '/invitaciones-familiares',
+      '/sesiones',
+    ];
+    return !blocked.any(path.startsWith);
+  }
+
+  bool _isTransientStatus(int statusCode) =>
+      statusCode == 408 ||
+      statusCode == 429 ||
+      statusCode == 502 ||
+      statusCode == 503 ||
+      statusCode == 504;
+
+  Future<void> _replayOfflineOperation(OfflineOperation operation) async {
+    await request(
+      operation.method,
+      operation.path,
+      body: operation.body,
+      headers: operation.headers,
+      allowOffline: false,
+      triggerSynchronization: false,
+    );
+  }
+
+  Future<void> _pullIncrementalChanges(Set<String> forceTypes) async {
+    const cursorKey = '@sincronizacion/cursor';
+    final cachedCursor = await OfflineRuntime.instance.cached(cursorKey);
+    var cursor = cachedCursor is num ? cachedCursor.toInt() : 0;
+    var hasMore = true;
+    while (hasMore) {
+      final response = await request(
+        'GET',
+        '/sincronizacion?desde=$cursor&limite=200',
+        allowOffline: false,
+        triggerSynchronization: false,
+      );
+      final json = response.object;
+      final changes = (json['cambios'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+      final types = changes
+          .map((item) => item['tipoEntidad'] as String?)
+          .whereType<String>()
+          .toSet();
+      types.addAll(forceTypes);
+      if (cursor == 0) {
+        types.addAll(const {
+          'cuenta',
+          'categoria',
+          'movimiento',
+          'presupuesto',
+          'meta_ahorro',
+          'movimiento_recurrente',
+          'tarjeta_credito',
+        });
+      }
+      for (final path in _pathsForChangeTypes(types)) {
+        await request(
+          'GET',
+          path,
+          allowOffline: false,
+          triggerSynchronization: false,
+        );
+      }
+      cursor = (json['siguienteCursor'] as num?)?.toInt() ?? cursor;
+      await OfflineRuntime.instance.cache(cursorKey, cursor);
+      hasMore = json['hayMas'] == true;
+    }
+  }
+
+  Iterable<String> _pathsForChangeTypes(Set<String> types) sync* {
+    const paths = <String, String>{
+      'cuenta': '/cuentas',
+      'categoria': '/categorias',
+      'movimiento': '/movimientos',
+      'presupuesto': '/presupuestos',
+      'meta_ahorro': '/metas-ahorro',
+      'movimiento_recurrente': '/movimientos-recurrentes',
+      'tarjeta_credito': '/tarjetas-credito',
+    };
+    for (final type in types) {
+      final path = paths[type];
+      if (path != null) yield path;
+    }
   }
 
   Future<http.Response> _send(
@@ -258,8 +440,13 @@ class ApiClient {
       );
       await saveSessionResponse(response.object);
       return true;
+    } on AppFailure catch (failure) {
+      final code = failure.code;
+      if (code != null && code.startsWith('http_4') && code != 'http_408') {
+        await PilotLocalStore.clearSession();
+      }
+      return false;
     } catch (_) {
-      await PilotLocalStore.clearSession();
       return false;
     }
   }

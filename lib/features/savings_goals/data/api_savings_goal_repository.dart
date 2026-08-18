@@ -2,6 +2,8 @@ import 'dart:math';
 
 import '../../../core/errors/app_failure.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/offline/offline_models.dart';
+import '../../../core/utils/uuid_v4.dart';
 import '../domain/savings_goal_entity.dart';
 import '../domain/savings_goal_repository.dart';
 
@@ -27,9 +29,12 @@ class ApiSavingsGoalRepository implements SavingsGoalRepository {
         code: 'goal_account_required',
       );
     }
+    final id = uuidOrNew(goal.id);
+    final optimistic = _json(goal, id: id, version: 1);
     final response = await _api.post(
       '/metas-ahorro',
       body: {
+        'id': id,
         'ambito': goal.scope == SavingsGoalScope.family
             ? 'familiar'
             : 'privado',
@@ -39,12 +44,22 @@ class ApiSavingsGoalRepository implements SavingsGoalRepository {
         'fechaObjetivo': _date(goal.targetDate),
         'cuentaId': goal.accountId,
       },
+      offline: goal.scope == SavingsGoalScope.private
+          ? OfflineMutation(
+              entityType: 'meta_ahorro',
+              entityId: id,
+              optimisticResponse: optimistic,
+              collectionPath: '/metas-ahorro',
+              collectionField: 'datos',
+            )
+          : null,
     );
     return _fromJson(response.object);
   }
 
   @override
   Future<SavingsGoalEntity> updateGoal(SavingsGoalEntity goal) async {
+    final version = await _versionFor(goal.id);
     final response = await _api.patch(
       '/metas-ahorro/${goal.id}',
       body: {
@@ -52,7 +67,20 @@ class ApiSavingsGoalRepository implements SavingsGoalRepository {
         'montoObjetivo': goal.targetAmount.round(),
         'fechaObjetivo': _date(goal.targetDate),
       },
-      headers: {'If-Match': '"${await _versionFor(goal.id)}"'},
+      headers: {'If-Match': '"$version"'},
+      offline: goal.scope == SavingsGoalScope.private
+          ? OfflineMutation(
+              entityType: 'meta_ahorro',
+              entityId: goal.id,
+              optimisticResponse: _json(
+                goal,
+                id: goal.id,
+                version: version + 1,
+              ),
+              collectionPath: '/metas-ahorro',
+              collectionField: 'datos',
+            )
+          : null,
     );
     return _fromJson(response.object);
   }
@@ -63,7 +91,15 @@ class ApiSavingsGoalRepository implements SavingsGoalRepository {
     double amount, {
     required String accountId,
   }) async {
-    await _api.post(
+    final current = (await getGoals()).where((item) => item.id == id).firstOrNull;
+    if (current == null) {
+      throw const AppFailure('No se encontró la meta de ahorro.');
+    }
+    final optimisticGoal = current.copyWith(
+      savedAmount: current.savedAmount + amount,
+      version: current.version + 1,
+    );
+    final response = await _api.post(
       '/metas-ahorro/$id/aportes',
       headers: {'Idempotency-Key': _idempotencyKey()},
       body: {
@@ -71,16 +107,41 @@ class ApiSavingsGoalRepository implements SavingsGoalRepository {
         'cuentaOrigenId': accountId,
         'descripcion': 'Aporte desde la aplicación móvil',
       },
+      offline: current.scope == SavingsGoalScope.private
+          ? OfflineMutation(
+              entityType: 'aporte_meta',
+              entityId: _idempotencyKey(),
+              optimisticResponse: _json(
+                optimisticGoal,
+                id: id,
+                version: optimisticGoal.version,
+              ),
+              collectionPath: '/metas-ahorro',
+              collectionField: 'datos',
+            )
+          : null,
     );
+    if (response.statusCode == 202) return optimisticGoal;
     final goal = _fromJson((await _api.get('/metas-ahorro/$id')).object);
     return goal;
   }
 
   @override
   Future<void> deleteGoal(String id) async {
+    final current = (await getGoals()).where((item) => item.id == id).firstOrNull;
+    final version = await _versionFor(id);
     await _api.delete(
       '/metas-ahorro/$id',
-      headers: {'If-Match': '"${await _versionFor(id)}"'},
+      headers: {'If-Match': '"$version"'},
+      offline: current?.scope == SavingsGoalScope.private
+          ? OfflineMutation(
+              entityType: 'meta_ahorro',
+              entityId: id,
+              optimisticResponse: const <String, dynamic>{},
+              collectionPath: '/metas-ahorro',
+              collectionField: 'datos',
+            )
+          : null,
     );
     _versions.remove(id);
   }
@@ -111,6 +172,25 @@ class ApiSavingsGoalRepository implements SavingsGoalRepository {
       version: version,
     );
   }
+
+  Map<String, dynamic> _json(
+    SavingsGoalEntity goal, {
+    required String id,
+    required int version,
+  }) => {
+    'id': id,
+    'nombre': goal.name,
+    'montoObjetivo': goal.targetAmount.round(),
+    'montoAhorrado': goal.savedAmount.round(),
+    'fechaObjetivo': _date(goal.targetDate),
+    'ambito': goal.scope == SavingsGoalScope.family ? 'familiar' : 'privado',
+    'grupoFamiliarId': goal.familyGroupId,
+    'cuenta': {
+      'id': goal.accountId,
+      'nombre': goal.accountName ?? 'Cuenta',
+    },
+    'version': version,
+  };
 
   String _idempotencyKey() =>
       'goal-${DateTime.now().microsecondsSinceEpoch}-'

@@ -15,6 +15,7 @@ final reportRepositoryProvider = Provider<ReportRepository>((ref) {
     return ApiReportRepository(
       ref.watch(apiClientProvider),
       ref.watch(categoryRepositoryProvider),
+      ref.watch(movementRepositoryProvider),
     );
   }
   return MockReportRepository(
