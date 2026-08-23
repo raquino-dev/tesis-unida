@@ -41,8 +41,9 @@ final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final currentUser = ref.watch(currentUserProvider);
-  final authenticated =
-      currentUser != null || PilotLocalStore.offlineSessionValid;
+  // Una marca local no basta para abrir áreas privadas: el perfil debe haberse
+  // restaurado desde la API o desde la caché cifrada del modo sin conexión.
+  final authenticated = currentUser != null;
   const publicRoutes = {
     AppRoutes.onboarding,
     AppRoutes.login,

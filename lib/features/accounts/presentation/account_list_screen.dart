@@ -5,6 +5,7 @@ import '../../../app/router/app_routes.dart';
 import '../../../app/theme/app_radius.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme_extension.dart';
+import '../../../core/errors/app_failure.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/widgets/app_badge.dart';
 import '../../../core/widgets/app_button.dart';
@@ -23,6 +24,16 @@ const _iconOptions = [
   Icons.smartphone_outlined,
   Icons.wallet_outlined,
 ];
+
+Future<AccountEntity?> showAccountEditorSheet(
+  BuildContext context, {
+  AccountEntity? account,
+}) => showModalBottomSheet<AccountEntity>(
+  context: context,
+  isScrollControlled: true,
+  backgroundColor: Colors.transparent,
+  builder: (_) => _AccountEditorSheet(account: account),
+);
 
 class AccountListScreen extends ConsumerWidget {
   const AccountListScreen({super.key});
@@ -43,7 +54,7 @@ class AccountListScreen extends ConsumerWidget {
           ),
           IconButton(
             icon: const Icon(Icons.add_rounded),
-            onPressed: () => _openEditor(context, ref),
+            onPressed: () => showAccountEditorSheet(context),
           ),
         ],
       ),
@@ -57,7 +68,7 @@ class AccountListScreen extends ConsumerWidget {
           message:
               'Agregá tu primera cuenta para poder registrar movimientos y transferencias.',
           actionLabel: 'Agregar cuenta',
-          onAction: () => _openEditor(context, ref),
+          onAction: () => showAccountEditorSheet(context),
         ),
         success: (accounts) => ListView.separated(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -129,7 +140,7 @@ class AccountListScreen extends ConsumerWidget {
                     PopupMenuButton<String>(
                       onSelected: (value) async {
                         if (value == 'edit') {
-                          _openEditor(context, ref, account: a);
+                          showAccountEditorSheet(context, account: a);
                         } else if (value == 'delete') {
                           final error = await viewModel.delete(a.id);
                           if (error != null && context.mounted) {
@@ -153,19 +164,6 @@ class AccountListScreen extends ConsumerWidget {
       ),
     );
   }
-
-  void _openEditor(
-    BuildContext context,
-    WidgetRef ref, {
-    AccountEntity? account,
-  }) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _AccountEditorSheet(account: account),
-    );
-  }
 }
 
 class _AccountEditorSheet extends ConsumerStatefulWidget {
@@ -186,6 +184,14 @@ class _AccountEditorSheetState extends ConsumerState<_AccountEditorSheet> {
   late IconData _icon = widget.account?.icon ?? _type.defaultIcon;
   late CardBrand _brand = widget.account?.brand ?? CardBrand.none;
   late bool _isActive = widget.account?.isActive ?? true;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _balance.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -217,6 +223,7 @@ class _AccountEditorSheetState extends ConsumerState<_AccountEditorSheet> {
                 label: 'Nombre',
                 controller: _name,
                 hint: 'Ej. Débito Continental',
+                onChanged: (_) => setState(() => _errorMessage = null),
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
@@ -373,6 +380,13 @@ class _AccountEditorSheetState extends ConsumerState<_AccountEditorSheet> {
                   ),
                 ],
               ),
+              if (_errorMessage != null) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  _errorMessage!,
+                  style: TextStyle(color: colors.error, fontSize: 13),
+                ),
+              ],
               const SizedBox(height: AppSpacing.lg),
               AppButton(
                 label: widget.account == null
@@ -381,27 +395,42 @@ class _AccountEditorSheetState extends ConsumerState<_AccountEditorSheet> {
                 onPressed: _name.text.trim().isEmpty
                     ? null
                     : () async {
-                        final viewModel = ref.read(
-                          accountListViewModelProvider.notifier,
-                        );
-                        final entity = AccountEntity(
-                          id:
-                              widget.account?.id ??
-                              'acc_${DateTime.now().millisecondsSinceEpoch}',
-                          name: _name.text.trim(),
-                          type: _type,
-                          icon: _icon,
-                          brand: _brand,
-                          initialBalance: double.tryParse(_balance.text) ?? 0,
-                          isActive: _isActive,
-                          inUse: widget.account?.inUse ?? false,
-                        );
-                        if (widget.account == null) {
-                          await viewModel.create(entity);
-                        } else {
-                          await viewModel.update(entity);
+                        try {
+                          final viewModel = ref.read(
+                            accountListViewModelProvider.notifier,
+                          );
+                          final entity = AccountEntity(
+                            id:
+                                widget.account?.id ??
+                                'acc_${DateTime.now().millisecondsSinceEpoch}',
+                            name: _name.text.trim(),
+                            type: _type,
+                            icon: _icon,
+                            brand: _brand,
+                            initialBalance: double.tryParse(_balance.text) ?? 0,
+                            isActive: _isActive,
+                            inUse: widget.account?.inUse ?? false,
+                          );
+                          final saved = widget.account == null
+                              ? await viewModel.create(entity)
+                              : await viewModel.update(entity);
+                          if (context.mounted) {
+                            Navigator.of(context).pop(saved);
+                          }
+                        } on AppFailure catch (error) {
+                          if (mounted) {
+                            setState(() => _errorMessage = error.message);
+                          }
+                        } catch (error) {
+                          if (mounted) {
+                            setState(
+                              () => _errorMessage = appErrorMessage(
+                                error,
+                                fallback: 'No pudimos guardar la cuenta.',
+                              ),
+                            );
+                          }
                         }
-                        if (context.mounted) Navigator.of(context).pop();
                       },
               ),
             ],

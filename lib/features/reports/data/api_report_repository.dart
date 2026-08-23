@@ -52,28 +52,16 @@ class ApiReportRepository implements ReportRepository {
       totalIncome: (json['ingresos'] as num).toDouble(),
       totalExpense: (json['gastos'] as num).toDouble(),
       balance: (json['balance'] as num).toDouble(),
-      distribution: (json['distribucion'] as List<dynamic>? ?? const []).map((
-        item,
-      ) {
-        final value = item as Map<String, dynamic>;
-        final category = categories
-            .where((candidate) => candidate.id == value['categoriaId'])
-            .firstOrNull;
-        return CategoryDistribution(
-          category:
-              category ??
-              CategoryEntity(
-                id: value['categoriaId'] as String,
-                name: value['nombre'] as String,
-                icon: Icons.category_outlined,
-                color: Colors.blueGrey,
-                type: CategoryType.expense,
-                inUse: true,
-              ),
-          amount: (value['monto'] as num).toDouble(),
-          percentage: (value['porcentaje'] as num).toDouble(),
-        );
-      }).toList(),
+      distribution: _distributionFromJson(
+        json['distribucionGastos'] ?? json['distribucion'],
+        categories,
+        type: CategoryType.expense,
+      ),
+      incomeDistribution: _distributionFromJson(
+        json['distribucionIngresos'],
+        categories,
+        type: CategoryType.income,
+      ),
       trend: (json['tendencia'] as List<dynamic>? ?? const []).map((item) {
         final value = item as Map<String, dynamic>;
         return MonthlyTrendPoint(
@@ -119,39 +107,21 @@ class ApiReportRepository implements ReportRepository {
     final income = movements
         .where((item) => item.type == MovementType.income)
         .fold<double>(0, (sum, item) => sum + item.amount);
-    final expenseItems = movements
+    final expense = movements
         .where((item) => item.type == MovementType.expense)
-        .toList();
-    final expense = expenseItems.fold<double>(
-      0,
-      (sum, item) => sum + item.amount,
+        .fold<double>(0, (sum, item) => sum + item.amount);
+    final expenseDistribution = _localDistribution(
+      movements,
+      MovementType.expense,
+      expense,
+      categories,
     );
-    final categoryTotals = <String, double>{};
-    for (final movement in expenseItems) {
-      for (final category in movement.categories) {
-        categoryTotals[category.id] =
-            (categoryTotals[category.id] ?? 0) + movement.amount;
-      }
-    }
-    final distribution = categoryTotals.entries.map((entry) {
-      final category = categories
-          .where((candidate) => candidate.id == entry.key)
-          .firstOrNull;
-      return CategoryDistribution(
-        category:
-            category ??
-            CategoryEntity(
-              id: entry.key,
-              name: 'Categoría',
-              icon: Icons.category_outlined,
-              color: Colors.blueGrey,
-              type: CategoryType.expense,
-              inUse: true,
-            ),
-        amount: entry.value,
-        percentage: expense == 0 ? 0 : entry.value / expense,
-      );
-    }).toList();
+    final incomeDistribution = _localDistribution(
+      movements,
+      MovementType.income,
+      income,
+      categories,
+    );
     final monthly = <DateTime, (double, double)>{};
     for (final movement in movements) {
       final month = DateTime(movement.date.year, movement.date.month);
@@ -176,12 +146,76 @@ class ApiReportRepository implements ReportRepository {
       totalIncome: income,
       totalExpense: expense,
       balance: income - expense,
-      distribution: distribution,
+      distribution: expenseDistribution,
+      incomeDistribution: incomeDistribution,
       trend: trend,
       insights: const [
         'Reporte calculado con la información disponible en el dispositivo.',
       ],
     );
+  }
+
+  List<CategoryDistribution> _distributionFromJson(
+    Object? raw,
+    List<CategoryEntity> categories, {
+    required CategoryType type,
+  }) => (raw as List<dynamic>? ?? const []).map((item) {
+    final value = item as Map<String, dynamic>;
+    final category = categories
+        .where((candidate) => candidate.id == value['categoriaId'])
+        .firstOrNull;
+    return CategoryDistribution(
+      category:
+          category ??
+          CategoryEntity(
+            id: value['categoriaId'] as String,
+            name: value['nombre'] as String,
+            icon: Icons.category_outlined,
+            color: Colors.blueGrey,
+            type: type,
+            inUse: true,
+          ),
+      amount: (value['monto'] as num).toDouble(),
+      percentage: (value['porcentaje'] as num).toDouble(),
+    );
+  }).toList();
+
+  List<CategoryDistribution> _localDistribution(
+    List<MovementEntity> movements,
+    MovementType type,
+    double total,
+    List<CategoryEntity> categories,
+  ) {
+    final totals = <String, double>{};
+    final movementCategories = <String, CategoryEntity>{};
+    for (final movement in movements.where((item) => item.type == type)) {
+      if (movement.categories.isEmpty) continue;
+      final category = movement.categories.first;
+      totals[category.id] = (totals[category.id] ?? 0) + movement.amount;
+      movementCategories[category.id] = category;
+    }
+    return totals.entries.map((entry) {
+      final category = categories
+          .where((candidate) => candidate.id == entry.key)
+          .firstOrNull;
+      return CategoryDistribution(
+        category:
+            category ??
+            movementCategories[entry.key] ??
+            CategoryEntity(
+              id: entry.key,
+              name: 'Categoría',
+              icon: Icons.category_outlined,
+              color: Colors.blueGrey,
+              type: type == MovementType.income
+                  ? CategoryType.income
+                  : CategoryType.expense,
+              inUse: true,
+            ),
+        amount: entry.value,
+        percentage: total == 0 ? 0 : entry.value / total,
+      );
+    }).toList();
   }
 
   String _range(ReportRange value) => switch (value) {

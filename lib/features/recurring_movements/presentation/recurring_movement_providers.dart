@@ -41,7 +41,12 @@ class RecurringMovementListViewModel
           ? const ViewState.empty()
           : ViewState.success(recurring);
     } catch (e) {
-      state = ViewState.error(e.toString());
+      state = ViewState.error(
+        appErrorMessage(
+          e,
+          fallback: 'No pudimos cargar los movimientos recurrentes.',
+        ),
+      );
     }
   }
 

@@ -2,6 +2,7 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/services/pilot_local_store.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/user_alias_policy.dart';
 
 class ApiAuthRepository implements AuthRepository {
   final ApiClient _api;
@@ -38,6 +39,7 @@ class ApiAuthRepository implements AuthRepository {
   @override
   Future<UserEntity> register({
     required String name,
+    required String alias,
     required String email,
     required String password,
     required bool acceptsTerms,
@@ -48,6 +50,7 @@ class ApiAuthRepository implements AuthRepository {
       body: {
         'correo': email.trim(),
         'nombre': name.trim(),
+        'alias': UserAliasPolicy.normalize(alias),
         'contrasena': password,
         'moneda': 'PYG',
         'idioma': 'es',
@@ -62,15 +65,33 @@ class ApiAuthRepository implements AuthRepository {
   @override
   Future<UserEntity> currentUser() async {
     final json = (await _api.get('/perfil')).object;
-    return UserEntity(
-      id: json['id'] as String,
-      name: json['nombre'] as String,
-      email: json['correo'] as String,
-      currency: json['moneda'] as String? ?? 'PYG',
-      language: json['idioma'] as String? ?? 'es',
-      location: json['ubicacion'] as String? ?? 'Asunción',
-    );
+    return _userFromJson(json);
   }
+
+  @override
+  Future<UserEntity> updateProfile({
+    required UserEntity current,
+    required String name,
+    required String alias,
+  }) async {
+    final json = (await _api.patch(
+      '/perfil',
+      headers: {'If-Match': '"${current.version}"'},
+      body: {'nombre': name.trim(), 'alias': UserAliasPolicy.normalize(alias)},
+    )).object;
+    return _userFromJson(json);
+  }
+
+  UserEntity _userFromJson(Map<String, dynamic> json) => UserEntity(
+    id: json['id'] as String,
+    name: json['nombre'] as String,
+    alias: json['alias'] as String? ?? '',
+    email: json['correo'] as String,
+    currency: json['moneda'] as String? ?? 'PYG',
+    language: json['idioma'] as String? ?? 'es',
+    location: json['ubicacion'] as String? ?? 'Asunción',
+    version: (json['version'] as num?)?.toInt() ?? 1,
+  );
 
   @override
   Future<void> sendPasswordRecovery({required String email}) async {

@@ -4,6 +4,7 @@ import '../../../family/domain/family_entity.dart';
 import '../../../family/domain/family_repository.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/user_alias_policy.dart';
 import '../models/user_model.dart';
 
 class MockAuthRepository implements AuthRepository {
@@ -18,6 +19,7 @@ class MockAuthRepository implements AuthRepository {
   final _mockUser = UserModel(
     id: MockData.userId,
     name: MockData.userName,
+    alias: 'usuario_demo',
     email: MockData.userEmail,
     currency: MockData.currencyCode,
     language: MockData.language,
@@ -48,6 +50,7 @@ class MockAuthRepository implements AuthRepository {
   @override
   Future<UserEntity> register({
     required String name,
+    required String alias,
     required String email,
     required String password,
     required bool acceptsTerms,
@@ -65,9 +68,19 @@ class MockAuthRepository implements AuthRepository {
         code: 'weak_password',
       );
     }
+    final normalizedAlias = UserAliasPolicy.normalize(alias);
+    if (_users.values.any(
+      (user) => user.alias.toLowerCase() == normalizedAlias.toLowerCase(),
+    )) {
+      throw const AppFailure(
+        'El alias ya está en uso.',
+        code: 'alias_duplicado',
+      );
+    }
     final user = UserModel(
       id: MockData.userId,
       name: name,
+      alias: normalizedAlias,
       email: email,
       currency: MockData.currencyCode,
       language: MockData.language,
@@ -77,6 +90,41 @@ class MockAuthRepository implements AuthRepository {
     _users[normalizedEmail] = user;
     _registeredPasswords[normalizedEmail] = password;
     return user.toEntity();
+  }
+
+  @override
+  Future<UserEntity> updateProfile({
+    required UserEntity current,
+    required String name,
+    required String alias,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 450));
+    final normalizedAlias = UserAliasPolicy.normalize(alias);
+    if (_users.values.any(
+      (user) =>
+          user.id != current.id &&
+          user.alias.toLowerCase() == normalizedAlias.toLowerCase(),
+    )) {
+      throw const AppFailure(
+        'El alias ya está en uso.',
+        code: 'alias_duplicado',
+      );
+    }
+    final updated = current.copyWith(
+      name: name.trim(),
+      alias: normalizedAlias,
+      version: current.version + 1,
+    );
+    _users[current.email.toLowerCase()] = UserModel(
+      id: updated.id,
+      name: updated.name,
+      alias: updated.alias,
+      email: updated.email,
+      currency: updated.currency,
+      language: updated.language,
+      location: updated.location,
+    );
+    return updated;
   }
 
   @override

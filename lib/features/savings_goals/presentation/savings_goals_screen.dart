@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/errors/app_failure.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme_extension.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -30,7 +31,14 @@ class SavingsGoalsScreen extends ConsumerWidget {
       ),
       body: state.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('$error')),
+        error: (error, _) => Center(
+          child: Text(
+            appErrorMessage(
+              error,
+              fallback: 'No pudimos cargar tus metas de ahorro.',
+            ),
+          ),
+        ),
         data: (goals) => ListView(
           padding: const EdgeInsets.all(AppSpacing.md),
           children: [

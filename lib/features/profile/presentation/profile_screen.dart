@@ -10,6 +10,9 @@ import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/offline/offline_runtime.dart';
+import '../../../core/errors/app_failure.dart';
+import '../../auth/domain/entities/user_entity.dart';
+import '../../auth/domain/user_alias_policy.dart';
 import '../../auth/presentation/providers/auth_providers.dart';
 import '../../auth/presentation/viewmodels/delete_account_viewmodel.dart';
 import '../../subscription/presentation/subscription_viewmodel.dart';
@@ -64,19 +67,27 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        user?.email ?? '',
+                        user?.formattedAlias ?? '',
                         style: TextStyle(
-                          color: colors.textSecondary,
+                          color: colors.primary,
+                          fontWeight: FontWeight.w600,
                           fontSize: 12.5,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        user?.location ?? '',
+                        user?.email ?? '',
                         style: TextStyle(color: colors.textMuted, fontSize: 12),
                       ),
                     ],
                   ),
+                ),
+                IconButton(
+                  tooltip: 'Editar nombre y alias',
+                  onPressed: user == null
+                      ? null
+                      : () => _openEditProfileSheet(context, user),
+                  icon: const Icon(Icons.edit_outlined),
                 ),
               ],
             ),
@@ -192,9 +203,9 @@ class ProfileScreen extends ConsumerWidget {
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (dialogContext) => AlertDialog(
-                    title: const Text('Hay cambios sin sincronizar'),
+                    title: const Text('Hay información pendiente de guardar'),
                     content: const Text(
-                      'Si cerrás sesión ahora, los cambios pendientes de este dispositivo se eliminarán.',
+                      'Conectate a internet antes de cerrar sesión para conservar toda tu información. Si continuás ahora, los datos pendientes de este dispositivo se eliminarán.',
                     ),
                     actions: [
                       TextButton(
@@ -258,6 +269,15 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
+  void _openEditProfileSheet(BuildContext context, UserEntity user) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditProfileSheet(user: user),
+    );
+  }
+
   Widget _row(BuildContext context, IconData icon, String label, String value) {
     final colors = context.colors;
     return Row(
@@ -275,6 +295,145 @@ class ProfileScreen extends ConsumerWidget {
           style: TextStyle(color: colors.textSecondary, fontSize: 13),
         ),
       ],
+    );
+  }
+}
+
+class _EditProfileSheet extends ConsumerStatefulWidget {
+  final UserEntity user;
+
+  const _EditProfileSheet({required this.user});
+
+  @override
+  ConsumerState<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
+  late final TextEditingController _name;
+  late final TextEditingController _alias;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _name = TextEditingController(text: widget.user.name);
+    _alias = TextEditingController(text: widget.user.alias);
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _alias.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final name = _name.text.trim();
+    final aliasError = UserAliasPolicy.validate(_alias.text);
+    if (name.isEmpty) {
+      setState(() => _error = 'Ingresá tu nombre visible.');
+      return;
+    }
+    if (aliasError != null) {
+      setState(() => _error = aliasError);
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(currentUserProvider.notifier)
+          .updateProfile(
+            name: name,
+            alias: UserAliasPolicy.normalize(_alias.text),
+          );
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tu perfil fue actualizado.')),
+      );
+    } on AppFailure catch (failure) {
+      if (!mounted) return;
+      setState(() => _error = failure.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(
+        () => _error = 'No pudimos actualizar tu perfil. Intentá nuevamente.',
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        MediaQuery.viewInsetsOf(context).bottom + AppSpacing.lg,
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Editar perfil',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'El nombre visible puede repetirse. El alias identifica únicamente tu cuenta.',
+                style: TextStyle(color: colors.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              AppTextField(
+                label: 'Nombre visible',
+                controller: _name,
+                hint: 'Ej.: Rodrigo',
+              ),
+              const SizedBox(height: AppSpacing.md),
+              AppTextField(
+                label: 'Alias único',
+                controller: _alias,
+                hint: '@Rodrigo001',
+                prefixIcon: const Icon(Icons.alternate_email_rounded),
+                onChanged: (_) => setState(() => _error = null),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                UserAliasPolicy.requirements,
+                style: TextStyle(color: colors.textMuted, fontSize: 12),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  _error!,
+                  style: TextStyle(color: colors.error, fontSize: 13),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.lg),
+              AppButton(
+                label: 'Guardar cambios',
+                isLoading: _saving,
+                onPressed: _saving ? null : _save,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

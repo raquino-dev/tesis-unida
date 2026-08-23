@@ -13,9 +13,12 @@ import '../../../core/widgets/app_state_view.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/app_searchable_selector.dart';
 import '../../accounts/domain/account_entity.dart';
+import '../../accounts/presentation/account_list_screen.dart';
 import '../../accounts/presentation/account_providers.dart';
 import '../../categories/domain/category_entity.dart';
+import '../../categories/presentation/category_list_screen.dart';
 import '../../categories/presentation/category_providers.dart';
+import '../../credit_cards/presentation/credit_card_list_screen.dart';
 import '../../movements/domain/movement_entity.dart';
 import '../domain/recurring_movement_entity.dart';
 import 'recurring_movement_providers.dart';
@@ -234,6 +237,49 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
     }
   }
 
+  @override
+  void dispose() {
+    _amount.dispose();
+    _description.dispose();
+    _occurrences.dispose();
+    super.dispose();
+  }
+
+  Future<void> _createCategory() async {
+    final created = await showCategoryEditorSheet(
+      context,
+      initialType: _type == MovementType.expense
+          ? CategoryType.expense
+          : CategoryType.income,
+    );
+    if (created == null || !mounted) return;
+    setState(() {
+      if (_categories.every((item) => item.id != created.id)) {
+        _categories = [..._categories, created];
+      }
+    });
+  }
+
+  Future<AccountEntity?> _createAccount() async {
+    final created = await showAccountEditorSheet(context);
+    if (created != null && mounted) setState(() => _account = created);
+    return created;
+  }
+
+  Future<void> _createCreditCard() async {
+    final paymentAccount = _account ?? await _createAccount();
+    if (paymentAccount == null || !mounted) return;
+    final created = await showCreditCardEditorSheet(
+      context,
+      initialAccount: paymentAccount,
+    );
+    if (created != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Tarjeta “${created.alias}” creada.')),
+      );
+    }
+  }
+
   Future<void> _pickStartDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -346,20 +392,40 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
               const SizedBox(height: 8),
               categoriesState.when(
                 loading: () => const LinearProgressIndicator(),
-                error: (_) => const SizedBox.shrink(),
-                empty: () => const SizedBox.shrink(),
-                success: (categories) =>
-                    AppSearchableMultiSelector<CategoryEntity>(
-                      items: categories,
-                      idOf: (item) => item.id,
-                      labelOf: (item) => item.name,
-                      leadingOf: (item) => Icon(item.icon, color: item.color),
-                      values: _categories,
-                      hint: 'Buscar y seleccionar categorías',
-                      searchHint: 'Buscar categorías',
-                      onChanged: (values) =>
-                          setState(() => _categories = values),
-                    ),
+                error: (_) => Text(
+                  'No pudimos cargar tus categorías.',
+                  style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                ),
+                empty: () => Text(
+                  'No tenés categorías registradas todavía.',
+                  style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                ),
+                success: (categories) {
+                  final expectedType = _type == MovementType.expense
+                      ? CategoryType.expense
+                      : CategoryType.income;
+                  final available = categories
+                      .where((item) => item.type.appliesTo(expectedType))
+                      .toList();
+                  return AppSearchableMultiSelector<CategoryEntity>(
+                    items: available,
+                    idOf: (item) => item.id,
+                    labelOf: (item) => item.name,
+                    leadingOf: (item) => Icon(item.icon, color: item.color),
+                    values: _categories,
+                    hint: 'Buscar y seleccionar categorías',
+                    searchHint: 'Buscar categorías',
+                    onChanged: (values) => setState(() => _categories = values),
+                  );
+                },
+              ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _createCategory,
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Crear categoría'),
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
@@ -373,8 +439,14 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
               const SizedBox(height: 8),
               accountsState.when(
                 loading: () => const LinearProgressIndicator(),
-                error: (_) => const SizedBox.shrink(),
-                empty: () => const SizedBox.shrink(),
+                error: (_) => Text(
+                  'No pudimos cargar tus cuentas.',
+                  style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                ),
+                empty: () => Text(
+                  'No tenés cuentas registradas todavía.',
+                  style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                ),
                 success: (accounts) {
                   _account ??= accounts.isNotEmpty ? accounts.first : null;
                   return AppSearchableSingleSelector<AccountEntity>(
@@ -388,6 +460,21 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
                     onChanged: (value) => setState(() => _account = value),
                   );
                 },
+              ),
+              Wrap(
+                spacing: AppSpacing.xs,
+                children: [
+                  TextButton.icon(
+                    onPressed: _createAccount,
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('Crear cuenta'),
+                  ),
+                  TextButton.icon(
+                    onPressed: _createCreditCard,
+                    icon: const Icon(Icons.credit_card_outlined, size: 18),
+                    label: const Text('Crear tarjeta'),
+                  ),
+                ],
               ),
               const SizedBox(height: AppSpacing.md),
               Text(

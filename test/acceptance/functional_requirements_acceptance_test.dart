@@ -72,6 +72,7 @@ void main() {
         final security = MockSecurityRepository();
         final registered = await auth.register(
           name: 'Usuario piloto',
+          alias: 'usuario_piloto',
           email: 'piloto@demo.com',
           password: 'clave123',
           acceptsTerms: true,

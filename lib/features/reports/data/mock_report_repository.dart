@@ -1,4 +1,5 @@
 import '../../../mock/mock_data.dart';
+import '../../categories/domain/category_entity.dart';
 import '../../categories/domain/category_repository.dart';
 import '../domain/report_entity.dart';
 import '../domain/report_repository.dart';
@@ -42,26 +43,34 @@ class MockReportRepository implements ReportRepository {
     final expense = movements
         .where((movement) => movement.type == MovementType.expense)
         .fold<double>(0, (sum, movement) => sum + movement.amount);
-    final categoryTotals = <String, double>{};
-    for (final movement in movements.where(
-      (movement) => movement.type == MovementType.expense,
-    )) {
-      for (final category in movement.categories) {
-        categoryTotals[category.id] =
-            (categoryTotals[category.id] ?? 0) + movement.amount;
+    List<CategoryDistribution> distributionFor(
+      MovementType type,
+      double total,
+    ) {
+      final totals = <String, double>{};
+      final movementCategories = <String, CategoryEntity>{};
+      for (final movement in movements.where(
+        (movement) => movement.type == type,
+      )) {
+        if (movement.categories.isEmpty) continue;
+        final category = movement.categories.first;
+        totals[category.id] = (totals[category.id] ?? 0) + movement.amount;
+        movementCategories[category.id] = category;
       }
+      return totals.entries.map((entry) {
+        final category = categories
+            .where((candidate) => candidate.id == entry.key)
+            .firstOrNull;
+        return CategoryDistribution(
+          category: category ?? movementCategories[entry.key]!,
+          amount: entry.value,
+          percentage: total == 0 ? 0 : entry.value / total,
+        );
+      }).toList();
     }
-    final distribution = categoryTotals.entries.map((entry) {
-      final category = categories.firstWhere(
-        (category) => category.id == entry.key,
-        orElse: () => categories.first,
-      );
-      return CategoryDistribution(
-        category: category,
-        amount: entry.value,
-        percentage: expense == 0 ? 0 : entry.value / expense,
-      );
-    }).toList();
+
+    final expenseDistribution = distributionFor(MovementType.expense, expense);
+    final incomeDistribution = distributionFor(MovementType.income, income);
 
     final trend = List.generate(6, (i) {
       final month = DateTime.now().subtract(Duration(days: 30 * (5 - i)));
@@ -77,7 +86,8 @@ class MockReportRepository implements ReportRepository {
       totalIncome: income,
       totalExpense: expense,
       balance: income - expense,
-      distribution: distribution,
+      distribution: expenseDistribution,
+      incomeDistribution: incomeDistribution,
       trend: trend,
       insights: const [
         'Tu categoría con mayor gasto sigue siendo Alimentación.',

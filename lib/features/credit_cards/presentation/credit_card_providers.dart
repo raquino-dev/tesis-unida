@@ -34,17 +34,26 @@ class CreditCardListViewModel
           ? const ViewState.empty()
           : ViewState.success(cards);
     } catch (e) {
-      state = ViewState.error(e.toString());
+      state = ViewState.error(
+        appErrorMessage(e, fallback: 'No pudimos cargar tus tarjetas.'),
+      );
     }
   }
 
   Future<String?> create(CreditCardEntity card) async {
+    final result = await createWithResult(card);
+    return result.error;
+  }
+
+  Future<({CreditCardEntity? entity, String? error})> createWithResult(
+    CreditCardEntity card,
+  ) async {
     try {
-      await _repository.createCreditCard(card);
+      final created = await _repository.createCreditCard(card);
       await load();
-      return null;
+      return (entity: created, error: null);
     } on AppFailure catch (e) {
-      return e.message;
+      return (entity: null, error: e.message);
     }
   }
 

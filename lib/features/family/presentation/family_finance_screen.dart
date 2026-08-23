@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme_extension.dart';
 import '../../../core/config/app_environment.dart';
+import '../../../core/errors/app_failure.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
@@ -76,7 +77,10 @@ class _TreasuryTab extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => Center(
         child: Text(
-          'Creá un grupo familiar para utilizar la caja.\n$error',
+          appErrorMessage(
+            error,
+            fallback: 'Creá un grupo familiar para utilizar la caja.',
+          ),
           textAlign: TextAlign.center,
         ),
       ),
@@ -335,7 +339,12 @@ class _TreasuryOperationSheetState
                 ref.invalidate(treasuryOperationsProvider);
                 if (context.mounted) Navigator.pop(context);
               } catch (error) {
-                setState(() => _error = error.toString());
+                setState(
+                  () => _error = appErrorMessage(
+                    error,
+                    fallback: 'No pudimos registrar la operación de caja.',
+                  ),
+                );
               }
             },
           ),
@@ -352,7 +361,14 @@ class _FamilyBudgetsTab extends ConsumerWidget {
     final state = ref.watch(familyBudgetsProvider);
     return state.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('$error')),
+      error: (error, _) => Center(
+        child: Text(
+          appErrorMessage(
+            error,
+            fallback: 'No pudimos cargar los presupuestos familiares.',
+          ),
+        ),
+      ),
       data: (budgets) => ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
@@ -592,7 +608,12 @@ class _FamilyReportTabState extends ConsumerState<_FamilyReportTab> {
         const SizedBox(height: AppSpacing.sm),
         budgets.when(
           loading: () => const LinearProgressIndicator(),
-          error: (e, _) => Text('$e'),
+          error: (error, _) => Text(
+            appErrorMessage(
+              error,
+              fallback: 'No pudimos cargar las metas familiares.',
+            ),
+          ),
           data: (items) => Column(
             children: items
                 .map(
