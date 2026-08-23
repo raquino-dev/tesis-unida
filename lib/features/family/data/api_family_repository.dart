@@ -6,6 +6,7 @@ import '../../../core/errors/app_failure.dart';
 import '../../../core/network/api_client.dart';
 import '../../accounts/domain/account_entity.dart';
 import '../../categories/domain/category_entity.dart';
+import '../../auth/domain/user_alias_policy.dart';
 import '../domain/family_entity.dart';
 import '../domain/family_repository.dart';
 
@@ -245,10 +246,13 @@ class ApiFamilyRepository implements FamilyRepository {
     String invitedName = 'Integrante invitado',
     FamilyRole role = FamilyRole.member,
   }) async {
-    if (email.trim().isEmpty && _uuidOrNull(userIdentifier) == null) {
-      throw const AppFailure(
-        'Ingresá un correo o un identificador UUID válido.',
-      );
+    final identifier = userIdentifier.trim();
+    final uuid = _uuidOrNull(identifier);
+    final alias = uuid == null && identifier.isNotEmpty
+        ? UserAliasPolicy.normalize(identifier)
+        : null;
+    if (email.trim().isEmpty && uuid == null && alias == null) {
+      throw const AppFailure('Ingresá el alias único del usuario.');
     }
     final groupId = await _groupId();
     final response = await _api.post(
@@ -256,7 +260,8 @@ class ApiFamilyRepository implements FamilyRepository {
       headers: {'Idempotency-Key': _idempotencyKey('invitation')},
       body: {
         'correo': email.trim().isEmpty ? null : email.trim(),
-        'identificadorUsuario': _uuidOrNull(userIdentifier),
+        'identificadorUsuario': uuid,
+        'alias': alias,
         'rol': _roleToApi(role),
       },
     );
@@ -269,7 +274,7 @@ class ApiFamilyRepository implements FamilyRepository {
     final invitation = FamilyInvitationEntity(
       id: json['id'] as String,
       email: json['correo'] as String? ?? '',
-      userIdentifier: json['usuarioDestino'] as String? ?? '',
+      userIdentifier: _invitationIdentifier(json),
       code: json['codigo'] as String,
       status: _invitationStatus(json['estado'] as String),
       createdAt: DateTime.now(),
@@ -315,7 +320,7 @@ class ApiFamilyRepository implements FamilyRepository {
       return FamilyInvitationEntity(
         id: id,
         email: json['correo'] as String? ?? '',
-        userIdentifier: json['usuarioDestino'] as String? ?? '',
+        userIdentifier: _invitationIdentifier(json),
         code: '',
         status: _invitationStatus(json['estado'] as String),
         createdAt: DateTime.parse(
@@ -494,6 +499,12 @@ class ApiFamilyRepository implements FamilyRepository {
     FamilyRole.admin => 'administrador',
     FamilyRole.member => 'integrante',
   };
+
+  String _invitationIdentifier(Map<String, dynamic> json) {
+    final alias = json['aliasDestino'] as String?;
+    if (alias != null && alias.isNotEmpty) return '@$alias';
+    return json['usuarioDestino'] as String? ?? '';
+  }
 
   FamilyInvitationStatus _invitationStatus(String value) => switch (value) {
     'aceptada' => FamilyInvitationStatus.accepted,

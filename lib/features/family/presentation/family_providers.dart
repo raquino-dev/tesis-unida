@@ -30,7 +30,9 @@ class FamilyViewModel extends StateNotifier<ViewState<FamilyGroupEntity>> {
           ? const ViewState.empty()
           : ViewState.success(group);
     } catch (e) {
-      state = ViewState.error(e.toString());
+      state = ViewState.error(
+        appErrorMessage(e, fallback: 'No pudimos cargar el grupo familiar.'),
+      );
     }
   }
 
@@ -127,7 +129,12 @@ class FamilyMovementListViewModel
       _all = await _repository.getFamilyMovements();
       _emit();
     } catch (e) {
-      state = ViewState.error(e.toString());
+      state = ViewState.error(
+        appErrorMessage(
+          e,
+          fallback: 'No pudimos cargar los movimientos familiares.',
+        ),
+      );
     }
   }
 

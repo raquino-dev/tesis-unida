@@ -31,7 +31,11 @@ class ReportEntity {
   final double totalIncome;
   final double totalExpense;
   final double balance;
+
+  /// Distribución de egresos. Se mantiene con este nombre por compatibilidad
+  /// con el contrato original de reportes.
   final List<CategoryDistribution> distribution;
+  final List<CategoryDistribution> incomeDistribution;
   final List<MonthlyTrendPoint> trend;
   final List<String> insights;
 
@@ -41,7 +45,10 @@ class ReportEntity {
     required this.totalExpense,
     required this.balance,
     required this.distribution,
+    required this.incomeDistribution,
     required this.trend,
     required this.insights,
   });
+
+  List<CategoryDistribution> get expenseDistribution => distribution;
 }

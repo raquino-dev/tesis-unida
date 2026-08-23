@@ -28,7 +28,13 @@ class GooglePlayBillingService {
     }
     final response = await _billing.queryProductDetails(ids);
     if (response.error != null) {
-      throw AppFailure(response.error!.message, code: response.error!.code);
+      throw AppFailure(
+        _billingErrorMessage(
+          response.error!.code,
+          fallback: 'No pudimos consultar los planes disponibles.',
+        ),
+        code: response.error!.code,
+      );
     }
     return {for (final product in response.productDetails) product.id: product};
   }
@@ -102,7 +108,10 @@ class GooglePlayBillingService {
         );
       case PurchaseStatus.error:
         throw AppFailure(
-          purchase.error?.message ?? 'Google Play rechazó la compra.',
+          _billingErrorMessage(
+            purchase.error?.code,
+            fallback: 'No pudimos procesar la compra.',
+          ),
           code: purchase.error?.code ?? 'purchase_error',
         );
       case PurchaseStatus.pending:
@@ -116,5 +125,21 @@ class GooglePlayBillingService {
   Future<void> dispose() async {
     await _subscription.cancel();
     await _purchases.close();
+  }
+
+  String _billingErrorMessage(String? code, {required String fallback}) {
+    final normalized = code?.toLowerCase() ?? '';
+    if (normalized.contains('cancel')) return 'La compra fue cancelada.';
+    if (normalized.contains('network') || normalized.contains('service')) {
+      return 'No pudimos comunicarnos con Google Play. Intentá nuevamente.';
+    }
+    if (normalized.contains('unavailable') ||
+        normalized.contains('not_found')) {
+      return 'El producto no está disponible en este momento.';
+    }
+    if (normalized.contains('already_owned')) {
+      return 'Este plan ya está asociado a tu cuenta.';
+    }
+    return fallback;
   }
 }

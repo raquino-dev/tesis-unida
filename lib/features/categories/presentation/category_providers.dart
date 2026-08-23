@@ -30,17 +30,32 @@ class CategoryListViewModel
           ? const ViewState.empty()
           : ViewState.success(categories);
     } catch (e) {
-      state = ViewState.error(e.toString());
+      state = ViewState.error(
+        appErrorMessage(e, fallback: 'No pudimos cargar tus categorías.'),
+      );
     }
   }
 
   Future<String?> create(CategoryEntity category) async {
+    final result = await createWithResult(category);
+    return result.error;
+  }
+
+  Future<({CategoryEntity? entity, String? error})> createWithResult(
+    CategoryEntity category,
+  ) async {
     try {
-      await _repository.createCategory(category);
+      final created = await _repository.createCategory(category);
       await load();
-      return null;
+      return (entity: created, error: null);
     } on AppFailure catch (e) {
-      return e.message;
+      return (
+        entity: null,
+        error: appErrorMessage(
+          e,
+          fallback: 'No pudimos guardar la categoría. Intentá nuevamente.',
+        ),
+      );
     }
   }
 
@@ -50,7 +65,10 @@ class CategoryListViewModel
       await load();
       return null;
     } on AppFailure catch (e) {
-      return e.message;
+      return appErrorMessage(
+        e,
+        fallback: 'No pudimos actualizar la categoría. Intentá nuevamente.',
+      );
     }
   }
 
@@ -60,7 +78,10 @@ class CategoryListViewModel
       await load();
       return null;
     } on AppFailure catch (e) {
-      return e.message;
+      return appErrorMessage(
+        e,
+        fallback: 'No pudimos eliminar la categoría. Intentá nuevamente.',
+      );
     }
   }
 }

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/errors/app_failure.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme_extension.dart';
 import '../../../core/config/app_environment.dart';
-import '../../../core/errors/app_failure.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_card.dart';
 import 'security_providers.dart';
@@ -100,7 +100,12 @@ class SecurityCenterScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.sm),
           sessions.when(
             loading: () => const LinearProgressIndicator(),
-            error: (error, _) => Text('$error'),
+            error: (error, _) => Text(
+              appErrorMessage(
+                error,
+                fallback: 'No pudimos cargar las sesiones activas.',
+              ),
+            ),
             data: (items) => items.isEmpty
                 ? Text(
                     'No hay sesiones activas.',
@@ -114,9 +119,7 @@ class SecurityCenterScreen extends ConsumerWidget {
                             child: AppCard(
                               child: ListTile(
                                 contentPadding: EdgeInsets.zero,
-                                leading: const Icon(
-                                  Icons.devices_rounded,
-                                ),
+                                leading: const Icon(Icons.devices_rounded),
                                 title: Text(session.deviceName),
                                 subtitle: Text(
                                   '${session.platform} · vence ${DateFormatter.medium(session.expiresAt)}',
@@ -125,14 +128,10 @@ class SecurityCenterScreen extends ConsumerWidget {
                                     ? const Text('Actual')
                                     : IconButton(
                                         tooltip: 'Cerrar sesión',
-                                        icon: const Icon(
-                                          Icons.logout_rounded,
-                                        ),
+                                        icon: const Icon(Icons.logout_rounded),
                                         onPressed: () async {
                                           await ref
-                                              .read(
-                                                securityRepositoryProvider,
-                                              )
+                                              .read(securityRepositoryProvider)
                                               .revokeSession(session.id);
                                           ref.invalidate(
                                             activeSessionsProvider,
@@ -157,7 +156,12 @@ class SecurityCenterScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.sm),
           events.when(
             loading: () => const LinearProgressIndicator(),
-            error: (error, _) => Text('$error'),
+            error: (error, _) => Text(
+              appErrorMessage(
+                error,
+                fallback: 'No pudimos cargar los eventos de seguridad.',
+              ),
+            ),
             data: (items) => items.isEmpty
                 ? Text(
                     'Todavía no hay eventos registrados.',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/view_state.dart';
+import '../../../../core/errors/app_failure.dart';
 import '../../domain/movement_entity.dart';
 import '../../domain/movement_repository.dart';
 import 'movement_providers.dart';
@@ -119,7 +120,9 @@ class MovementListViewModel
       _all = await _repository.getMovements();
       _emit();
     } catch (e) {
-      state = ViewState.error(e.toString());
+      state = ViewState.error(
+        appErrorMessage(e, fallback: 'No pudimos cargar tus movimientos.'),
+      );
     }
   }
 

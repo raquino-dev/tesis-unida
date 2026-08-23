@@ -5,6 +5,7 @@ import '../../domain/entities/user_entity.dart';
 class UserModel {
   final String id;
   final String name;
+  final String alias;
   final String email;
   final String currency;
   final String language;
@@ -13,6 +14,7 @@ class UserModel {
   const UserModel({
     required this.id,
     required this.name,
+    this.alias = '',
     required this.email,
     required this.currency,
     required this.language,
@@ -23,6 +25,7 @@ class UserModel {
     return UserModel(
       id: json['id'] as String,
       name: json['name'] as String,
+      alias: json['alias'] as String? ?? '',
       email: json['email'] as String,
       currency: json['currency'] as String,
       language: json['language'] as String,
@@ -33,6 +36,7 @@ class UserModel {
   UserEntity toEntity() => UserEntity(
     id: id,
     name: name,
+    alias: alias,
     email: email,
     currency: currency,
     language: language,

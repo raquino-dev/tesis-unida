@@ -5,6 +5,7 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/errors/app_failure.dart';
 import '../../../security/domain/security_entity.dart';
 import '../../../security/presentation/security_providers.dart';
 import '../../../security/presentation/widgets/otp_verification_dialog.dart';
@@ -67,9 +68,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Contraseña actualizada. Iniciá sesión nuevamente.',
-            ),
+            content: Text('Contraseña actualizada. Iniciá sesión nuevamente.'),
           ),
         );
         context.go(AppRoutes.login);
@@ -77,7 +76,10 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     } catch (error) {
       setState(() {
         _loading = false;
-        _error = error.toString();
+        _error = appErrorMessage(
+          error,
+          fallback: 'No pudimos cambiar la contraseña. Intentá nuevamente.',
+        );
       });
     }
   }

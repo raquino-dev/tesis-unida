@@ -180,9 +180,6 @@ class ApiClient {
     bool allowOffline = true,
     bool triggerSynchronization = true,
   }) async {
-    if (method == 'GET' && triggerSynchronization) {
-      await OfflineRuntime.instance.synchronize();
-    }
     final token = authenticated
         ? await PilotLocalStore.readAccessToken()
         : null;
@@ -258,7 +255,11 @@ class ApiClient {
     if (method == 'GET' && authenticated && _canCache(path)) {
       await OfflineRuntime.instance.cache(path, parsed.data);
     }
-    if (triggerSynchronization) {
+    // La sincronización nunca debe bloquear la respuesta que originó el flujo
+    // visible (por ejemplo, login -> perfil). Además, las rutas públicas no
+    // deben iniciar una sincronización antes de que la sesión haya sido
+    // guardada por el repositorio de autenticación.
+    if (authenticated && triggerSynchronization) {
       unawaited(OfflineRuntime.instance.synchronize());
     }
     return parsed;

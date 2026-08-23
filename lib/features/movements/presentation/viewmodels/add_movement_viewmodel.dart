@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/view_state.dart';
 import '../../../accounts/domain/account_entity.dart';
 import '../../../categories/domain/category_entity.dart';
+import '../../../ocr/domain/ocr_repository.dart';
+import '../../../ocr/presentation/viewmodels/ocr_viewmodel.dart';
 import '../../domain/movement_entity.dart';
 import 'movement_providers.dart';
 
@@ -35,6 +37,22 @@ class AddMovementViewModel extends StateNotifier<ViewState<MovementEntity>> {
     state = const ViewState.loading();
     try {
       final repository = _ref.read(movementRepositoryProvider);
+      var effectiveDocumentId = documentId;
+      var effectiveOcrStatus = ocrStatus;
+      if (hasAttachment &&
+          effectiveDocumentId == null &&
+          attachmentPath != null &&
+          attachmentName != null) {
+        final processed = await _ref
+            .read(ocrRepositoryProvider)
+            .processReceipt(
+              _sourceFor(attachmentType),
+              documentPath: attachmentPath,
+              documentName: attachmentName,
+            );
+        effectiveDocumentId = processed.documentId;
+        effectiveOcrStatus = processed.status;
+      }
       final movement = MovementEntity(
         id: existingId ?? '',
         type: type,
@@ -45,10 +63,10 @@ class AddMovementViewModel extends StateNotifier<ViewState<MovementEntity>> {
         account: account,
         hasAttachment: hasAttachment,
         attachmentType: attachmentType,
-        ocrStatus: ocrStatus,
+        ocrStatus: effectiveOcrStatus,
         attachmentPath: attachmentPath,
         attachmentName: attachmentName,
-        documentId: documentId,
+        documentId: effectiveDocumentId,
       );
       final result = existingId == null
           ? await repository.addMovement(movement)
@@ -62,6 +80,12 @@ class AddMovementViewModel extends StateNotifier<ViewState<MovementEntity>> {
   }
 
   void reset() => state = const ViewState.empty();
+
+  OcrSource _sourceFor(AttachmentType? type) => switch (type) {
+    AttachmentType.pdf => OcrSource.pdf,
+    AttachmentType.xml => OcrSource.xml,
+    _ => OcrSource.gallery,
+  };
 }
 
 final addMovementViewModelProvider =

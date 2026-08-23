@@ -9,9 +9,12 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_searchable_selector.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../accounts/domain/account_entity.dart';
+import '../../../accounts/presentation/account_list_screen.dart';
 import '../../../accounts/presentation/account_providers.dart';
 import '../../../categories/domain/category_entity.dart';
+import '../../../categories/presentation/category_list_screen.dart';
 import '../../../categories/presentation/category_providers.dart';
+import '../../../credit_cards/presentation/credit_card_list_screen.dart';
 import '../../domain/movement_entity.dart';
 import '../viewmodels/add_movement_viewmodel.dart';
 import '../viewmodels/movement_list_viewmodel.dart';
@@ -45,6 +48,7 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
   AttachmentType _attachmentType = AttachmentType.image;
   String? _attachmentPath;
   String? _attachmentName;
+  String? _documentId;
   late final DateTime _formOpenedAt = DateTime.now();
 
   bool get isEditing => widget.existing != null;
@@ -61,6 +65,7 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
       _attachmentType = widget.existing!.attachmentType ?? AttachmentType.image;
       _attachmentPath = widget.existing!.attachmentPath;
       _attachmentName = widget.existing!.attachmentName;
+      _documentId = widget.existing!.documentId;
     }
   }
 
@@ -119,6 +124,7 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
         _attach = true;
         _attachmentPath = selected.path;
         _attachmentName = selected.name;
+        _documentId = null;
         _attachmentType = source == OcrSource.pdf
             ? AttachmentType.pdf
             : source == OcrSource.xml
@@ -131,6 +137,45 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text(error.message)));
       }
+    }
+  }
+
+  Future<void> _createCategory() async {
+    final created = await showCategoryEditorSheet(
+      context,
+      initialType: _type == MovementType.expense
+          ? CategoryType.expense
+          : CategoryType.income,
+    );
+    if (created == null || !mounted) return;
+    setState(() {
+      if (_categories.every((item) => item.id != created.id)) {
+        _categories = [..._categories, created];
+      }
+    });
+  }
+
+  Future<AccountEntity?> _createAccount() async {
+    final created = await showAccountEditorSheet(context);
+    if (created != null && mounted) setState(() => _account = created);
+    return created;
+  }
+
+  Future<void> _createCreditCard() async {
+    final paymentAccount = _account ?? await _createAccount();
+    if (paymentAccount == null || !mounted) return;
+    final created = await showCreditCardEditorSheet(
+      context,
+      initialAccount: paymentAccount,
+    );
+    if (created != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Tarjeta “${created.alias}” creada. Seleccioná la cuenta que corresponda para registrar el movimiento.',
+          ),
+        ),
+      );
     }
   }
 
@@ -290,8 +335,14 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
               const SizedBox(height: 8),
               categoriesState.when(
                 loading: () => const LinearProgressIndicator(),
-                error: (_) => const SizedBox.shrink(),
-                empty: () => const SizedBox.shrink(),
+                error: (_) => Text(
+                  'No pudimos cargar tus categorías.',
+                  style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                ),
+                empty: () => Text(
+                  'No tenés categorías registradas todavía.',
+                  style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                ),
                 success: (categories) {
                   final movementCategoryType = _type == MovementType.expense
                       ? CategoryType.expense
@@ -310,6 +361,14 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
                     onChanged: (values) => setState(() => _categories = values),
                   );
                 },
+              ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _createCategory,
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Crear categoría'),
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
@@ -342,6 +401,21 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
                     onChanged: (value) => setState(() => _account = value),
                   );
                 },
+              ),
+              Wrap(
+                spacing: AppSpacing.xs,
+                children: [
+                  TextButton.icon(
+                    onPressed: _createAccount,
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('Crear cuenta'),
+                  ),
+                  TextButton.icon(
+                    onPressed: _createCreditCard,
+                    icon: const Icon(Icons.credit_card_outlined, size: 18),
+                    label: const Text('Crear tarjeta'),
+                  ),
+                ],
               ),
               if (_account != null) ...[
                 const SizedBox(height: 8),
@@ -409,6 +483,7 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
                         _attach = false;
                         _attachmentPath = null;
                         _attachmentName = null;
+                        _documentId = null;
                       }),
                       child: const Text('Quitar'),
                     ),
@@ -444,6 +519,7 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
                             ocrStatus: widget.existing?.ocrStatus,
                             attachmentPath: _attach ? _attachmentPath : null,
                             attachmentName: _attach ? _attachmentName : null,
+                            documentId: _attach ? _documentId : null,
                           ),
               ),
             ],

@@ -91,6 +91,7 @@ class MockMovementRepository implements MovementRepository {
       ocrStatus: movement.ocrStatus,
       attachmentPath: movement.attachmentPath,
       attachmentName: movement.attachmentName,
+      documentId: movement.documentId,
     );
     models.add(model);
     return model.toEntity(
@@ -118,6 +119,7 @@ class MockMovementRepository implements MovementRepository {
       ocrStatus: movement.ocrStatus,
       attachmentPath: movement.attachmentPath,
       attachmentName: movement.attachmentName,
+      documentId: movement.documentId,
     );
     models[index] = updated;
     return updated.toEntity(

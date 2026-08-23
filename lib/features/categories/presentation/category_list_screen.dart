@@ -35,6 +35,18 @@ const _colorOptions = [
   Color(0xFF5C86B0),
 ];
 
+Future<CategoryEntity?> showCategoryEditorSheet(
+  BuildContext context, {
+  CategoryEntity? category,
+  CategoryType initialType = CategoryType.expense,
+}) => showModalBottomSheet<CategoryEntity>(
+  context: context,
+  isScrollControlled: true,
+  backgroundColor: Colors.transparent,
+  builder: (_) =>
+      _CategoryEditorSheet(category: category, initialType: initialType),
+);
+
 class CategoryListScreen extends ConsumerWidget {
   const CategoryListScreen({super.key});
 
@@ -49,7 +61,7 @@ class CategoryListScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.add_rounded),
-            onPressed: () => _openEditor(context, ref),
+            onPressed: () => showCategoryEditorSheet(context),
           ),
         ],
       ),
@@ -61,7 +73,7 @@ class CategoryListScreen extends ConsumerWidget {
           title: 'Sin categorías',
           message: 'Creá tu primera categoría para organizar tus movimientos.',
           actionLabel: 'Crear categoría',
-          onAction: () => _openEditor(context, ref),
+          onAction: () => showCategoryEditorSheet(context),
         ),
         success: (categories) => ListView.separated(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -101,7 +113,7 @@ class CategoryListScreen extends ConsumerWidget {
               trailing: PopupMenuButton<String>(
                 onSelected: (value) async {
                   if (value == 'edit') {
-                    _openEditor(context, ref, category: c);
+                    showCategoryEditorSheet(context, category: c);
                   } else if (value == 'delete') {
                     final error = await viewModel.delete(c.id);
                     if (error != null && context.mounted) {
@@ -122,24 +134,12 @@ class CategoryListScreen extends ConsumerWidget {
       ),
     );
   }
-
-  void _openEditor(
-    BuildContext context,
-    WidgetRef ref, {
-    CategoryEntity? category,
-  }) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _CategoryEditorSheet(category: category),
-    );
-  }
 }
 
 class _CategoryEditorSheet extends ConsumerStatefulWidget {
   final CategoryEntity? category;
-  const _CategoryEditorSheet({this.category});
+  final CategoryType initialType;
+  const _CategoryEditorSheet({this.category, required this.initialType});
 
   @override
   ConsumerState<_CategoryEditorSheet> createState() =>
@@ -150,8 +150,14 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
   late final _name = TextEditingController(text: widget.category?.name ?? '');
   late IconData _icon = widget.category?.icon ?? _iconOptions.first;
   late Color _color = widget.category?.color ?? _colorOptions.first;
-  late CategoryType _type = widget.category?.type ?? CategoryType.expense;
+  late CategoryType _type = widget.category?.type ?? widget.initialType;
   String? _errorMessage;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -175,7 +181,11 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: AppSpacing.md),
-            AppTextField(label: 'Nombre', controller: _name),
+            AppTextField(
+              label: 'Nombre',
+              controller: _name,
+              onChanged: (_) => setState(() => _errorMessage = null),
+            ),
             const SizedBox(height: AppSpacing.md),
             Text(
               'Tipo',
@@ -311,14 +321,21 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
                         type: _type,
                         inUse: widget.category?.inUse ?? false,
                       );
-                      final error = widget.category == null
-                          ? await viewModel.create(entity)
-                          : await viewModel.update(entity);
+                      CategoryEntity? saved;
+                      String? error;
+                      if (widget.category == null) {
+                        final result = await viewModel.createWithResult(entity);
+                        saved = result.entity;
+                        error = result.error;
+                      } else {
+                        error = await viewModel.update(entity);
+                        saved = error == null ? entity : null;
+                      }
                       if (error != null) {
                         setState(() => _errorMessage = error);
                         return;
                       }
-                      if (context.mounted) Navigator.of(context).pop();
+                      if (context.mounted) Navigator.of(context).pop(saved);
                     },
             ),
           ],

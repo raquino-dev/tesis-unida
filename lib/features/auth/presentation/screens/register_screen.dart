@@ -7,6 +7,8 @@ import '../../../../app/theme/app_theme_extension.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../viewmodels/register_viewmodel.dart';
+import '../../domain/password_policy.dart';
+import '../../domain/user_alias_policy.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -17,14 +19,37 @@ class RegisterScreen extends ConsumerStatefulWidget {
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _name = TextEditingController();
+  final _alias = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
   bool _acceptsTerms = false;
 
+  String? get _passwordError {
+    if (_password.text.isEmpty) return null;
+    return PasswordPolicy.validate(
+      password: _password.text,
+      email: _email.text,
+      name: _name.text,
+    );
+  }
+
+  String? get _aliasError {
+    if (_alias.text.isEmpty) return null;
+    return UserAliasPolicy.validate(_alias.text);
+  }
+
+  String? get _confirmationError {
+    if (_confirm.text.isEmpty || _password.text == _confirm.text) return null;
+    return 'Las contraseñas no coinciden.';
+  }
+
+  void _refreshValidation(String _) => setState(() {});
+
   @override
   void dispose() {
     _name.dispose();
+    _alias.dispose();
     _email.dispose();
     _password.dispose();
     _confirm.dispose();
@@ -71,24 +96,53 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 style: TextStyle(color: colors.textSecondary, fontSize: 14),
               ),
               const SizedBox(height: AppSpacing.xl),
-              AppTextField(label: 'Nombre', controller: _name),
+              AppTextField(
+                label: 'Nombre visible',
+                hint: 'Ej.: Rodrigo',
+                controller: _name,
+                onChanged: _refreshValidation,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              AppTextField(
+                label: 'Alias único',
+                hint: '@Rodrigo001',
+                controller: _alias,
+                errorText: _aliasError,
+                prefixIcon: const Icon(Icons.alternate_email_rounded),
+                onChanged: _refreshValidation,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                UserAliasPolicy.requirements,
+                style: TextStyle(color: colors.textMuted, fontSize: 12),
+              ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
                 label: 'Correo electrónico',
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
+                onChanged: _refreshValidation,
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
                 label: 'Contraseña',
                 controller: _password,
                 obscureText: true,
+                errorText: _passwordError,
+                onChanged: _refreshValidation,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                PasswordPolicy.requirements,
+                style: TextStyle(color: colors.textMuted, fontSize: 12),
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
                 label: 'Confirmar contraseña',
                 controller: _confirm,
                 obscureText: true,
+                errorText: _confirmationError,
+                onChanged: _refreshValidation,
               ),
               const SizedBox(height: AppSpacing.sm),
               CheckboxListTile(
@@ -136,6 +190,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     .read(registerViewModelProvider.notifier)
                     .register(
                       name: _name.text.trim(),
+                      alias: _alias.text.trim(),
                       email: _email.text.trim(),
                       password: _password.text,
                       confirmPassword: _confirm.text,

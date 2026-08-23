@@ -204,12 +204,22 @@ class MockFamilyRepository implements FamilyRepository {
     await Future.delayed(const Duration(milliseconds: 500));
     _requireGroup();
     if (email.trim().isEmpty && userIdentifier.trim().isEmpty) {
-      throw const AppFailure('Ingresá un correo o identificador de usuario.');
+      throw const AppFailure('Ingresá el alias único del usuario.');
+    }
+    final identifier = userIdentifier.trim();
+    if (_invitations.any(
+      (item) =>
+          item.status == FamilyInvitationStatus.pending &&
+          item.userIdentifier.toLowerCase() == identifier.toLowerCase(),
+    )) {
+      throw const AppFailure(
+        'Ya existe una invitación pendiente para ese usuario.',
+      );
     }
     final invitation = FamilyInvitationEntity(
       id: 'inv_${_memberSequence++}',
       email: email.trim(),
-      userIdentifier: userIdentifier.trim(),
+      userIdentifier: identifier.startsWith('@') ? identifier : '@$identifier',
       code: '${100000 + (_memberSequence % 899999)}',
       status: FamilyInvitationStatus.pending,
       createdAt: DateTime.now(),

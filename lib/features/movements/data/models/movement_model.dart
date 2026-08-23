@@ -15,6 +15,7 @@ class MovementModel {
   final OcrStatus? ocrStatus;
   final String? attachmentPath;
   final String? attachmentName;
+  final String? documentId;
 
   const MovementModel({
     required this.id,
@@ -29,6 +30,7 @@ class MovementModel {
     this.ocrStatus,
     this.attachmentPath,
     this.attachmentName,
+    this.documentId,
   });
 
   factory MovementModel.fromMock(Map<String, dynamic> json) {
@@ -49,6 +51,7 @@ class MovementModel {
       ocrStatus: ocrStatusFromString(json['ocrStatus'] as String?),
       attachmentPath: json['attachmentPath'] as String?,
       attachmentName: json['attachmentName'] as String?,
+      documentId: json['documentId'] as String?,
     );
   }
 
@@ -69,6 +72,7 @@ class MovementModel {
       ocrStatus: ocrStatus,
       attachmentPath: attachmentPath,
       attachmentName: attachmentName,
+      documentId: documentId,
     );
   }
 }

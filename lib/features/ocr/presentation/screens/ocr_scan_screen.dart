@@ -12,8 +12,11 @@ import '../../../../core/widgets/app_state_view.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/app_searchable_selector.dart';
 import '../../../accounts/presentation/account_providers.dart';
+import '../../../accounts/presentation/account_list_screen.dart';
 import '../../../categories/domain/category_entity.dart';
+import '../../../categories/presentation/category_list_screen.dart';
 import '../../../categories/presentation/category_providers.dart';
+import '../../../credit_cards/presentation/credit_card_list_screen.dart';
 import '../../../movements/domain/movement_entity.dart';
 import '../../../movements/presentation/viewmodels/add_movement_viewmodel.dart';
 import '../../../movements/presentation/viewmodels/movement_list_viewmodel.dart';
@@ -192,6 +195,48 @@ class _ResultReviewState extends ConsumerState<_ResultReview> {
   bool _savingDocument = false;
   String? _documentError;
 
+  Future<void> _createCategory() async {
+    final created = await showCategoryEditorSheet(
+      context,
+      initialType: CategoryType.expense,
+    );
+    if (created != null && mounted) {
+      setState(() => _categoryId = created.id);
+    }
+  }
+
+  Future<void> _createAccount() async {
+    final created = await showAccountEditorSheet(context);
+    if (created != null && mounted) setState(() => _accountId = created.id);
+  }
+
+  Future<void> _createCreditCard() async {
+    final accountsState = ref.read(accountListViewModelProvider);
+    var paymentAccount = accountsState.when(
+      loading: () => null,
+      error: (_) => null,
+      empty: () => null,
+      success: (accounts) =>
+          accounts.where((item) => item.id == _accountId).firstOrNull,
+    );
+    paymentAccount ??= await showAccountEditorSheet(context);
+    if (paymentAccount == null || !mounted) return;
+    setState(() => _accountId = paymentAccount!.id);
+    final created = await showCreditCardEditorSheet(
+      context,
+      initialAccount: paymentAccount,
+    );
+    if (created != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Tarjeta “${created.alias}” creada. El movimiento utilizará la cuenta que selecciones.',
+          ),
+        ),
+      );
+    }
+  }
+
   Future<void> _pickDate() async {
     final value = await showDatePicker(
       context: context,
@@ -357,8 +402,14 @@ class _ResultReviewState extends ConsumerState<_ResultReview> {
             const SizedBox(height: 8),
             categoriesState.when(
               loading: () => const LinearProgressIndicator(),
-              error: (_) => const SizedBox.shrink(),
-              empty: () => const SizedBox.shrink(),
+              error: (_) => Text(
+                'No pudimos cargar tus categorías.',
+                style: TextStyle(color: colors.textSecondary, fontSize: 13),
+              ),
+              empty: () => Text(
+                'No tenés categorías registradas todavía.',
+                style: TextStyle(color: colors.textSecondary, fontSize: 13),
+              ),
               success: (categories) {
                 final available = categories
                     .where((c) => c.type.appliesTo(CategoryType.expense))
@@ -377,6 +428,14 @@ class _ResultReviewState extends ConsumerState<_ResultReview> {
                   onChanged: (value) => setState(() => _categoryId = value.id),
                 );
               },
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _createCategory,
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('Crear categoría'),
+              ),
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
@@ -409,6 +468,21 @@ class _ResultReviewState extends ConsumerState<_ResultReview> {
                   onChanged: (value) => setState(() => _accountId = value.id),
                 );
               },
+            ),
+            Wrap(
+              spacing: AppSpacing.xs,
+              children: [
+                TextButton.icon(
+                  onPressed: _createAccount,
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Crear cuenta'),
+                ),
+                TextButton.icon(
+                  onPressed: _createCreditCard,
+                  icon: const Icon(Icons.credit_card_outlined, size: 18),
+                  label: const Text('Crear tarjeta'),
+                ),
+              ],
             ),
             const SizedBox(height: AppSpacing.xl),
             AppButton(

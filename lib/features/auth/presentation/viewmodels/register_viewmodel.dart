@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/errors/app_failure.dart';
 import '../../../../core/utils/view_state.dart';
 import '../../domain/entities/user_entity.dart';
+import '../../domain/password_policy.dart';
+import '../../domain/user_alias_policy.dart';
 import '../providers/auth_providers.dart';
 import '../../../security/presentation/security_providers.dart';
 import '../../../notifications/presentation/notification_providers.dart';
@@ -14,15 +16,21 @@ class RegisterViewModel extends StateNotifier<ViewState<UserEntity>> {
 
   Future<void> register({
     required String name,
+    required String alias,
     required String email,
     required String password,
     required String confirmPassword,
     required bool acceptsTerms,
   }) async {
-    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+    if (name.isEmpty || alias.isEmpty || email.isEmpty || password.isEmpty) {
       state = const ViewState.error(
         'Completá todos los campos para continuar.',
       );
+      return;
+    }
+    final aliasError = UserAliasPolicy.validate(alias);
+    if (aliasError != null) {
+      state = ViewState.error(aliasError);
       return;
     }
     if (!email.contains('@')) {
@@ -31,6 +39,15 @@ class RegisterViewModel extends StateNotifier<ViewState<UserEntity>> {
     }
     if (password != confirmPassword) {
       state = const ViewState.error('Las contraseñas no coinciden.');
+      return;
+    }
+    final passwordError = PasswordPolicy.validate(
+      password: password,
+      email: email,
+      name: name,
+    );
+    if (passwordError != null) {
+      state = ViewState.error(passwordError);
       return;
     }
     if (!acceptsTerms) {
@@ -44,6 +61,7 @@ class RegisterViewModel extends StateNotifier<ViewState<UserEntity>> {
       final repository = _ref.read(authRepositoryProvider);
       final user = await repository.register(
         name: name,
+        alias: UserAliasPolicy.normalize(alias),
         email: email,
         password: password,
         acceptsTerms: acceptsTerms,

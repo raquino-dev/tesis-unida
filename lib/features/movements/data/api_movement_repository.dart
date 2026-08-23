@@ -101,6 +101,7 @@ class ApiMovementRepository implements MovementRepository {
       body: {
         'descripcion': movement.description,
         'categoriaIds': movement.categories.map((item) => item.id).toList(),
+        if (movement.documentId != null) 'documentoId': movement.documentId,
       },
       headers: {'If-Match': '"$version"'},
       offline: OfflineMutation(
@@ -110,6 +111,7 @@ class ApiMovementRepository implements MovementRepository {
           ...original,
           'descripcion': movement.description,
           'categoriaIds': movement.categories.map((item) => item.id).toList(),
+          if (movement.documentId != null) 'documentoId': movement.documentId,
           'version': version + 1,
         },
         collectionPath: '/movimientos',

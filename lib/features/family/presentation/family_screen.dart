@@ -5,6 +5,7 @@ import '../../../app/router/app_routes.dart';
 import '../../../app/theme/app_radius.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme_extension.dart';
+import '../../../core/errors/app_failure.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_badge.dart';
@@ -17,6 +18,7 @@ import '../../../core/widgets/app_searchable_selector.dart';
 import '../../accounts/domain/account_entity.dart';
 import '../../accounts/presentation/account_providers.dart';
 import '../../categories/domain/category_entity.dart';
+import '../../auth/domain/user_alias_policy.dart';
 import '../../security/presentation/widgets/otp_verification_dialog.dart';
 import '../domain/family_entity.dart';
 import '../domain/family_repository.dart';
@@ -66,6 +68,12 @@ class _CreateGroupStateState extends State<_CreateGroupState> {
   bool _loading = false;
 
   @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     return Center(
@@ -108,6 +116,7 @@ class _CreateGroupStateState extends State<_CreateGroupState> {
               label: 'Nombre del grupo',
               controller: _name,
               hint: 'Ej. Familia Aquino',
+              onChanged: (_) => setState(() => _error = null),
             ),
             if (_error != null) ...[
               const SizedBox(height: AppSpacing.sm),
@@ -731,11 +740,15 @@ class _InviteMemberSheet extends ConsumerStatefulWidget {
 }
 
 class _InviteMemberSheetState extends ConsumerState<_InviteMemberSheet> {
-  final _name = TextEditingController();
-  final _email = TextEditingController();
-  final _identifier = TextEditingController();
+  final _alias = TextEditingController();
   FamilyRole _role = FamilyRole.member;
   String? _error;
+
+  @override
+  void dispose() {
+    _alias.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -759,17 +772,20 @@ class _InviteMemberSheetState extends ConsumerState<_InviteMemberSheet> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: AppSpacing.md),
-            AppTextField(label: 'Nombre', controller: _name),
-            const SizedBox(height: AppSpacing.md),
             AppTextField(
-              label: 'Correo electrónico',
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
+              label: 'Alias único',
+              hint: '@Rodrigo001',
+              controller: _alias,
+              prefixIcon: const Icon(Icons.alternate_email_rounded),
+              errorText: _alias.text.isEmpty
+                  ? null
+                  : UserAliasPolicy.validate(_alias.text),
+              onChanged: (_) => setState(() => _error = null),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            AppTextField(
-              label: 'Identificador de usuario (opcional)',
-              controller: _identifier,
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'La invitación se asociará directamente a la cuenta que tenga este alias.',
+              style: TextStyle(color: colors.textMuted, fontSize: 12),
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
@@ -818,19 +834,18 @@ class _InviteMemberSheetState extends ConsumerState<_InviteMemberSheet> {
             const SizedBox(height: AppSpacing.lg),
             AppButton(
               label: 'Invitar',
-              onPressed:
-                  _name.text.trim().isEmpty ||
-                      (_email.text.trim().isEmpty &&
-                          _identifier.text.trim().isEmpty)
+              onPressed: UserAliasPolicy.validate(_alias.text) != null
                   ? null
                   : () async {
                       try {
                         final invitation = await ref
                             .read(familyRepositoryProvider)
                             .createInvitation(
-                              email: _email.text.trim(),
-                              userIdentifier: _identifier.text.trim(),
-                              invitedName: _name.text.trim(),
+                              email: '',
+                              userIdentifier: UserAliasPolicy.normalize(
+                                _alias.text,
+                              ),
+                              invitedName: _alias.text.trim(),
                               role: _role,
                             );
                         ref.invalidate(familyInvitationsProvider);
@@ -847,7 +862,12 @@ class _InviteMemberSheetState extends ConsumerState<_InviteMemberSheet> {
                           );
                         }
                       } catch (error) {
-                        setState(() => _error = error.toString());
+                        setState(
+                          () => _error = appErrorMessage(
+                            error,
+                            fallback: 'No pudimos crear la invitación.',
+                          ),
+                        );
                       }
                     },
             ),

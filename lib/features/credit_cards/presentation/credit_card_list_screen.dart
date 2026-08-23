@@ -14,6 +14,18 @@ import '../../accounts/presentation/account_providers.dart';
 import '../domain/credit_card_entity.dart';
 import 'credit_card_providers.dart';
 
+Future<CreditCardEntity?> showCreditCardEditorSheet(
+  BuildContext context, {
+  CreditCardEntity? card,
+  AccountEntity? initialAccount,
+}) => showModalBottomSheet<CreditCardEntity>(
+  context: context,
+  isScrollControlled: true,
+  backgroundColor: Colors.transparent,
+  builder: (_) =>
+      _CreditCardEditorSheet(card: card, initialAccount: initialAccount),
+);
+
 class CreditCardListScreen extends ConsumerWidget {
   const CreditCardListScreen({super.key});
 
@@ -28,7 +40,7 @@ class CreditCardListScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.add_rounded),
-            onPressed: () => _openEditor(context),
+            onPressed: () => showCreditCardEditorSheet(context),
           ),
         ],
       ),
@@ -42,7 +54,7 @@ class CreditCardListScreen extends ConsumerWidget {
           message:
               'Agregá tu primera tarjeta de crédito para hacer seguimiento de tu línea disponible.',
           actionLabel: 'Agregar tarjeta',
-          onAction: () => _openEditor(context),
+          onAction: () => showCreditCardEditorSheet(context),
         ),
         success: (cards) => ListView.separated(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -51,15 +63,6 @@ class CreditCardListScreen extends ConsumerWidget {
           itemBuilder: (context, index) => _CreditCardTile(card: cards[index]),
         ),
       ),
-    );
-  }
-
-  static void _openEditor(BuildContext context, {CreditCardEntity? card}) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _CreditCardEditorSheet(card: card),
     );
   }
 }
@@ -73,7 +76,7 @@ class _CreditCardTile extends StatelessWidget {
     final colors = context.colors;
     return AppCard(
       elevation: AppCardElevation.elevated,
-      onTap: () => CreditCardListScreen._openEditor(context, card: card),
+      onTap: () => showCreditCardEditorSheet(context, card: card),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -175,7 +178,8 @@ class _CreditCardTile extends StatelessWidget {
 
 class _CreditCardEditorSheet extends ConsumerStatefulWidget {
   final CreditCardEntity? card;
-  const _CreditCardEditorSheet({this.card});
+  final AccountEntity? initialAccount;
+  const _CreditCardEditorSheet({this.card, this.initialAccount});
 
   @override
   ConsumerState<_CreditCardEditorSheet> createState() =>
@@ -201,6 +205,16 @@ class _CreditCardEditorSheetState
   String? _errorMessage;
 
   bool get isEditing => widget.card != null;
+
+  @override
+  void dispose() {
+    _alias.dispose();
+    _closingDay.dispose();
+    _dueDay.dispose();
+    _totalLimit.dispose();
+    _usedLimit.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -252,6 +266,7 @@ class _CreditCardEditorSheetState
                 label: 'Nombre o alias',
                 controller: _alias,
                 hint: 'Ej. Compras del hogar',
+                onChanged: (_) => setState(() => _errorMessage = null),
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
@@ -273,6 +288,7 @@ class _CreditCardEditorSheetState
                 success: (accounts) {
                   _account ??=
                       widget.card?.account ??
+                      widget.initialAccount ??
                       (accounts.isNotEmpty ? accounts.first : null);
                   return AppSearchableSingleSelector<AccountEntity>(
                     items: accounts,
@@ -378,14 +394,23 @@ class _CreditCardEditorSheetState
                         final viewModel = ref.read(
                           creditCardListViewModelProvider.notifier,
                         );
-                        final error = isEditing
-                            ? await viewModel.update(entity)
-                            : await viewModel.create(entity);
+                        CreditCardEntity? saved;
+                        String? error;
+                        if (isEditing) {
+                          error = await viewModel.update(entity);
+                          saved = error == null ? entity : null;
+                        } else {
+                          final result = await viewModel.createWithResult(
+                            entity,
+                          );
+                          saved = result.entity;
+                          error = result.error;
+                        }
                         if (error != null) {
                           setState(() => _errorMessage = error);
                           return;
                         }
-                        if (context.mounted) Navigator.of(context).pop();
+                        if (context.mounted) Navigator.of(context).pop(saved);
                       },
               ),
             ],

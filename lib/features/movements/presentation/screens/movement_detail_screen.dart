@@ -139,97 +139,83 @@ class MovementDetailScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Icon(
-                            movement.attachmentType == AttachmentType.pdf
-                                ? Icons.picture_as_pdf_outlined
-                                : movement.attachmentType == AttachmentType.xml
-                                ? Icons.code_rounded
-                                : Icons.image_outlined,
-                            color: colors.primary,
+                      Text(
+                        'Comprobantes',
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Archivo adjunto a este movimiento',
+                        style: TextStyle(color: colors.textMuted, fontSize: 12),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Material(
+                        color: colors.surfaceElevated,
+                        borderRadius: AppRadius.mdRadius,
+                        child: ListTile(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: AppRadius.mdRadius,
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              movement.attachmentName ??
-                                  (movement.attachmentType == AttachmentType.pdf
-                                      ? 'Comprobante en PDF'
-                                      : movement.attachmentType ==
-                                            AttachmentType.xml
-                                      ? 'Comprobante XML SIFEN'
-                                      : 'Comprobante (imagen)'),
-                              style: TextStyle(
-                                color: colors.textPrimary,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13.5,
-                              ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm,
+                            vertical: 4,
+                          ),
+                          leading: Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: colors.primary.withValues(alpha: 0.14),
+                              borderRadius: AppRadius.smRadius,
+                            ),
+                            child: Icon(
+                              _attachmentIcon(movement.attachmentType),
+                              color: colors.primary,
                             ),
                           ),
-                        ],
+                          title: Text(
+                            _attachmentLabel(movement),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: colors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13.5,
+                            ),
+                          ),
+                          subtitle: Text(
+                            _attachmentTypeLabel(movement.attachmentType),
+                            style: TextStyle(
+                              color: colors.textMuted,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                          trailing: Icon(
+                            Icons.visibility_outlined,
+                            color: colors.primary,
+                          ),
+                          onTap: () => _openAttachment(context, movement),
+                        ),
                       ),
                       if (movement.ocrStatus != null) ...[
                         const SizedBox(height: AppSpacing.sm),
-                        Container(
-                          padding: const EdgeInsets.all(AppSpacing.sm),
-                          decoration: BoxDecoration(
-                            color: colors.surfaceElevated,
-                            borderRadius: AppRadius.mdRadius,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Información reconocida por OCR',
-                                style: TextStyle(
-                                  color: colors.textSecondary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                        Row(
+                          children: [
+                            Text(
+                              'Estado del procesamiento:',
+                              style: TextStyle(
+                                color: colors.textSecondary,
+                                fontSize: 12,
                               ),
-                              const SizedBox(height: 6),
-                              _row(
-                                context,
-                                'Monto detectado',
-                                CurrencyFormatter.format(movement.amount),
-                              ),
-                              const SizedBox(height: 4),
-                              _row(
-                                context,
-                                'Comercio detectado',
-                                movement.description,
-                              ),
-                              const SizedBox(height: 4),
-                              _row(
-                                context,
-                                'Categoría sugerida',
-                                movement.primaryCategory.name,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'El archivo original queda disponible junto con estos datos, incluso si luego los corregiste.',
-                                style: TextStyle(
-                                  color: colors.textMuted,
-                                  fontSize: 11.5,
-                                  height: 1.3,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(width: 8),
+                            OcrStatusBadge(status: movement.ocrStatus!),
+                          ],
                         ),
                       ],
-                      const SizedBox(height: AppSpacing.md),
-                      AppButton(
-                        label: 'Ver comprobante',
-                        variant: AppButtonVariant.secondary,
-                        icon: Icons.visibility_outlined,
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                AttachmentPreviewScreen(movement: movement),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -286,4 +272,32 @@ class MovementDetailScreen extends ConsumerWidget {
       ],
     );
   }
+
+  void _openAttachment(BuildContext context, MovementEntity movement) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AttachmentPreviewScreen(movement: movement),
+      ),
+    );
+  }
+
+  IconData _attachmentIcon(AttachmentType? type) => switch (type) {
+    AttachmentType.pdf => Icons.picture_as_pdf_outlined,
+    AttachmentType.xml => Icons.code_rounded,
+    _ => Icons.image_outlined,
+  };
+
+  String _attachmentLabel(MovementEntity movement) =>
+      movement.attachmentName ??
+      switch (movement.attachmentType) {
+        AttachmentType.pdf => 'Comprobante en PDF',
+        AttachmentType.xml => 'Comprobante XML SIFEN',
+        _ => 'Comprobante en imagen',
+      };
+
+  String _attachmentTypeLabel(AttachmentType? type) => switch (type) {
+    AttachmentType.pdf => 'Documento PDF',
+    AttachmentType.xml => 'Documento XML',
+    _ => 'Imagen',
+  };
 }

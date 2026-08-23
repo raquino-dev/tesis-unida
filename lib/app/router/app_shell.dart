@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/widgets/app_bottom_nav.dart';
 import '../../core/widgets/app_speed_dial_fab.dart';
-import '../../core/widgets/offline_status_bar.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/movements/domain/movement_entity.dart';
 import '../../features/movements/presentation/screens/movement_list_screen.dart';
@@ -53,14 +52,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Stack(
       children: [
         Scaffold(
-          body: Column(
-            children: [
-              const OfflineStatusBar(),
-              Expanded(
-                child: IndexedStack(index: _index, children: _screens),
-              ),
-            ],
-          ),
+          body: IndexedStack(index: _index, children: _screens),
           bottomNavigationBar: AppBottomNav(
             currentIndex: _index,
             onTap: _onTap,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_environment.dart';
+import '../../../core/errors/app_failure.dart';
 import '../../../core/network/api_providers.dart';
 import '../../../core/utils/view_state.dart';
 import '../../movements/presentation/viewmodels/movement_list_viewmodel.dart';
@@ -44,7 +45,9 @@ class ExportViewModel extends StateNotifier<ViewState<ExportRecord>> {
       state = ViewState.success(record);
       _ref.invalidate(exportHistoryProvider);
     } catch (error) {
-      state = ViewState.error(error.toString());
+      state = ViewState.error(
+        appErrorMessage(error, fallback: 'No pudimos generar la exportación.'),
+      );
     }
   }
 

@@ -10,6 +10,7 @@ abstract class AuthRepository {
   });
   Future<UserEntity> register({
     required String name,
+    required String alias,
     required String email,
     required String password,
     required bool acceptsTerms,
@@ -25,6 +26,11 @@ abstract class AuthRepository {
     required String otpVerificationId,
   });
   Future<UserEntity> currentUser();
+  Future<UserEntity> updateProfile({
+    required UserEntity current,
+    required String name,
+    required String alias,
+  });
   Future<void> logout();
 
   /// Elimina la cuenta del usuario actual. Requiere reingresar la

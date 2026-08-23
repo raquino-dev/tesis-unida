@@ -30,18 +30,22 @@ class AccountListViewModel
           ? const ViewState.empty()
           : ViewState.success(accounts);
     } catch (e) {
-      state = ViewState.error(e.toString());
+      state = ViewState.error(
+        appErrorMessage(e, fallback: 'No pudimos cargar tus cuentas.'),
+      );
     }
   }
 
-  Future<void> create(AccountEntity account) async {
-    await _repository.createAccount(account);
+  Future<AccountEntity> create(AccountEntity account) async {
+    final created = await _repository.createAccount(account);
     await load();
+    return created;
   }
 
-  Future<void> update(AccountEntity account) async {
-    await _repository.updateAccount(account);
+  Future<AccountEntity> update(AccountEntity account) async {
+    final updated = await _repository.updateAccount(account);
     await load();
+    return updated;
   }
 
   Future<String?> delete(String id) async {
