@@ -1,5 +1,12 @@
 import '../entities/user_entity.dart';
 
+class PasswordRecoveryChallenge {
+  final String id;
+  final DateTime expiresAt;
+
+  const PasswordRecoveryChallenge({required this.id, required this.expiresAt});
+}
+
 /// Contrato de autenticación. La UI y los ViewModels dependen solo de esta
 /// abstracción; hoy la implementa un mock, mañana un servicio HTTP.
 abstract class AuthRepository {
@@ -15,9 +22,12 @@ abstract class AuthRepository {
     required String password,
     required bool acceptsTerms,
   });
-  Future<void> sendPasswordRecovery({required String email});
+  Future<PasswordRecoveryChallenge> sendPasswordRecovery({
+    required String email,
+  });
   Future<void> resetPassword({
-    required String token,
+    required String recoveryId,
+    required String code,
     required String newPassword,
   });
   Future<void> changePassword({

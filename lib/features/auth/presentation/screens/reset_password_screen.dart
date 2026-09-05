@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,8 +13,10 @@ import '../../domain/password_policy.dart';
 import '../providers/auth_providers.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
-  final String? initialToken;
-  const ResetPasswordScreen({super.key, this.initialToken});
+  final String? recoveryId;
+  final String? initialCode;
+
+  const ResetPasswordScreen({super.key, this.recoveryId, this.initialCode});
 
   @override
   ConsumerState<ResetPasswordScreen> createState() =>
@@ -21,15 +24,15 @@ class ResetPasswordScreen extends ConsumerStatefulWidget {
 }
 
 class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
-  late final _token = TextEditingController(text: widget.initialToken ?? '');
+  late final _code = TextEditingController(text: widget.initialCode ?? '');
   final _password = TextEditingController();
   final _confirmation = TextEditingController();
   bool _loading = false;
   String? _error;
 
-  String? get _tokenError {
-    if (_token.text.isEmpty) return null;
-    if (AppEnvironment.useApi && _token.text.trim().length < 16) {
+  String? get _codeError {
+    if (_code.text.isEmpty) return null;
+    if (_code.text.trim().length != 6) {
       return 'El código ingresado no parece válido.';
     }
     return null;
@@ -55,20 +58,27 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
   @override
   void dispose() {
-    _token.dispose();
+    _code.dispose();
     _password.dispose();
     _confirmation.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    final token = _token.text.trim();
-    if (token.isEmpty) {
+    final code = _code.text.trim();
+    if (widget.recoveryId == null || widget.recoveryId!.isEmpty) {
+      setState(
+        () => _error =
+            'Solicitá un nuevo código para continuar con la recuperación.',
+      );
+      return;
+    }
+    if (code.isEmpty) {
       setState(() => _error = 'Ingresá el código recibido por correo.');
       return;
     }
-    if (_tokenError != null) {
-      setState(() => _error = _tokenError);
+    if (_codeError != null) {
+      setState(() => _error = _codeError);
       return;
     }
     if (_password.text.isEmpty) {
@@ -90,7 +100,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     try {
       await ref
           .read(authRepositoryProvider)
-          .resetPassword(token: token, newPassword: _password.text);
+          .resetPassword(
+            recoveryId: widget.recoveryId!,
+            code: code,
+            newPassword: _password.text,
+          );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -113,64 +127,94 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     }
   }
 
+  Future<void> _pasteCode() async {
+    final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
+    if (!mounted) return;
+    final text = clipboard?.text ?? '';
+    final match = RegExp(r'(?<!\d)\d{6}(?!\d)').firstMatch(text);
+    if (match == null) {
+      setState(
+        () => _error = 'El portapapeles no contiene un código de 6 dígitos.',
+      );
+      return;
+    }
+    _code.text = match.group(0)!;
+    _code.selection = TextSelection.collapsed(offset: _code.text.length);
+    setState(() => _error = null);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Restablecer contraseña')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        children: [
-          Text(
-            AppEnvironment.useApi
-                ? 'Ingresá el código recibido por correo y elegí una contraseña nueva.'
-                : 'Ingresá el código recibido por correo y elegí una contraseña nueva. En el prototipo podés usar RECUPERA-123.',
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          AppTextField(
-            label: 'Código de recuperación',
-            hint: 'Pegá el código recibido por correo',
-            controller: _token,
-            errorText: _tokenError,
-            onChanged: _refreshValidation,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          AppTextField(
-            label: 'Nueva contraseña',
-            controller: _password,
-            obscureText: true,
-            errorText: _passwordError,
-            onChanged: _refreshValidation,
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            PasswordPolicy.requirements,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          AppTextField(
-            label: 'Confirmar contraseña',
-            controller: _confirmation,
-            obscureText: true,
-            errorText: _confirmationError,
-            onChanged: _refreshValidation,
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: AppSpacing.sm),
+      body: AutofillGroup(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          children: [
             Text(
-              _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+              AppEnvironment.useApi
+                  ? 'Ingresá el código recibido por correo y elegí una contraseña nueva.'
+                  : 'Ingresá el código recibido por correo y elegí una contraseña nueva. En el prototipo podés usar 123456.',
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            AppTextField(
+              label: 'Código de recuperación',
+              hint: 'Código de 6 dígitos',
+              controller: _code,
+              errorText: _codeError,
+              keyboardType: TextInputType.number,
+              autofillHints: const [AutofillHints.oneTimeCode],
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(6),
+              ],
+              textInputAction: TextInputAction.next,
+              suffixIcon: IconButton(
+                tooltip: 'Pegar código',
+                onPressed: _pasteCode,
+                icon: const Icon(Icons.content_paste_outlined),
+              ),
+              onChanged: _refreshValidation,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            AppTextField(
+              label: 'Nueva contraseña',
+              controller: _password,
+              obscureText: true,
+              errorText: _passwordError,
+              onChanged: _refreshValidation,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              PasswordPolicy.requirements,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            AppTextField(
+              label: 'Confirmar contraseña',
+              controller: _confirmation,
+              obscureText: true,
+              errorText: _confirmationError,
+              onChanged: _refreshValidation,
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.lg),
+            AppButton(
+              label: 'Guardar contraseña',
+              isLoading: _loading,
+              onPressed: _loading ? null : _submit,
             ),
           ],
-          const SizedBox(height: AppSpacing.lg),
-          AppButton(
-            label: 'Guardar contraseña',
-            isLoading: _loading,
-            onPressed: _loading ? null : _submit,
-          ),
-        ],
+        ),
       ),
     );
   }

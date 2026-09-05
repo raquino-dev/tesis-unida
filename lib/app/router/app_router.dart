@@ -61,7 +61,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final location = state.matchedLocation;
       if (!PilotLocalStore.onboardingCompleted &&
-          location != AppRoutes.onboarding) {
+          location != AppRoutes.onboarding &&
+          location != AppRoutes.resetPassword) {
         return AppRoutes.onboarding;
       }
       if (!authenticated && !publicRoutes.contains(location)) {
@@ -69,10 +70,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
       if (authenticated &&
           !PilotLocalStore.consentAccepted &&
-          location != AppRoutes.pilot) {
+          location != AppRoutes.pilot &&
+          location != AppRoutes.resetPassword) {
         return AppRoutes.pilot;
       }
-      if (authenticated && publicRoutes.contains(location)) {
+      if (authenticated &&
+          publicRoutes.contains(location) &&
+          location != AppRoutes.resetPassword) {
         return AppRoutes.dashboard;
       }
       return null;
@@ -97,7 +101,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.resetPassword,
         builder: (context, state) => ResetPasswordScreen(
-          initialToken: state.uri.queryParameters['token'],
+          recoveryId: state.uri.queryParameters['recoveryId'],
+          initialCode: state.uri.queryParameters['code'],
         ),
       ),
       GoRoute(

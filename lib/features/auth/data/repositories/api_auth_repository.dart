@@ -94,23 +94,34 @@ class ApiAuthRepository implements AuthRepository {
   );
 
   @override
-  Future<void> sendPasswordRecovery({required String email}) async {
-    await _api.post(
+  Future<PasswordRecoveryChallenge> sendPasswordRecovery({
+    required String email,
+  }) async {
+    final json = (await _api.post(
       '/recuperaciones-contrasena',
       authenticated: false,
       body: {'correo': email.trim()},
+    )).object;
+    return PasswordRecoveryChallenge(
+      id: json['id'] as String,
+      expiresAt: DateTime.parse(json['expiraEn'] as String),
     );
   }
 
   @override
   Future<void> resetPassword({
-    required String token,
+    required String recoveryId,
+    required String code,
     required String newPassword,
   }) async {
     await _api.post(
       '/restablecimientos-contrasena',
       authenticated: false,
-      body: {'token': token.trim(), 'nuevaContrasena': newPassword},
+      body: {
+        'recuperacionId': recoveryId,
+        'codigo': code.trim(),
+        'nuevaContrasena': newPassword,
+      },
     );
   }
 

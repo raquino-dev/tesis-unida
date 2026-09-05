@@ -34,7 +34,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             loading: () => const Center(child: CircularProgressIndicator()),
             empty: () => _form(colors, null),
             error: (message) => _form(colors, message),
-            success: (email) => Column(
+            success: (result) => Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
@@ -50,7 +50,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Si existe una cuenta asociada a $email, recibirás un enlace y un código de recuperación. Revisá también la carpeta de spam.',
+                  'Si existe una cuenta asociada a ${result.email}, recibirás un enlace y un código de 6 dígitos. Revisá también la carpeta de spam.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: colors.textSecondary, fontSize: 14),
                 ),
@@ -58,9 +58,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 AppButton(
                   label: 'Ingresar código de recuperación',
                   onPressed: () => context.push(
-                    AppEnvironment.useApi
-                        ? AppRoutes.resetPassword
-                        : '${AppRoutes.resetPassword}?token=RECUPERA-123',
+                    '${AppRoutes.resetPassword}?recoveryId=${Uri.encodeQueryComponent(result.recoveryId)}${AppEnvironment.useApi ? '' : '&code=123456'}',
                   ),
                 ),
               ],

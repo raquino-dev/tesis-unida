@@ -128,17 +128,24 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> sendPasswordRecovery({required String email}) async {
+  Future<PasswordRecoveryChallenge> sendPasswordRecovery({
+    required String email,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 800));
+    return PasswordRecoveryChallenge(
+      id: '01900000-0000-7000-8000-000000000099',
+      expiresAt: DateTime.now().add(const Duration(minutes: 30)),
+    );
   }
 
   @override
   Future<void> resetPassword({
-    required String token,
+    required String recoveryId,
+    required String code,
     required String newPassword,
   }) async {
     await Future.delayed(const Duration(milliseconds: 700));
-    if (token.trim().length < 6) {
+    if (recoveryId.isEmpty || code.trim().length != 6) {
       throw const AppFailure(
         'El código de recuperación no es válido.',
         code: 'invalid_token',

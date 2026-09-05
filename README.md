@@ -102,5 +102,5 @@ El repositorio no debe contener credenciales reales. Para firmar Android, copiá
 en tu entorno local. Los keystores, archivos `.env`, configuraciones Firebase,
 cuentas de servicio y artefactos APK/AAB están excluidos mediante `.gitignore`.
 
-Los códigos OTP y de recuperación incluidos en la aplicación son exclusivamente
-datos mock para la prueba piloto. No deben reutilizarse al conectar el backend.
+Los códigos OTP y de recuperación incluidos en el modo mock son exclusivamente
+datos de prueba (`123456`). No deben reutilizarse al conectar el backend.
