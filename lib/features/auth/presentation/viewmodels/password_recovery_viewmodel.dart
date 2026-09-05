@@ -2,7 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/utils/view_state.dart';
 import '../providers/auth_providers.dart';
 
-class PasswordRecoveryViewModel extends StateNotifier<ViewState<String>> {
+class PasswordRecoveryResult {
+  final String email;
+  final String recoveryId;
+
+  const PasswordRecoveryResult({required this.email, required this.recoveryId});
+}
+
+class PasswordRecoveryViewModel
+    extends StateNotifier<ViewState<PasswordRecoveryResult>> {
   final Ref _ref;
   PasswordRecoveryViewModel(this._ref) : super(const ViewState.empty());
 
@@ -13,10 +21,12 @@ class PasswordRecoveryViewModel extends StateNotifier<ViewState<String>> {
     }
     state = const ViewState.loading();
     try {
-      await _ref
+      final challenge = await _ref
           .read(authRepositoryProvider)
           .sendPasswordRecovery(email: email);
-      state = ViewState.success(email);
+      state = ViewState.success(
+        PasswordRecoveryResult(email: email, recoveryId: challenge.id),
+      );
     } catch (_) {
       state = const ViewState.error(
         'No pudimos enviar el correo. Intentá nuevamente.',
@@ -28,5 +38,5 @@ class PasswordRecoveryViewModel extends StateNotifier<ViewState<String>> {
 final passwordRecoveryViewModelProvider =
     StateNotifierProvider.autoDispose<
       PasswordRecoveryViewModel,
-      ViewState<String>
+      ViewState<PasswordRecoveryResult>
     >((ref) => PasswordRecoveryViewModel(ref));

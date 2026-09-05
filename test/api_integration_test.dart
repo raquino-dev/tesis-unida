@@ -261,9 +261,16 @@ void main() {
         switch ('${request.method} ${request.url.path}') {
           case 'POST /api/v1/recuperaciones-contrasena':
             expect(body['correo'], 'piloto@correo.com');
-            return http.Response('', 202);
+            return _json(202, {
+              'id': '01900000-0000-7000-8000-000000000099',
+              'expiraEn': '2026-09-05T12:30:00Z',
+            });
           case 'POST /api/v1/restablecimientos-contrasena':
-            expect(body['token'], '0123456789ABCDEF0123456789ABCDEF');
+            expect(
+              body['recuperacionId'],
+              '01900000-0000-7000-8000-000000000099',
+            );
+            expect(body['codigo'], '123456');
             expect(body['nuevaContrasena'], 'Nueva#Segura2026');
             return http.Response('', 204);
         }
@@ -273,9 +280,12 @@ void main() {
         ApiClient(httpClient: client, baseUrl: 'http://localhost:8080/api/v1'),
       );
 
-      await repository.sendPasswordRecovery(email: ' piloto@correo.com ');
+      final challenge = await repository.sendPasswordRecovery(
+        email: ' piloto@correo.com ',
+      );
       await repository.resetPassword(
-        token: ' 0123456789ABCDEF0123456789ABCDEF ',
+        recoveryId: challenge.id,
+        code: ' 123456 ',
         newPassword: 'Nueva#Segura2026',
       );
 

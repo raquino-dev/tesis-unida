@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../app/theme/app_theme_extension.dart';
 
 class AppTextField extends StatefulWidget {
@@ -13,6 +14,9 @@ class AppTextField extends StatefulWidget {
   final ValueChanged<String>? onChanged;
   final bool enabled;
   final int maxLines;
+  final Iterable<String>? autofillHints;
+  final List<TextInputFormatter>? inputFormatters;
+  final TextInputAction? textInputAction;
 
   const AppTextField({
     super.key,
@@ -27,6 +31,9 @@ class AppTextField extends StatefulWidget {
     this.onChanged,
     this.enabled = true,
     this.maxLines = 1,
+    this.autofillHints,
+    this.inputFormatters,
+    this.textInputAction,
   });
 
   @override
@@ -56,6 +63,9 @@ class _AppTextFieldState extends State<AppTextField> {
           obscureText: _obscured,
           enabled: widget.enabled,
           keyboardType: widget.keyboardType,
+          autofillHints: widget.autofillHints,
+          inputFormatters: widget.inputFormatters,
+          textInputAction: widget.textInputAction,
           onChanged: widget.onChanged,
           maxLines: widget.obscureText ? 1 : widget.maxLines,
           style: TextStyle(color: colors.textPrimary, fontSize: 15),

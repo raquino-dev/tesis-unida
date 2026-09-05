@@ -102,7 +102,11 @@ Los campos `id`, `creadoEn`, `actualizadoEn` y `version` son generados por el se
 ```
 
 ```json
-{ "token": "token-enviado-por-correo", "nuevaContrasena": "Nueva-clave-2026" }
+{
+  "recuperacionId": "01900000-0000-7000-8000-000000000099",
+  "codigo": "123456",
+  "nuevaContrasena": "Nueva-clave-2026"
+}
 ```
 
 ### CambiarContrasenaRequest
