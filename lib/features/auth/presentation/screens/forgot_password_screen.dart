@@ -50,7 +50,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'Te enviamos instrucciones para restablecer tu contraseña a $email.',
+                  'Si existe una cuenta asociada a $email, recibirás un enlace y un código de recuperación. Revisá también la carpeta de spam.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: colors.textSecondary, fontSize: 14),
                 ),

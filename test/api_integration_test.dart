@@ -251,6 +251,39 @@ void main() {
   });
 
   test(
+    'solicita y completa la recuperación de contraseña sin sesión',
+    () async {
+      final requests = <http.Request>[];
+      final client = MockClient((request) async {
+        requests.add(request);
+        expect(request.headers['authorization'], isNull);
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        switch ('${request.method} ${request.url.path}') {
+          case 'POST /api/v1/recuperaciones-contrasena':
+            expect(body['correo'], 'piloto@correo.com');
+            return http.Response('', 202);
+          case 'POST /api/v1/restablecimientos-contrasena':
+            expect(body['token'], '0123456789ABCDEF0123456789ABCDEF');
+            expect(body['nuevaContrasena'], 'Nueva#Segura2026');
+            return http.Response('', 204);
+        }
+        fail('Solicitud inesperada: ${request.method} ${request.url}');
+      });
+      final repository = ApiAuthRepository(
+        ApiClient(httpClient: client, baseUrl: 'http://localhost:8080/api/v1'),
+      );
+
+      await repository.sendPasswordRecovery(email: ' piloto@correo.com ');
+      await repository.resetPassword(
+        token: ' 0123456789ABCDEF0123456789ABCDEF ',
+        newPassword: 'Nueva#Segura2026',
+      );
+
+      expect(requests, hasLength(2));
+    },
+  );
+
+  test(
     'integra tarjetas por alias, transferencias y recurrencias con ETag',
     () async {
       String? recurringIfMatch;
