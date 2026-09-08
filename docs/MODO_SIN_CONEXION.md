@@ -2,7 +2,7 @@
 
 ## Alcance implementado
 
-La aplicación conserva lectura y escritura sin internet para información personal:
+La aplicación Android conserva lectura y escritura sin internet para información privada compatible:
 
 - cuentas;
 - categorías;
@@ -21,7 +21,7 @@ Por consistencia o por depender de proveedores externos, requieren conexión:
 - OCR, carga y descarga de comprobantes;
 - notificaciones push;
 - colaboración y finanzas familiares;
-- transferencias entre cuentas (operación atómica);
+- transferencias entre cuentas;
 - exportaciones.
 
 ## Arquitectura
@@ -46,21 +46,22 @@ La sincronización se activa:
 - al volver la aplicación al primer plano;
 - antes de una lectura online;
 - manualmente al tocar la barra de estado;
-- en segundo plano cada 15 minutos en Android, cuando el sistema dispone de red;
-- mediante Background Fetch en iOS, con frecuencia decidida por iOS.
-
-El destino mínimo de iOS es 15.0 porque las versiones instaladas de Firebase Core, Messaging y Crashlytics lo requieren.
+- en segundo plano cada 15 minutos en Android, cuando el sistema dispone de red.
 
 Después del push se consulta `GET /sincronizacion` con un cursor. El backend devuelve cambios y tombstones; el cliente refresca solamente las colecciones afectadas. El cursor se guarda por usuario.
 
 Los fallos transitorios usan backoff exponencial hasta cinco intentos. Después quedan visibles como fallidos y pueden reintentarse manualmente. Un 409 o 412 se presenta como conflicto y nunca se sobrescribe automáticamente: el usuario puede descartar el cambio local para conservar el servidor.
 
+## Plataforma objetivo
+
+La tesis y el piloto se validan únicamente en **Android 10 o superior**. iOS no forma parte del alcance actual y se mantiene únicamente como posible evolución posterior; por ello, su configuración, ejecución en segundo plano y compatibilidad no constituyen criterios de aceptación de esta versión.
+
 ## Orden de despliegue
 
-1. Desplegar primero `tesis-unida-back` desde `main`. El migrador aplica `M0022_SincronizacionOffline` y crea `sincronizacion.cambios`.
+1. Desplegar primero `tesis-unida-back`. El migrador aplica `M0022_SincronizacionOffline` y crea `sincronizacion.cambios`.
 2. Confirmar que `GET /api/v1/sincronizacion?desde=0&limite=200` responde 200 con un JWT válido.
-3. Generar el siguiente AAB de Flutter y publicarlo en prueba interna.
-4. No distribuir el AAB offline antes de desplegar el endpoint del backend.
+3. Generar el AAB Android con `USE_REAL_API=true` y publicarlo en Internal Testing.
+4. No distribuir una versión que dependa de sincronización antes de desplegar el endpoint y la migración correspondientes.
 
 ## Prueba de aceptación manual
 
@@ -80,5 +81,7 @@ Los fallos transitorios usan backoff exponencial hasta cinco intentos. Después 
 - `flutter build apk --debug`
 - `test/offline_store_test.dart`: aislamiento, orden, backoff y limpieza.
 - `test/uuid_v4_test.dart`: UUID definitivos válidos y únicos.
+
+La evidencia E2E del piloto debe conservar por separado la secuencia modo avión → persistencia → reconexión → sincronización → verificación en otro dispositivo/servidor → conflicto de versión.
 
 Referencias técnicas: documentación oficial de [cifrado SQLite en Drift](https://drift.simonbinder.eu/platforms/encryption/) y [Workmanager](https://docs.page/fluttercommunity/flutter_workmanager/quickstart).

@@ -22,12 +22,14 @@ class PilotCenterScreen extends ConsumerStatefulWidget {
 
 class _PilotCenterScreenState extends ConsumerState<PilotCenterScreen> {
   bool _consentChecked = false;
+  bool _consentAccepted = false;
   bool _checkingConsent = true;
   bool _savingConsent = false;
   bool _loadingInstruments = false;
   String? _consentError;
   String? _instrumentError;
   PilotInstrument? _preInstrument;
+  PilotInstrument? _supplementalInstrument;
   PilotInstrument? _postInstrument;
   final _feedback = TextEditingController();
 
@@ -49,18 +51,23 @@ class _PilotCenterScreenState extends ConsumerState<PilotCenterScreen> {
           : await repository.hasActiveConsent();
       if (accepted) await PilotLocalStore.acceptConsent();
       if (!mounted) return;
-      setState(() => _checkingConsent = false);
+      setState(() {
+        _checkingConsent = false;
+        _consentAccepted = accepted;
+      });
       if (accepted) await _loadInstruments();
     } on AppFailure catch (error) {
       if (!mounted) return;
       setState(() {
         _checkingConsent = false;
+        _consentAccepted = false;
         _consentError = appErrorMessage(error);
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _checkingConsent = false;
+        _consentAccepted = false;
         _consentError = 'No pudimos verificar tu consentimiento registrado.';
       });
     }
@@ -76,12 +83,14 @@ class _PilotCenterScreenState extends ConsumerState<PilotCenterScreen> {
     try {
       final instruments = await Future.wait([
         repository.get('preuso'),
+        repository.get('preuso-complementario'),
         repository.get('postuso'),
       ]);
       if (!mounted) return;
       setState(() {
         _preInstrument = instruments[0];
-        _postInstrument = instruments[1];
+        _supplementalInstrument = instruments[1];
+        _postInstrument = instruments[2];
       });
     } on AppFailure catch (error) {
       if (!mounted) return;
@@ -104,37 +113,34 @@ class _PilotCenterScreenState extends ConsumerState<PilotCenterScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final consent = PilotLocalStore.consentAccepted;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Centro del piloto')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          Text(
-            'Prueba piloto · Asunción 2026',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          const Text(
-            'Este espacio registra únicamente información necesaria para evaluar facilidad de uso, utilidad percibida, seguridad y tiempo de registro.',
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          if (_checkingConsent)
-            const Padding(
-              padding: EdgeInsets.all(AppSpacing.lg),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (_consentError != null)
-            _consentErrorCard(context)
-          else if (!consent)
-            _consentCard(context)
-          else
-            ..._instrumentContent(context),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Centro del piloto')),
+    body: ListView(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      children: [
+        Text(
+          'Prueba piloto · Asunción 2026',
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        const Text(
+          'Este espacio registra únicamente información necesaria para evaluar facilidad de uso, utilidad percibida, seguridad y tiempo de registro.',
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        if (_checkingConsent)
+          const Padding(
+            padding: EdgeInsets.all(AppSpacing.lg),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_consentError != null)
+          _consentErrorCard(context)
+        else if (!_consentAccepted)
+          _consentCard(context)
+        else
+          ..._instrumentContent(context),
+      ],
+    ),
+  );
 
   List<Widget> _instrumentContent(BuildContext context) => [
     const AppCard(
@@ -143,7 +149,7 @@ class _PilotCenterScreenState extends ConsumerState<PilotCenterScreen> {
         leading: Icon(Icons.verified_user_outlined),
         title: Text('Consentimiento registrado'),
         subtitle: Text(
-          'Podés retirarte de la prueba en cualquier momento contactando al investigador.',
+          'La observación comprende 28 días desde tu incorporación. Podés retirarte en cualquier momento.',
         ),
       ),
     ),
@@ -164,8 +170,12 @@ class _PilotCenterScreenState extends ConsumerState<PilotCenterScreen> {
           ],
         ),
       )
-    else if (_preInstrument != null && _postInstrument != null) ...[
+    else if (_preInstrument != null &&
+        _supplementalInstrument != null &&
+        _postInstrument != null) ...[
       _surveyCard(context, _preInstrument!),
+      const SizedBox(height: AppSpacing.sm),
+      _surveyCard(context, _supplementalInstrument!),
       const SizedBox(height: AppSpacing.sm),
       _surveyCard(context, _postInstrument!),
       const SizedBox(height: AppSpacing.xs),
@@ -228,12 +238,12 @@ class _PilotCenterScreenState extends ConsumerState<PilotCenterScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Consentimiento informado',
+          'Consentimiento informado · versión 2.0',
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const SizedBox(height: AppSpacing.sm),
         const Text(
-          'Acepto participar voluntariamente en una prueba académica con diez usuarios. Comprendo que se registrarán métricas de uso y respuestas de encuesta, que no se realizarán transferencias bancarias reales y que puedo abandonar la evaluación.',
+          'Acepto participar voluntariamente como referente adulto de una de las diez unidades familiares del piloto. Comprendo que el periodo de observación es de 28 días desde mi incorporación, que se registrarán métricas de uso y respuestas de encuesta, que no se realizarán transferencias bancarias ni cobros reales y que puedo retirarme sin penalización.',
         ),
         const SizedBox(height: AppSpacing.md),
         CheckboxListTile(
@@ -257,9 +267,15 @@ class _PilotCenterScreenState extends ConsumerState<PilotCenterScreen> {
     try {
       await ref.read(pilotConsentRepositoryProvider)?.accept();
       await PilotLocalStore.acceptConsent();
-      await PilotLocalStore.recordMetric('pilot_consent_accepted');
+      await PilotLocalStore.recordMetric(
+        'pilot_consent_accepted',
+        data: {'instrumentVersion': '2.0', 'observationDays': 28},
+      );
       if (!mounted) return;
-      setState(() {});
+      setState(() {
+        _consentAccepted = true;
+        _consentChecked = false;
+      });
       await _loadInstruments();
     } on AppFailure catch (error) {
       if (mounted) {
