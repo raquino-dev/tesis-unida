@@ -30,7 +30,9 @@ class PilotInstrument {
     required this.title,
     required this.description,
     required this.completed,
+    required this.enabled,
     required this.questions,
+    this.enabledFrom,
   });
 
   final String code;
@@ -38,16 +40,21 @@ class PilotInstrument {
   final String title;
   final String description;
   final bool completed;
+  final bool enabled;
+  final DateTime? enabledFrom;
   final List<PilotInstrumentQuestion> questions;
 
   factory PilotInstrument.fromJson(Map<String, dynamic> json) {
     final rawQuestions = json['preguntas'] as List<dynamic>? ?? const [];
+    final enabledFromRaw = json['habilitadoDesde'] as String?;
     return PilotInstrument(
       code: json['codigo'] as String? ?? '',
       version: json['version'] as String? ?? '',
       title: json['titulo'] as String? ?? 'Encuesta del piloto',
       description: json['descripcion'] as String? ?? '',
       completed: json['respondido'] as bool? ?? false,
+      enabled: json['habilitado'] as bool? ?? true,
+      enabledFrom: enabledFromRaw == null ? null : DateTime.tryParse(enabledFromRaw),
       questions: rawQuestions
           .map((item) => item as Map<String, dynamic>)
           .map(
