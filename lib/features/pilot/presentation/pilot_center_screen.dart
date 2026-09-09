@@ -28,6 +28,7 @@ class _PilotCenterScreenState extends ConsumerState<PilotCenterScreen> {
   String? _consentError;
   String? _instrumentError;
   PilotInstrument? _preInstrument;
+  PilotInstrument? _complementaryPreInstrument;
   PilotInstrument? _postInstrument;
   final _feedback = TextEditingController();
 
@@ -76,12 +77,14 @@ class _PilotCenterScreenState extends ConsumerState<PilotCenterScreen> {
     try {
       final instruments = await Future.wait([
         repository.get('preuso'),
+        repository.get('preuso-complementario'),
         repository.get('postuso'),
       ]);
       if (!mounted) return;
       setState(() {
         _preInstrument = instruments[0];
-        _postInstrument = instruments[1];
+        _complementaryPreInstrument = instruments[1];
+        _postInstrument = instruments[2];
       });
     } on AppFailure catch (error) {
       if (!mounted) return;
@@ -164,8 +167,12 @@ class _PilotCenterScreenState extends ConsumerState<PilotCenterScreen> {
           ],
         ),
       )
-    else if (_preInstrument != null && _postInstrument != null) ...[
+    else if (_preInstrument != null &&
+        _complementaryPreInstrument != null &&
+        _postInstrument != null) ...[
       _surveyCard(context, _preInstrument!),
+      const SizedBox(height: AppSpacing.sm),
+      _surveyCard(context, _complementaryPreInstrument!),
       const SizedBox(height: AppSpacing.sm),
       _surveyCard(context, _postInstrument!),
       const SizedBox(height: AppSpacing.xs),
@@ -425,7 +432,7 @@ class _PilotSurveySheetState extends State<_PilotSurveySheet> {
             ],
             const SizedBox(height: AppSpacing.sm),
             const Text(
-              'En las escalas: 1 = totalmente en desacuerdo · 5 = totalmente de acuerdo',
+              'Escala Likert: 1 = totalmente en desacuerdo; 2 = en desacuerdo; 3 = ni de acuerdo ni en desacuerdo; 4 = de acuerdo; 5 = totalmente de acuerdo.',
             ),
             const SizedBox(height: AppSpacing.md),
             for (final question in widget.instrument.questions) ...[
@@ -433,19 +440,37 @@ class _PilotSurveySheetState extends State<_PilotSurveySheet> {
                 '${question.order}. ${question.text}',
                 style: Theme.of(context).textTheme.titleSmall,
               ),
-              if (question.isScale)
+              if (question.isScale) ...[
                 Slider(
                   value: (_scaleAnswers[question.id] ?? question.minimum ?? 1)
                       .toDouble(),
                   min: (question.minimum ?? 1).toDouble(),
                   max: (question.maximum ?? 5).toDouble(),
                   divisions: (question.maximum ?? 5) - (question.minimum ?? 1),
-                  label: '${_scaleAnswers[question.id]}',
+                  label:
+                      '${_scaleAnswers[question.id] ?? question.minimum ?? 1}',
                   onChanged: (value) => setState(
                     () => _scaleAnswers[question.id] = value.round(),
                   ),
-                )
-              else
+                ),
+                const Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.xs,
+                  children: [
+                    _LikertAnchor(
+                      value: '1',
+                      label: 'Totalmente en desacuerdo',
+                    ),
+                    _LikertAnchor(value: '2', label: 'En desacuerdo'),
+                    _LikertAnchor(
+                      value: '3',
+                      label: 'Ni de acuerdo ni en desacuerdo',
+                    ),
+                    _LikertAnchor(value: '4', label: 'De acuerdo'),
+                    _LikertAnchor(value: '5', label: 'Totalmente de acuerdo'),
+                  ],
+                ),
+              ] else
                 TextField(
                   controller: _textAnswers[question.id],
                   minLines: 2,
@@ -494,6 +519,27 @@ class _PilotSurveySheetState extends State<_PilotSurveySheet> {
           ],
         ),
       ),
+    ),
+  );
+}
+
+class _LikertAnchor extends StatelessWidget {
+  const _LikertAnchor({required this.value, required this.label});
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => RichText(
+    text: TextSpan(
+      style: Theme.of(context).textTheme.bodySmall,
+      children: [
+        TextSpan(
+          text: '$value. ',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        TextSpan(text: label),
+      ],
     ),
   );
 }
