@@ -15,7 +15,14 @@ import '../viewmodels/movement_list_viewmodel.dart';
 /// pantalla principal) y pueden restablecerse en conjunto o de forma individual.
 class MovementFilterSheet extends ConsumerStatefulWidget {
   final MovementFilters initialFilters;
-  const MovementFilterSheet({super.key, required this.initialFilters});
+  final String? lockedAccountId;
+  final ValueChanged<MovementFilters>? onApply;
+  const MovementFilterSheet({
+    super.key,
+    required this.initialFilters,
+    this.lockedAccountId,
+    this.onApply,
+  });
 
   @override
   ConsumerState<MovementFilterSheet> createState() =>
@@ -69,8 +76,11 @@ class _MovementFilterSheetState extends ConsumerState<MovementFilterSheet> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   TextButton(
-                    onPressed: () =>
-                        setState(() => _draft = _draft.clearAdvanced()),
+                    onPressed: () => setState(() {
+                      _draft = _draft.clearAdvanced().copyWith(
+                        accountId: widget.lockedAccountId,
+                      );
+                    }),
                     child: const Text('Restablecer'),
                   ),
                 ],
@@ -174,50 +184,53 @@ class _MovementFilterSheetState extends ConsumerState<MovementFilterSheet> {
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                'Cuenta',
-                style: TextStyle(
-                  color: colors.textSecondary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+              if (widget.lockedAccountId == null) ...[
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Cuenta',
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              accountsState.when(
-                loading: () => const LinearProgressIndicator(),
-                error: (_) => const SizedBox.shrink(),
-                empty: () => const SizedBox.shrink(),
-                success: (accounts) => Column(
-                  children: [
-                    AppSearchableSingleSelector(
-                      items: accounts,
-                      idOf: (item) => item.id,
-                      labelOf: (item) => item.name,
-                      leadingOf: (item) =>
-                          Icon(item.icon, color: colors.primary),
-                      value: accounts
-                          .where((item) => item.id == _draft.accountId)
-                          .firstOrNull,
-                      hint: 'Todas las cuentas',
-                      searchHint: 'Buscar cuentas',
-                      onChanged: (value) => setState(
-                        () => _draft = _draft.copyWith(accountId: value.id),
-                      ),
-                    ),
-                    if (_draft.accountId != null)
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () => setState(
-                            () => _draft = _draft.copyWith(clearAccount: true),
-                          ),
-                          child: const Text('Quitar filtro'),
+                const SizedBox(height: 8),
+                accountsState.when(
+                  loading: () => const LinearProgressIndicator(),
+                  error: (_) => const SizedBox.shrink(),
+                  empty: () => const SizedBox.shrink(),
+                  success: (accounts) => Column(
+                    children: [
+                      AppSearchableSingleSelector(
+                        items: accounts,
+                        idOf: (item) => item.id,
+                        labelOf: (item) => item.name,
+                        leadingOf: (item) =>
+                            Icon(item.icon, color: colors.primary),
+                        value: accounts
+                            .where((item) => item.id == _draft.accountId)
+                            .firstOrNull,
+                        hint: 'Todas las cuentas',
+                        searchHint: 'Buscar cuentas',
+                        onChanged: (value) => setState(
+                          () => _draft = _draft.copyWith(accountId: value.id),
                         ),
                       ),
-                  ],
+                      if (_draft.accountId != null)
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () => setState(
+                              () =>
+                                  _draft = _draft.copyWith(clearAccount: true),
+                            ),
+                            child: const Text('Quitar filtro'),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
               const SizedBox(height: AppSpacing.md),
               Text(
                 'Comprobante OCR',
@@ -241,9 +254,16 @@ class _MovementFilterSheetState extends ConsumerState<MovementFilterSheet> {
               AppButton(
                 label: 'Aplicar filtros',
                 onPressed: () {
-                  ref
-                      .read(movementListViewModelProvider.notifier)
-                      .updateFilters(_draft);
+                  final filters = _draft.copyWith(
+                    accountId: widget.lockedAccountId,
+                  );
+                  if (widget.onApply != null) {
+                    widget.onApply!(filters);
+                  } else {
+                    ref
+                        .read(movementListViewModelProvider.notifier)
+                        .updateFilters(filters);
+                  }
                   Navigator.of(context).pop();
                 },
               ),

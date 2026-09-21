@@ -83,17 +83,29 @@ class AppButton extends StatelessWidget {
       child: SizedBox(
         width: fullWidth ? double.infinity : null,
         child: Material(
-          color: bg,
-          shape: RoundedRectangleBorder(
-            borderRadius: AppRadius.pillRadius,
-            side: border != null ? border.top : BorderSide.none,
-          ),
-          child: InkWell(
-            onTap: disabled ? null : onPressed,
-            borderRadius: AppRadius.pillRadius,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-              child: Center(child: child),
+          color: Colors.transparent,
+          borderRadius: AppRadius.pillRadius,
+          child: Ink(
+            decoration: BoxDecoration(
+              color: variant == AppButtonVariant.primary ? null : bg,
+              gradient: variant == AppButtonVariant.primary
+                  ? LinearGradient(
+                      colors: [colors.primary, colors.primaryVariant],
+                    )
+                  : null,
+              borderRadius: AppRadius.pillRadius,
+              border: border,
+            ),
+            child: InkWell(
+              onTap: disabled ? null : onPressed,
+              borderRadius: AppRadius.pillRadius,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 20,
+                ),
+                child: Center(child: child),
+              ),
             ),
           ),
         ),

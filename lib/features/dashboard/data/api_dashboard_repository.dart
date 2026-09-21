@@ -5,7 +5,6 @@ import '../../../core/network/api_client.dart';
 import '../../auth/domain/repositories/auth_repository.dart';
 import '../../categories/domain/category_entity.dart';
 import '../../categories/domain/category_repository.dart';
-import '../../movements/domain/movement_entity.dart';
 import '../../movements/domain/movement_repository.dart';
 import '../../recurring_movements/domain/recurring_movement_entity.dart';
 import '../../recurring_movements/domain/recurring_movement_repository.dart';
@@ -128,20 +127,22 @@ class ApiDashboardRepository implements DashboardRepository {
           (item) => item.date.year == now.year && item.date.month == now.month,
         )
         .toList();
-    final income = movements
-        .where((item) => item.type == MovementType.income)
-        .fold<double>(0, (sum, item) => sum + item.amount);
+    final income = movements.fold<double>(
+      0,
+      (sum, item) => sum + item.analyticalIncomeAmount,
+    );
     final expenseMovements = movements
-        .where((item) => item.type == MovementType.expense)
+        .where((item) => item.analyticalExpenseAmount != 0)
         .toList();
     final expense = expenseMovements.fold<double>(
       0,
-      (sum, item) => sum + item.amount,
+      (sum, item) => sum + item.analyticalExpenseAmount,
     );
     final totals = <String, double>{};
     for (final movement in expenseMovements) {
       for (final category in movement.categories) {
-        totals[category.id] = (totals[category.id] ?? 0) + movement.amount;
+        totals[category.id] =
+            (totals[category.id] ?? 0) + movement.analyticalExpenseAmount;
       }
     }
     final ranked = totals.entries.toList()

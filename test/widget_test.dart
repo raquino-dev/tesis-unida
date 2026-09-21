@@ -6,7 +6,8 @@ import 'package:finanzas_app/app/app.dart';
 void main() {
   testWidgets('App starts on onboarding screen', (WidgetTester tester) async {
     await tester.pumpWidget(const ProviderScope(child: FinanzasApp()));
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1900));
+    await tester.pumpAndSettle();
 
     expect(find.text('Omitir'), findsOneWidget);
   });

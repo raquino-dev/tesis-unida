@@ -88,6 +88,7 @@ class AccountEntity {
   final IconData icon;
   final CardBrand brand;
   final double initialBalance;
+  final double? currentBalance;
   final bool isActive;
   final bool inUse;
 
@@ -98,9 +99,12 @@ class AccountEntity {
     required this.icon,
     this.brand = CardBrand.none,
     required this.initialBalance,
+    this.currentBalance,
     this.isActive = true,
     this.inUse = false,
   });
+
+  double get balance => currentBalance ?? initialBalance;
 
   AccountEntity copyWith({
     String? name,
@@ -108,6 +112,7 @@ class AccountEntity {
     IconData? icon,
     CardBrand? brand,
     double? initialBalance,
+    double? currentBalance,
     bool? isActive,
   }) {
     return AccountEntity(
@@ -117,6 +122,7 @@ class AccountEntity {
       icon: icon ?? this.icon,
       brand: brand ?? this.brand,
       initialBalance: initialBalance ?? this.initialBalance,
+      currentBalance: currentBalance ?? this.currentBalance,
       isActive: isActive ?? this.isActive,
       inUse: inUse,
     );

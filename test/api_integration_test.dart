@@ -5,10 +5,12 @@ import 'package:crypto/crypto.dart';
 import 'package:finanzas_app/core/network/api_client.dart';
 import 'package:finanzas_app/core/services/pilot_local_store.dart';
 import 'package:finanzas_app/features/accounts/data/api_account_repository.dart';
+import 'package:finanzas_app/features/accounts/domain/account_entity.dart';
 import 'package:finanzas_app/features/auth/data/repositories/api_auth_repository.dart';
 import 'package:finanzas_app/features/budgets/data/api_budget_repository.dart';
 import 'package:finanzas_app/features/budgets/domain/budget_entity.dart';
 import 'package:finanzas_app/features/categories/data/api_category_repository.dart';
+import 'package:finanzas_app/features/categories/domain/category_entity.dart';
 import 'package:finanzas_app/features/credit_cards/data/api_credit_card_repository.dart';
 import 'package:finanzas_app/features/dashboard/data/api_dashboard_repository.dart';
 import 'package:finanzas_app/features/alerts/data/api_alert_repository.dart';
@@ -30,7 +32,7 @@ import 'package:finanzas_app/features/reports/domain/report_entity.dart';
 import 'package:finanzas_app/features/savings_goals/data/api_savings_goal_repository.dart';
 import 'package:finanzas_app/features/score/data/api_score_repository.dart';
 import 'package:finanzas_app/features/transfers/data/api_transfer_repository.dart';
-import 'package:flutter/material.dart' show DateTimeRange;
+import 'package:flutter/material.dart' show DateTimeRange, Icons, Colors;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -71,6 +73,7 @@ void main() {
                   'nombre': 'Efectivo',
                   'tipo': 'efectivo',
                   'saldoActual': 500000,
+                  'saldoInicial': 500000,
                   'incluidaEnTotal': true,
                   'version': 1,
                 },
@@ -99,6 +102,7 @@ void main() {
                   'monto': 45000,
                   'descripcion': 'Supermercado',
                   'fecha': '2026-07-29',
+                  'hora': '15:30:00',
                   'estado': 'confirmado',
                   'categoriaIds': ['01900000-0000-7000-8000-000000000004'],
                   'version': 1,
@@ -125,6 +129,7 @@ void main() {
 
       expect(user.name, 'Usuario Tesis');
       expect(result.single.description, 'Supermercado');
+      expect(result.single.date, DateTime(2026, 7, 29, 15, 30));
       expect(result.single.account.name, 'Efectivo');
       expect(result.single.primaryCategory.name, 'Alimentación');
       expect(requests, hasLength(5));
@@ -133,6 +138,7 @@ void main() {
 
   test('envía el ETag recibido al actualizar una cuenta', () async {
     String? ifMatch;
+    int? sentInitialBalance;
     final client = MockClient((request) async {
       if (request.method == 'GET') {
         return _json(200, {
@@ -142,6 +148,7 @@ void main() {
               'nombre': 'Efectivo',
               'tipo': 'efectivo',
               'saldoActual': 500000,
+              'saldoInicial': 100000,
               'incluidaEnTotal': true,
               'version': 7,
             },
@@ -149,11 +156,15 @@ void main() {
         });
       }
       ifMatch = request.headers['if-match'];
+      sentInitialBalance =
+          (jsonDecode(request.body) as Map<String, dynamic>)['saldoInicial']
+              as int;
       return _json(200, {
         'id': '01900000-0000-7000-8000-000000000003',
         'nombre': 'Caja',
         'tipo': 'efectivo',
         'saldoActual': 500000,
+        'saldoInicial': 100000,
         'incluidaEnTotal': true,
         'version': 8,
       });
@@ -166,6 +177,145 @@ void main() {
     await repository.updateAccount(account.copyWith(name: 'Caja'));
 
     expect(ifMatch, '"7"');
+    expect(account.balance, 500000);
+    expect(account.initialBalance, 100000);
+    expect(sentInitialBalance, 100000);
+  });
+
+  test('pagina y filtra los movimientos de una cuenta en la API', () async {
+    const accountId = '01900000-0000-7000-8000-000000000003';
+    const categoryId = '01900000-0000-7000-8000-000000000004';
+    final seenCursors = <String?>[];
+    final client = MockClient((request) async {
+      switch (request.url.path) {
+        case '/api/v1/cuentas':
+          return _json(200, {
+            'elementos': [
+              {
+                'id': accountId,
+                'nombre': 'Efectivo',
+                'tipo': 'efectivo',
+                'saldoInicial': 100000,
+                'saldoActual': 90000,
+                'version': 1,
+              },
+            ],
+          });
+        case '/api/v1/categorias':
+          return _json(200, {
+            'elementos': [
+              {
+                'id': categoryId,
+                'nombre': 'Comida',
+                'tipo': 'gasto',
+                'color': '#ff336699',
+                'version': 1,
+              },
+            ],
+          });
+        case '/api/v1/movimientos':
+          expect(request.url.queryParameters['cuentaId'], accountId);
+          expect(request.url.queryParameters['limite'], '100');
+          final cursor = request.url.queryParameters['cursor'];
+          seenCursors.add(cursor);
+          return _json(200, {
+            'elementos': [
+              {
+                'id': cursor == null
+                    ? '01900000-0000-7000-8000-000000000005'
+                    : '01900000-0000-7000-8000-000000000006',
+                'cuentaId': accountId,
+                'tipo': 'gasto',
+                'monto': 5000,
+                'descripcion': 'Comida',
+                'fecha': '2026-09-20',
+                'estado': 'confirmado',
+                'categoriaIds': [categoryId],
+                'version': 1,
+              },
+            ],
+            'cursorSiguiente': cursor == null ? '2026-09-20|next' : null,
+          });
+      }
+      fail('Solicitud inesperada: ${request.url}');
+    });
+    final api = ApiClient(
+      httpClient: client,
+      baseUrl: 'http://localhost:8080/api/v1',
+    );
+    final movements = ApiMovementRepository(
+      api,
+      ApiCategoryRepository(api),
+      ApiAccountRepository(api),
+    );
+
+    final result = await movements.getMovements(accountId: accountId);
+
+    expect(result, hasLength(2));
+    expect(seenCursors, [null, '2026-09-20|next']);
+  });
+
+  test('vincula una compra a la tarjeta de crédito elegida', () async {
+    const accountId = '01900000-0000-7000-8000-000000000003';
+    const categoryId = '01900000-0000-7000-8000-000000000004';
+    const cardId = '01900000-0000-7000-8000-000000000007';
+    const movementId = '01900000-0000-7000-8000-000000000008';
+    Map<String, dynamic>? sent;
+    final client = MockClient((request) async {
+      expect(request.method, 'POST');
+      expect(request.url.path, '/api/v1/movimientos');
+      sent = jsonDecode(request.body) as Map<String, dynamic>;
+      return _json(201, {
+        ...sent!,
+        'id': movementId,
+        'version': 1,
+        'estado': 'confirmado',
+      });
+    });
+    final api = ApiClient(
+      httpClient: client,
+      baseUrl: 'http://localhost:8080/api/v1',
+    );
+    final account = AccountEntity(
+      id: accountId,
+      name: 'Cuenta de pago',
+      type: AccountType.bankAccount,
+      icon: Icons.account_balance_outlined,
+      initialBalance: 100000,
+    );
+    final category = CategoryEntity(
+      id: categoryId,
+      name: 'Compras',
+      icon: Icons.shopping_bag_outlined,
+      color: Colors.green,
+      type: CategoryType.expense,
+      inUse: false,
+    );
+    final movements = ApiMovementRepository(
+      api,
+      ApiCategoryRepository(api),
+      ApiAccountRepository(api),
+    );
+
+    final saved = await movements.addMovement(
+      MovementEntity(
+        id: movementId,
+        type: MovementType.expense,
+        amount: 25000,
+        date: DateTime(2026, 9, 20),
+        categories: [category],
+        description: 'Compra',
+        account: account,
+        creditCardId: cardId,
+        cardOperation: CardOperation.purchase,
+      ),
+    );
+
+    expect(sent?['cuentaId'], accountId);
+    expect(sent?['tarjetaCreditoId'], cardId);
+    expect(sent?['operacionTarjeta'], 'compra');
+    expect(saved.creditCardId, cardId);
+    expect(saved.cardOperation, CardOperation.purchase);
   });
 
   test('completa OTP, cambio de contraseña y gestión de sesiones', () async {
@@ -308,6 +458,7 @@ void main() {
                   'nombre': 'Cuenta origen',
                   'tipo': 'cuenta-ahorro',
                   'saldoActual': 900000,
+                  'saldoInicial': 900000,
                   'incluidaEnTotal': true,
                   'version': 1,
                 },
@@ -316,6 +467,7 @@ void main() {
                   'nombre': 'Cuenta destino',
                   'tipo': 'cuenta-corriente',
                   'saldoActual': 100000,
+                  'saldoInicial': 100000,
                   'incluidaEnTotal': true,
                   'version': 1,
                 },
@@ -813,6 +965,7 @@ void main() {
                   'nombre': 'Cuenta principal',
                   'tipo': 'cuenta-ahorro',
                   'saldoActual': 1000000,
+                  'saldoInicial': 1000000,
                   'incluidaEnTotal': true,
                   'version': 1,
                 },

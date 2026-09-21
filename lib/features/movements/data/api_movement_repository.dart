@@ -23,15 +23,23 @@ class ApiMovementRepository implements MovementRepository {
   ApiMovementRepository(this._api, this._categories, this._accounts);
 
   @override
-  Future<List<MovementEntity>> getMovements() async {
-    final data = (await _api.get('/movimientos')).object;
+  Future<List<MovementEntity>> getMovements({String? accountId}) async {
     final context = await _loadContext();
     final result = <MovementEntity>[];
-    for (final item in data['elementos'] as List<dynamic>? ?? const []) {
-      final json = item as Map<String, dynamic>;
-      if (json['estado'] == 'anulado') continue;
-      result.add(_fromJson(json, context.$1, context.$2));
-    }
+    String? cursor;
+    do {
+      final query = <String, String>{'limite': '100'};
+      if (accountId != null) query['cuentaId'] = accountId;
+      if (cursor != null) query['cursor'] = cursor;
+      final path = Uri(path: '/movimientos', queryParameters: query).toString();
+      final data = (await _api.get(path)).object;
+      for (final item in data['elementos'] as List<dynamic>? ?? const []) {
+        final json = item as Map<String, dynamic>;
+        if (json['estado'] == 'anulado') continue;
+        result.add(_fromJson(json, context.$1, context.$2));
+      }
+      cursor = data['cursorSiguiente'] as String?;
+    } while (cursor != null);
     return result;
   }
 
@@ -53,6 +61,10 @@ class ApiMovementRepository implements MovementRepository {
       'id': id,
       'ambito': 'privado',
       'cuentaId': movement.account.id,
+      if (movement.creditCardId != null)
+        'tarjetaCreditoId': movement.creditCardId,
+      if (movement.cardOperation != null)
+        'operacionTarjeta': cardOperationToString(movement.cardOperation),
       'tipo': movement.type == MovementType.income ? 'ingreso' : 'gasto',
       'monto': movement.amount.round(),
       'descripcion': movement.description,
@@ -82,38 +94,37 @@ class ApiMovementRepository implements MovementRepository {
     final existing = _raw[movement.id];
     if (existing == null) await getMovementById(movement.id);
     final original = _raw[movement.id]!;
-    final originalAmount = (original['monto'] as num).toDouble();
-    final originalType = original['tipo'] == 'ingreso'
-        ? MovementType.income
-        : MovementType.expense;
-    if (originalAmount != movement.amount ||
-        originalType != movement.type ||
-        original['cuentaId'] != movement.account.id ||
-        original['fecha'] != _date(movement.date)) {
+    if (original['tarjetaCreditoId'] != movement.creditCardId) {
       throw const AppFailure(
-        'La API solo permite cambiar la descripción y las categorías de un movimiento confirmado.',
-        code: 'movement_fields_immutable',
+        'No se puede cambiar la tarjeta de un movimiento existente.',
+        code: 'movement_card_immutable',
       );
     }
     final version = _versions[movement.id]!;
+    final changes = <String, dynamic>{
+      'descripcion': movement.description,
+      'categoriaIds': movement.categories.map((item) => item.id).toList(),
+      if (movement.documentId != null) 'documentoId': movement.documentId,
+      if ((original['monto'] as num).toDouble() != movement.amount)
+        'monto': movement.amount.round(),
+      if (original['tipo'] !=
+          (movement.type == MovementType.income ? 'ingreso' : 'gasto'))
+        'tipo': movement.type == MovementType.income ? 'ingreso' : 'gasto',
+      if (original['cuentaId'] != movement.account.id)
+        'cuentaId': movement.account.id,
+      if (original['fecha'] != _date(movement.date))
+        'fecha': _date(movement.date),
+      if (original['hora'] != _time(movement.date))
+        'hora': _time(movement.date),
+    };
     final response = await _api.patch(
       '/movimientos/${movement.id}',
-      body: {
-        'descripcion': movement.description,
-        'categoriaIds': movement.categories.map((item) => item.id).toList(),
-        if (movement.documentId != null) 'documentoId': movement.documentId,
-      },
+      body: changes,
       headers: {'If-Match': '"$version"'},
       offline: OfflineMutation(
         entityType: 'movimiento',
         entityId: movement.id,
-        optimisticResponse: {
-          ...original,
-          'descripcion': movement.description,
-          'categoriaIds': movement.categories.map((item) => item.id).toList(),
-          if (movement.documentId != null) 'documentoId': movement.documentId,
-          'version': version + 1,
-        },
+        optimisticResponse: {...original, ...changes, 'version': version + 1},
         collectionPath: '/movimientos',
       ),
     );
@@ -248,7 +259,9 @@ class ApiMovementRepository implements MovementRepository {
       id: id,
       type: type,
       amount: (json['monto'] as num).toDouble(),
-      date: DateTime.parse(json['fecha'] as String),
+      date: DateTime.parse(
+        '${json['fecha']}T${json['hora'] as String? ?? '00:00:00'}',
+      ),
       categories: effectiveCategories,
       description: json['descripcion'] as String,
       account:
@@ -260,6 +273,11 @@ class ApiMovementRepository implements MovementRepository {
             icon: Icons.wallet_outlined,
             initialBalance: 0,
           ),
+      creditCardId: json['tarjetaCreditoId'] as String?,
+      cardOperation: cardOperationFromString(
+        json['operacionTarjeta'] as String?,
+      ),
+      transferId: json['transferenciaId'] as String?,
       hasAttachment: json['documentoId'] != null,
       documentId: json['documentoId'] as String?,
       recurringSourceId: json['movimientoRecurrenteId'] as String?,

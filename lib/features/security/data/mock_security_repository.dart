@@ -112,8 +112,7 @@ class MockSecurityRepository implements SecurityRepository {
     var success = false;
     try {
       success = await _localAuthentication.authenticate(
-        localizedReason:
-            'Confirmá tu identidad para continuar en Finanzas Inteligentes',
+        localizedReason: 'Confirmá tu identidad para continuar en Finanza',
         biometricOnly: true,
         persistAcrossBackgrounding: true,
       );

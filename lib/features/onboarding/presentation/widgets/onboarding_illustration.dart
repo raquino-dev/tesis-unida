@@ -1,214 +1,538 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
 import '../../../../app/theme/app_colors.dart';
 
-/// Variante visual de la ilustración abstracta de cada página del
-/// onboarding. Cada una usa la misma paleta Midnight Cat pero compone
-/// círculos, arcos y líneas curvas de forma distinta para diferenciar
-/// visualmente cada mensaje sin depender de imágenes reales.
 enum OnboardingIllustrationVariant { overview, speed, clarity }
 
-/// Ilustración geométrica abstracta para el onboarding. Reemplaza el fondo
-/// genérico anterior por una composición distinta por página (arcos tipo
-/// gráfico, líneas de velocidad, anillos concéntricos), manteniendo el
-/// mismo color de acento, tamaño e ícono central que ya tenía cada página.
+/// Ilustraciones vectoriales de las tres ideas del onboarding.
 class OnboardingIllustration extends StatelessWidget {
-  final OnboardingIllustrationVariant variant;
-  final Color accent;
-  final double height;
-
   const OnboardingIllustration({
     super.key,
     required this.variant,
-    required this.accent,
-    this.height = 190,
+    this.height = 310,
   });
+
+  final OnboardingIllustrationVariant variant;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: height,
       width: double.infinity,
-      child: CustomPaint(
-        painter: switch (variant) {
-          OnboardingIllustrationVariant.overview => _OverviewPainter(
-            accent: accent,
+      child: FittedBox(
+        fit: BoxFit.contain,
+        child: SizedBox(
+          width: 340,
+          height: 310,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: 35,
+                top: 17,
+                child: Container(
+                  width: 270,
+                  height: 270,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [Color(0xFFFFFFFF), Color(0xFFE1F8F0)],
+                      stops: [0.24, 1],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: CustomPaint(painter: _IllustrationAccents(variant)),
+              ),
+              if (variant == OnboardingIllustrationVariant.overview)
+                const _OverviewIllustration(),
+              if (variant == OnboardingIllustrationVariant.speed)
+                const _SpeedIllustration(),
+              if (variant == OnboardingIllustrationVariant.clarity)
+                const _ClarityIllustration(),
+            ],
           ),
-          OnboardingIllustrationVariant.speed => _SpeedPainter(accent: accent),
-          OnboardingIllustrationVariant.clarity => _ClarityPainter(
-            accent: accent,
-          ),
-        },
+        ),
       ),
     );
   }
 }
 
-/// Arcos concéntricos tipo "gráfico de progreso", con puntos dispersos,
-/// evocando control y visión general de las finanzas.
-class _OverviewPainter extends CustomPainter {
-  final Color accent;
-  const _OverviewPainter({required this.accent});
+class _OverviewIllustration extends StatelessWidget {
+  const _OverviewIllustration();
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height * 0.55);
-
-    final outerArc = Paint()
-      ..color = accent.withValues(alpha: 0.28)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 14
-      ..strokeCap = StrokeCap.round;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: 108),
-      -2.6,
-      3.4,
-      false,
-      outerArc,
+  Widget build(BuildContext context) {
+    const barColors = [
+      Color(0xFFBFF4DC),
+      Color(0xFF8DE6BD),
+      Color(0xFF5BD4A0),
+      Color(0xFF26AD79),
+      AppColors.emerald,
+    ];
+    const heights = [22.0, 38.0, 55.0, 72.0, 92.0];
+    return Stack(
+      children: [
+        Positioned(
+          left: 77,
+          top: 102,
+          child: _IllustrationCard(
+            width: 188,
+            height: 155,
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 19,
+                  top: 27,
+                  child: SizedBox(
+                    width: 95,
+                    height: 58,
+                    child: CustomPaint(painter: _GrowthArrowPainter()),
+                  ),
+                ),
+                Positioned(
+                  bottom: 19,
+                  left: 21,
+                  right: 21,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      for (var i = 0; i < heights.length; i++)
+                        Container(
+                          width: 19,
+                          height: heights[i],
+                          decoration: BoxDecoration(
+                            color: barColors[i],
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Positioned(
+          top: 60,
+          right: 45,
+          child: Container(
+            width: 75,
+            height: 75,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const RadialGradient(
+                colors: [Colors.white, Color(0xFFD8FAE9)],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.forest.withValues(alpha: 0.09),
+                  blurRadius: 16,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: const Text(
+              '\$',
+              style: TextStyle(
+                color: AppColors.forest,
+                fontSize: 37,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
-
-    final innerArc = Paint()
-      ..color = AppColors.comet.withValues(alpha: 0.5)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 10
-      ..strokeCap = StrokeCap.round;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: 78),
-      0.4,
-      2.6,
-      false,
-      innerArc,
-    );
-
-    final fillCircle = Paint()
-      ..color = AppColors.martinique.withValues(alpha: 0.55);
-    canvas.drawCircle(
-      Offset(size.width * 0.16, size.height * 0.18),
-      26,
-      fillCircle,
-    );
-    canvas.drawCircle(
-      Offset(size.width * 0.86, size.height * 0.14),
-      16,
-      fillCircle,
-    );
-
-    final dot = Paint()..color = accent.withValues(alpha: 0.7);
-    canvas.drawCircle(Offset(size.width * 0.78, size.height * 0.62), 5, dot);
-    canvas.drawCircle(Offset(size.width * 0.22, size.height * 0.72), 4, dot);
   }
-
-  @override
-  bool shouldRepaint(covariant _OverviewPainter oldDelegate) =>
-      oldDelegate.accent != accent;
 }
 
-/// Líneas curvas diagonales que sugieren velocidad y fluidez, con un anillo
-/// grueso partido evocando movimiento rápido.
-class _SpeedPainter extends CustomPainter {
-  final Color accent;
-  const _SpeedPainter({required this.accent});
+class _SpeedIllustration extends StatelessWidget {
+  const _SpeedIllustration();
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height * 0.52);
-
-    final ring = Paint()
-      ..color = accent.withValues(alpha: 0.3)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 16
-      ..strokeCap = StrokeCap.round;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: 100),
-      -2.2,
-      4.2,
-      false,
-      ring,
-    );
-
-    final streak = Paint()
-      ..color = AppColors.comet.withValues(alpha: 0.55)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 9
-      ..strokeCap = StrokeCap.round;
-    final path1 = Path()
-      ..moveTo(size.width * 0.08, size.height * 0.78)
-      ..quadraticBezierTo(
-        size.width * 0.35,
-        size.height * 0.55,
-        size.width * 0.62,
-        size.height * 0.68,
-      );
-    canvas.drawPath(path1, streak);
-
-    final streak2 = Paint()
-      ..color = accent.withValues(alpha: 0.4)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 7
-      ..strokeCap = StrokeCap.round;
-    final path2 = Path()
-      ..moveTo(size.width * 0.2, size.height * 0.92)
-      ..quadraticBezierTo(
-        size.width * 0.45,
-        size.height * 0.74,
-        size.width * 0.72,
-        size.height * 0.84,
-      );
-    canvas.drawPath(path2, streak2);
-
-    final fillCircle = Paint()
-      ..color = AppColors.martinique.withValues(alpha: 0.55);
-    canvas.drawCircle(
-      Offset(size.width * 0.88, size.height * 0.22),
-      20,
-      fillCircle,
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned(
+          left: 108,
+          top: 55,
+          child: _IllustrationCard(
+            width: 125,
+            height: 190,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 39, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ReceiptLine(width: 76, height: 9),
+                  const SizedBox(height: 13),
+                  _ReceiptLine(width: 58, height: 8),
+                  const SizedBox(height: 12),
+                  _ReceiptLine(width: 42, height: 8),
+                  const SizedBox(height: 12),
+                  _ReceiptLine(width: 54, height: 8),
+                  const SizedBox(height: 12),
+                  _ReceiptLine(width: 69, height: 8),
+                ],
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 99,
+          top: 46,
+          child: SizedBox(
+            width: 143,
+            height: 209,
+            child: CustomPaint(painter: _ScanCornersPainter()),
+          ),
+        ),
+        Positioned(
+          right: 34,
+          top: 124,
+          child: Container(
+            width: 89,
+            height: 89,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFE9FFF4),
+              border: Border.all(color: Colors.white, width: 3),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.forest.withValues(alpha: 0.09),
+                  blurRadius: 16,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.bolt_rounded,
+              size: 50,
+              color: AppColors.emerald,
+            ),
+          ),
+        ),
+      ],
     );
   }
-
-  @override
-  bool shouldRepaint(covariant _SpeedPainter oldDelegate) =>
-      oldDelegate.accent != accent;
 }
 
-/// Anillos concéntricos tipo escudo, evocando protección y claridad.
-class _ClarityPainter extends CustomPainter {
-  final Color accent;
-  const _ClarityPainter({required this.accent});
+class _ClarityIllustration extends StatelessWidget {
+  const _ClarityIllustration();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned(
+          left: 73,
+          top: 48,
+          child: Container(
+            width: 194,
+            height: 194,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFF5FFFA),
+              border: Border.all(color: const Color(0xFFC8EEE0), width: 7),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 93,
+          top: 68,
+          child: Container(
+            width: 154,
+            height: 154,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                const Icon(
+                  Icons.shield_rounded,
+                  size: 92,
+                  color: AppColors.emerald,
+                ),
+                const Positioned(
+                  top: 59,
+                  child: Icon(
+                    Icons.check_rounded,
+                    size: 42,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const Positioned(
+          top: 28,
+          left: 2,
+          child: _FloatingLabel(
+            icon: Icons.lightbulb_rounded,
+            text: 'Mejores\nhábitos',
+          ),
+        ),
+        const Positioned(
+          top: 27,
+          right: 0,
+          child: _FloatingLabel(
+            icon: Icons.bar_chart_rounded,
+            text: 'Más\nclaridad',
+          ),
+        ),
+        const Positioned(
+          right: 4,
+          bottom: 18,
+          child: _FloatingLabel(
+            icon: Icons.favorite_rounded,
+            text: 'Tranquilidad\nfinanciera',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FloatingLabel extends StatelessWidget {
+  const _FloatingLabel({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.forest.withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 21, color: AppColors.emerald),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 10,
+              height: 1.15,
+              color: AppColors.ink,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IllustrationCard extends StatelessWidget {
+  const _IllustrationCard({
+    required this.width,
+    required this.height,
+    required this.child,
+  });
+
+  final double width;
+  final double height;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.forest.withValues(alpha: 0.11),
+            blurRadius: 23,
+            offset: const Offset(0, 9),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _ReceiptLine extends StatelessWidget {
+  const _ReceiptLine({required this.width, required this.height});
+
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: width,
+    height: height,
+    decoration: BoxDecoration(
+      color: const Color(0xFFD7E1E2),
+      borderRadius: BorderRadius.circular(99),
+    ),
+  );
+}
+
+class _IllustrationAccents extends CustomPainter {
+  const _IllustrationAccents(this.variant);
+
+  final OnboardingIllustrationVariant variant;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height * 0.55);
-
-    final ringOuter = Paint()
-      ..color = AppColors.martinique.withValues(alpha: 0.6)
+    final center = Offset(size.width / 2, size.height / 2);
+    final stroke = Paint()
+      ..color = AppColors.emerald.withValues(alpha: 0.55)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 12;
-    canvas.drawCircle(center, 100, ringOuter);
-
-    final ringMid = Paint()
-      ..color = AppColors.comet.withValues(alpha: 0.45)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 10;
-    canvas.drawCircle(center, 74, ringMid);
-
-    final arc = Paint()
-      ..color = accent.withValues(alpha: 0.55)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 14
+      ..strokeWidth = 11
       ..strokeCap = StrokeCap.round;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: 100),
-      -1.7,
-      2.1,
-      false,
-      arc,
-    );
+    if (variant == OnboardingIllustrationVariant.overview) {
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: 139),
+        math.pi * 1.10,
+        0.85,
+        false,
+        stroke,
+      );
+    } else if (variant == OnboardingIllustrationVariant.speed) {
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: 137),
+        math.pi * 0.08,
+        1.12,
+        false,
+        stroke,
+      );
+      final line = Paint()
+        ..color = AppColors.emerald.withValues(alpha: 0.45)
+        ..strokeWidth = 5
+        ..strokeCap = StrokeCap.round;
+      for (var i = 0; i < 3; i++) {
+        final y = 142.0 + i * 27;
+        canvas.drawLine(Offset(23, y), Offset(77 - i * 7, y), line);
+      }
+    } else {
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: 134),
+        -math.pi / 2,
+        math.pi * 0.77,
+        false,
+        stroke,
+      );
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: 134),
+        math.pi * 0.40,
+        math.pi * 0.34,
+        false,
+        stroke,
+      );
+    }
 
-    final dot = Paint()..color = accent.withValues(alpha: 0.7);
-    canvas.drawCircle(Offset(size.width * 0.18, size.height * 0.24), 6, dot);
-    canvas.drawCircle(Offset(size.width * 0.84, size.height * 0.78), 5, dot);
+    final dots = variant == OnboardingIllustrationVariant.overview
+        ? [(286.0, 76.0, 11.0), (47.0, 167.0, 6.0), (293.0, 232.0, 19.0)]
+        : variant == OnboardingIllustrationVariant.speed
+        ? [(60.0, 53.0, 6.0), (37.0, 255.0, 11.0)]
+        : [(36.0, 161.0, 17.0), (305.0, 223.0, 6.0)];
+    for (final (x, y, radius) in dots) {
+      canvas.drawCircle(
+        Offset(x, y),
+        radius,
+        Paint()
+          ..color = AppColors.emerald.withValues(alpha: radius > 10 ? .3 : .8),
+      );
+    }
   }
 
   @override
-  bool shouldRepaint(covariant _ClarityPainter oldDelegate) =>
-      oldDelegate.accent != accent;
+  bool shouldRepaint(covariant _IllustrationAccents oldDelegate) =>
+      oldDelegate.variant != variant;
+}
+
+class _GrowthArrowPainter extends CustomPainter {
+  const _GrowthArrowPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.forest
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final path = Path()
+      ..moveTo(4, size.height - 6)
+      ..quadraticBezierTo(
+        size.width * 0.52,
+        size.height * 0.78,
+        size.width - 11,
+        9,
+      );
+    canvas.drawPath(path, paint);
+    canvas.drawLine(
+      Offset(size.width - 29, 9),
+      Offset(size.width - 11, 9),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(size.width - 11, 9),
+      Offset(size.width - 11, 26),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _ScanCornersPainter extends CustomPainter {
+  const _ScanCornersPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.emerald
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    const length = 20.0;
+    for (final corner in [
+      Offset(0, 0),
+      Offset(size.width, 0),
+      Offset(0, size.height),
+      Offset(size.width, size.height),
+    ]) {
+      final x = corner.dx;
+      final y = corner.dy;
+      final directionX = x == 0 ? 1.0 : -1.0;
+      final directionY = y == 0 ? 1.0 : -1.0;
+      final path = Path()
+        ..moveTo(x, y + length * directionY)
+        ..lineTo(x, y)
+        ..lineTo(x + length * directionX, y);
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

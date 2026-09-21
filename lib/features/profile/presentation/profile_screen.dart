@@ -29,7 +29,7 @@ class ProfileScreen extends ConsumerWidget {
     final subscriptionState = ref.watch(subscriptionViewModelProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Perfil')),
+      appBar: AppBar(title: const Text('Mi perfil')),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [

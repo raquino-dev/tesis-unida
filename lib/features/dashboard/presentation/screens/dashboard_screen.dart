@@ -11,10 +11,25 @@ import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_section_header.dart';
 import '../../../../core/widgets/app_state_view.dart';
+import '../../../../core/widgets/finanza_mark.dart';
+import '../../../../core/config/app_environment.dart';
+import '../../../../core/widgets/app_badge.dart';
 import '../../../movements/domain/movement_entity.dart';
+import '../../../movements/presentation/viewmodels/movement_providers.dart';
+import '../../../movements/presentation/widgets/movement_card.dart';
 import '../../../movements/presentation/viewmodels/movement_list_viewmodel.dart';
 import '../../domain/dashboard_summary_entity.dart';
 import '../viewmodels/dashboard_viewmodel.dart';
+
+final _recentMovementsProvider =
+    FutureProvider.autoDispose<List<MovementEntity>>((ref) async {
+      ref.watch(dashboardViewModelProvider);
+      final movements = [
+        ...await ref.watch(movementRepositoryProvider).getMovements(),
+      ];
+      movements.sort((a, b) => b.date.compareTo(a.date));
+      return movements.take(4).toList(growable: false);
+    });
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -23,6 +38,7 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(dashboardViewModelProvider);
     final viewModel = ref.read(dashboardViewModelProvider.notifier);
+    final recentMovements = ref.watch(_recentMovementsProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -35,7 +51,10 @@ class DashboardScreen extends ConsumerWidget {
             message: 'Todavía no hay información financiera.',
           ),
           success: (summary) => RefreshIndicator(
-            onRefresh: viewModel.load,
+            onRefresh: () async {
+              await viewModel.load();
+              ref.invalidate(_recentMovementsProvider);
+            },
             child: ListView(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md,
@@ -44,6 +63,8 @@ class DashboardScreen extends ConsumerWidget {
                 AppSpacing.xxl,
               ),
               children: [
+                const FinanzaWordmark(compact: true),
+                const SizedBox(height: AppSpacing.lg),
                 _Greeting(name: summary.userName),
                 const SizedBox(height: AppSpacing.lg),
                 _BalanceCard(summary: summary),
@@ -71,6 +92,74 @@ class DashboardScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 _ScoreAndBudgetRow(summary: summary),
+                const SizedBox(height: AppSpacing.md),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _QuickLink(
+                        icon: Icons.account_balance_wallet_outlined,
+                        label: 'Cuentas',
+                        onTap: () => context.push(AppRoutes.accounts),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: _QuickLink(
+                        icon: Icons.pie_chart_outline_rounded,
+                        label: 'Presupuesto',
+                        onTap: () => context.push(AppRoutes.budgets),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: _QuickLink(
+                        icon: Icons.savings_outlined,
+                        label: 'Metas',
+                        onTap: () => context.push(AppRoutes.savingsGoals),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                AppSectionHeader(
+                  title: 'Movimientos recientes',
+                  actionLabel: 'Ver todos',
+                  onAction: () => context.go(AppRoutes.movements),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                recentMovements.when(
+                  loading: () => const AppCard(
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (_, _) => const _DashboardEmptyCard(
+                    icon: Icons.receipt_long_outlined,
+                    title: 'No pudimos mostrar los movimientos',
+                    message: 'Podés consultarlos desde Movimientos.',
+                  ),
+                  data: (items) => items.isEmpty
+                      ? _DashboardEmptyCard(
+                          icon: Icons.receipt_long_outlined,
+                          title: 'Aún no hay movimientos',
+                          message: 'Registrá tu primer ingreso o gasto.',
+                          actionLabel: 'Agregar movimiento',
+                          onAction: () => context.push(AppRoutes.addMovement),
+                        )
+                      : AppCard(
+                          child: Column(
+                            children: [
+                              for (var i = 0; i < items.length; i++) ...[
+                                if (i > 0) const Divider(height: 1),
+                                MovementCard(
+                                  movement: items[i],
+                                  onTap: () => context.push(
+                                    AppRoutes.movementDetailPath(items[i].id),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                ),
                 const SizedBox(height: AppSpacing.lg),
                 AppSectionHeader(
                   title: 'Categorías principales',
@@ -343,6 +432,11 @@ class _Greeting extends StatelessWidget {
                 DateFormatter.monthYear(DateTime.now()),
                 style: TextStyle(color: colors.textSecondary, fontSize: 13),
               ),
+              if (!AppEnvironment.useApi)
+                const Padding(
+                  padding: EdgeInsets.only(top: 6),
+                  child: AppBadge(label: 'Modo demo'),
+                ),
             ],
           ),
         ),
@@ -365,6 +459,36 @@ class _Greeting extends StatelessWidget {
   }
 }
 
+class _QuickLink extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickLink({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+    onTap: onTap,
+    child: Column(
+      children: [
+        Icon(icon, color: context.colors.primary, size: 24),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+        ),
+      ],
+    ),
+  );
+}
+
 class _BalanceCard extends StatelessWidget {
   final DashboardSummaryEntity summary;
   const _BalanceCard({required this.summary});
@@ -376,7 +500,7 @@ class _BalanceCard extends StatelessWidget {
       gradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [AppColors.martinique, AppColors.mirage],
+        colors: [AppColors.emerald, AppColors.forest],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,7 +508,7 @@ class _BalanceCard extends StatelessWidget {
           Text(
             'Balance del mes',
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: Colors.white70,
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
@@ -393,7 +517,7 @@ class _BalanceCard extends StatelessWidget {
           Text(
             CurrencyFormatter.format(summary.balance),
             style: const TextStyle(
-              color: AppColors.textPrimaryDark,
+              color: Colors.white,
               fontSize: 34,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.6,
@@ -401,8 +525,10 @@ class _BalanceCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Vas bien este mes. Tu balance proyectado sigue siendo positivo.',
-            style: TextStyle(color: AppColors.textMutedDark, fontSize: 12.5),
+            summary.balance >= 0
+                ? 'Vas bien este mes. Tus ingresos superan tus gastos.'
+                : 'Tus gastos superan tus ingresos este mes.',
+            style: const TextStyle(color: Colors.white70, fontSize: 12.5),
           ),
         ],
       ),
@@ -502,7 +628,7 @@ class _ScoreAndBudgetRow extends StatelessWidget {
                       '${summary.financialScore}',
                       style: TextStyle(
                         color: colors.primary,
-                        fontSize: 28,
+                        fontSize: 19,
                         fontWeight: FontWeight.w800,
                       ),
                     ),

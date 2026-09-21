@@ -49,7 +49,7 @@ de Git.
 | Roles de aplicación | `finanzas_migrador`, `finanzas_api`, `finanzas_worker` |
 | Seguridad de roles | LOGIN, sin superusuario, sin crear roles/BBDD, sin bypass RLS |
 | Propietario del esquema | `finanzas_migrador` mediante ejecución real de EF |
-| Migraciones | M0001–M0019 aplicadas correctamente |
+| Migraciones | El repositorio incluye M0001–M0029; verificar `infra.__ef_migrations_history` antes y después de desplegar M0029 |
 | Conexiones verificadas | Migrador, API y Worker mediante Supavisor session mode/TLS; API revalidada después de activar SSL obligatorio |
 | Credenciales | Contraseñas independientes guardadas en el Llavero de macOS |
 | CA TLS | CA oficial `prod-ca-2021.crt` instalada exclusivamente en Lightsail; conexiones con `verify-full` confirmadas |
@@ -227,7 +227,7 @@ de Git.
   dispositivo ni reutilizar el mismo identificador entre verificadores.
 - Después de crear una cuenta o iniciar sesión, la app reinicia la inicialización
   de FCM para solicitar el permiso Android, registrar/actualizar el token y
-  asociarlo a esa instalación. La versión `0.1.0+3` incorpora esta corrección
+  asociarlo a esa instalación. La versión `0.1.0+9` incorpora esta corrección
   para la siguiente distribución interna.
 - La configuración pública de Firebase usada por Flutter se versiona en
   `lib/core/config/pilot_firebase_options.dart` y toma sus valores de

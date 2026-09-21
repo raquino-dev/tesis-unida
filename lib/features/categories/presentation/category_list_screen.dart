@@ -4,6 +4,7 @@ import '../../../app/theme/app_radius.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme_extension.dart';
 import '../../../core/widgets/app_badge.dart';
+import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_state_view.dart';
 import '../../../core/widgets/app_text_field.dart';
@@ -26,25 +27,23 @@ const _iconOptions = [
 ];
 
 const _colorOptions = [
-  Color(0xFF6868A6),
-  Color(0xFF505077),
-  Color(0xFF363659),
-  Color(0xFF3FA37A),
-  Color(0xFFC79A4B),
-  Color(0xFFB0555A),
-  Color(0xFF5C86B0),
+  Color(0xFFF48139),
+  Color(0xFF00A96B),
+  Color(0xFF2586E6),
+  Color(0xFF6659E8),
+  Color(0xFFEC3E92),
+  Color(0xFFF5B72E),
+  Color(0xFF83D9BA),
 ];
 
 Future<CategoryEntity?> showCategoryEditorSheet(
   BuildContext context, {
   CategoryEntity? category,
-  CategoryType initialType = CategoryType.expense,
 }) => showModalBottomSheet<CategoryEntity>(
   context: context,
   isScrollControlled: true,
   backgroundColor: Colors.transparent,
-  builder: (_) =>
-      _CategoryEditorSheet(category: category, initialType: initialType),
+  builder: (_) => _CategoryEditorSheet(category: category),
 );
 
 class CategoryListScreen extends ConsumerWidget {
@@ -78,55 +77,61 @@ class CategoryListScreen extends ConsumerWidget {
         success: (categories) => ListView.separated(
           padding: const EdgeInsets.all(AppSpacing.md),
           itemCount: categories.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 4),
+          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
           itemBuilder: (context, index) {
             final c = categories[index];
             final colors = context.colors;
-            return ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: c.color.withValues(alpha: 0.16),
-                  borderRadius: AppRadius.mdRadius,
+            return AppCard(
+              padding: EdgeInsets.zero,
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
                 ),
-                child: Icon(c.icon, color: c.color),
-              ),
-              title: Text(
-                c.name,
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontWeight: FontWeight.w600,
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: c.color.withValues(alpha: 0.16),
+                    borderRadius: AppRadius.mdRadius,
+                  ),
+                  child: Icon(c.icon, color: c.color),
                 ),
-              ),
-              subtitle: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AppBadge(label: c.type.label, tone: AppBadgeTone.neutral),
-                  if (c.inUse) ...[
-                    const SizedBox(width: 6),
-                    const AppBadge(label: 'En uso', tone: AppBadgeTone.info),
+                title: Text(
+                  c.name,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppBadge(label: c.type.label, tone: AppBadgeTone.neutral),
+                    if (c.inUse) ...[
+                      const SizedBox(width: 6),
+                      const AppBadge(label: 'En uso', tone: AppBadgeTone.info),
+                    ],
                   ],
-                ],
-              ),
-              trailing: PopupMenuButton<String>(
-                onSelected: (value) async {
-                  if (value == 'edit') {
-                    showCategoryEditorSheet(context, category: c);
-                  } else if (value == 'delete') {
-                    final error = await viewModel.delete(c.id);
-                    if (error != null && context.mounted) {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text(error)));
+                ),
+                trailing: PopupMenuButton<String>(
+                  onSelected: (value) async {
+                    if (value == 'edit') {
+                      showCategoryEditorSheet(context, category: c);
+                    } else if (value == 'delete') {
+                      final error = await viewModel.delete(c.id);
+                      if (error != null && context.mounted) {
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(error)));
+                      }
                     }
-                  }
-                },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'edit', child: Text('Editar')),
-                  PopupMenuItem(value: 'delete', child: Text('Eliminar')),
-                ],
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 'edit', child: Text('Editar')),
+                    PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                  ],
+                ),
               ),
             );
           },
@@ -138,8 +143,7 @@ class CategoryListScreen extends ConsumerWidget {
 
 class _CategoryEditorSheet extends ConsumerStatefulWidget {
   final CategoryEntity? category;
-  final CategoryType initialType;
-  const _CategoryEditorSheet({this.category, required this.initialType});
+  const _CategoryEditorSheet({this.category});
 
   @override
   ConsumerState<_CategoryEditorSheet> createState() =>
@@ -150,7 +154,7 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
   late final _name = TextEditingController(text: widget.category?.name ?? '');
   late IconData _icon = widget.category?.icon ?? _iconOptions.first;
   late Color _color = widget.category?.color ?? _colorOptions.first;
-  late CategoryType _type = widget.category?.type ?? widget.initialType;
+  late CategoryType _type = widget.category?.type ?? CategoryType.both;
   String? _errorMessage;
 
   @override

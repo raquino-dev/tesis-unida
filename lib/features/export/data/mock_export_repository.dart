@@ -71,12 +71,14 @@ class MockExportRepository implements ExportRepository {
         .where((t) => !t.date.isBefore(start) && !t.date.isAfter(end))
         .toList();
 
-    final totalIncome = movements
-        .where((m) => m.type == MovementType.income)
-        .fold<double>(0, (sum, m) => sum + m.amount);
-    final totalExpense = movements
-        .where((m) => m.type == MovementType.expense)
-        .fold<double>(0, (sum, m) => sum + m.amount);
+    final totalIncome = movements.fold<double>(
+      0,
+      (sum, movement) => sum + movement.analyticalIncomeAmount,
+    );
+    final totalExpense = movements.fold<double>(
+      0,
+      (sum, movement) => sum + movement.analyticalExpenseAmount,
+    );
     final totalTransferred = transfers.fold<double>(
       0,
       (sum, t) => sum + t.amount,
@@ -88,7 +90,10 @@ class MockExportRepository implements ExportRepository {
         final existing = subtotalsByCategory[c.id];
         subtotalsByCategory[c.id] = StatementCategorySubtotal(
           category: c,
-          amount: (existing?.amount ?? 0) + m.amount,
+          amount:
+              (existing?.amount ?? 0) +
+              m.analyticalIncomeAmount +
+              m.analyticalExpenseAmount,
         );
       }
     }

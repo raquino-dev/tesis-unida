@@ -1,6 +1,8 @@
-# Finanzas Inteligentes
+# Finanza
 
-Aplicación Flutter para la gestión de finanzas personales y familiares. Puede
+Aplicación Flutter para la gestión de finanzas personales y familiares. Su
+identidad visual usa una paleta clara verde, el isotipo de hoja y la navegación
+Inicio · Movimientos · Añadir · Análisis · Más. Puede
 ejecutarse con repositorios mock para demostraciones aisladas o conectada a la
 API ASP.NET Core mediante parámetros de compilación.
 
@@ -11,8 +13,8 @@ de recopilar datos del plástico de tarjetas.
 ## Identidad Android
 
 - Application ID: `com.tesis.finanzasinteligentes`
-- Nombre visible: `Finanzas Inteligentes`
-- Versión: `0.1.0+3`
+- Nombre visible: `Finanza`
+- Versión: `0.1.0+9`
 
 ## Verificación local
 

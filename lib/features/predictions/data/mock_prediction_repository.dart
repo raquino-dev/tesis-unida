@@ -1,7 +1,6 @@
 import '../../../mock/mock_data.dart';
 import '../domain/prediction_entity.dart';
 import '../domain/prediction_repository.dart';
-import '../../movements/domain/movement_entity.dart';
 import '../../movements/domain/movement_repository.dart';
 
 class MockPredictionRepository implements PredictionRepository {
@@ -13,11 +12,11 @@ class MockPredictionRepository implements PredictionRepository {
     await Future.delayed(const Duration(milliseconds: 500));
     final movements = await movementRepository.getMovements();
     final expenses = movements
-        .where((movement) => movement.type == MovementType.expense)
+        .where((movement) => movement.analyticalExpenseAmount != 0)
         .toList();
     final totalExpense = expenses.fold<double>(
       0,
-      (sum, movement) => sum + movement.amount,
+      (sum, movement) => sum + movement.analyticalExpenseAmount,
     );
     final oldest = expenses.isEmpty
         ? DateTime.now()
@@ -30,7 +29,7 @@ class MockPredictionRepository implements PredictionRepository {
     for (final movement in expenses) {
       for (final category in movement.categories) {
         byCategory[category.name] =
-            (byCategory[category.name] ?? 0) + movement.amount;
+            (byCategory[category.name] ?? 0) + movement.analyticalExpenseAmount;
       }
     }
     final ranked = byCategory.entries.toList()

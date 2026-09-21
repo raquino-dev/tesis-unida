@@ -68,11 +68,20 @@ class MovementFilters {
   /// Se reutiliza tanto para la lista de Movimientos como para el cálculo
   /// de extractos, evitando duplicar la lógica de filtrado.
   bool matches(MovementEntity m) {
-    if (type != null && m.type != type) return false;
+    if (type == MovementType.income && m.analyticalIncomeAmount == 0) {
+      return false;
+    }
+    if (type == MovementType.expense && m.analyticalExpenseAmount == 0) {
+      return false;
+    }
     if (categoryId != null && !m.categories.any((c) => c.id == categoryId)) {
       return false;
     }
-    if (accountId != null && m.account.id != accountId) return false;
+    if (accountId != null &&
+        (m.account.id != accountId ||
+            (m.creditCardId != null && !m.isCardPayment))) {
+      return false;
+    }
     if (dateRange != null) {
       final start = DateTime(
         dateRange!.start.year,

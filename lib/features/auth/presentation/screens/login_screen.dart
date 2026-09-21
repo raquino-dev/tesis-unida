@@ -6,6 +6,7 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_theme_extension.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/finanza_mark.dart';
 import '../viewmodels/login_viewmodel.dart';
 import '../../../security/presentation/widgets/otp_verification_dialog.dart';
 import '../../../../core/config/app_environment.dart';
@@ -63,6 +64,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const FinanzaWordmark(),
               const SizedBox(height: AppSpacing.xl),
               Text(
                 'Bienvenido de nuevo',

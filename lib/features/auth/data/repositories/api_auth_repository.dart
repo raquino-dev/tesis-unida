@@ -25,7 +25,7 @@ class ApiAuthRepository implements AuthRepository {
         'recordarDispositivo': rememberDevice,
         'dispositivo': {
           'identificador': installationId,
-          'nombre': 'Finanzas Inteligentes',
+          'nombre': 'Finanza',
           'plataforma': 'android',
           'versionSistema': 'Android 10+',
           'versionAplicacion': '0.1.0',

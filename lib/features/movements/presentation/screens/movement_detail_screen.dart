@@ -78,9 +78,11 @@ class MovementDetailScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     Text(
-                      '${movement.type == MovementType.income ? '+' : '-'}${CurrencyFormatter.format(movement.amount)}',
+                      '${movement.type == MovementType.income && !movement.isCardPayment ? '+' : '-'}${CurrencyFormatter.format(movement.amount)}',
                       style: TextStyle(
-                        color: movement.type == MovementType.income
+                        color:
+                            movement.type == MovementType.income &&
+                                !movement.isCardPayment
                             ? colors.success
                             : colors.textPrimary,
                         fontSize: 30,
@@ -99,6 +101,18 @@ class MovementDetailScreen extends ConsumerWidget {
                 child: Column(
                   children: [
                     _row(context, 'Fecha', DateFormatter.full(movement.date)),
+                    if (movement.cardOperation != null) ...[
+                      const Divider(height: AppSpacing.lg),
+                      _row(
+                        context,
+                        'Operación',
+                        switch (movement.cardOperation!) {
+                          CardOperation.purchase => 'Compra con tarjeta',
+                          CardOperation.refund => 'Reintegro en tarjeta',
+                          CardOperation.payment => 'Pago de tarjeta',
+                        },
+                      ),
+                    ],
                     const Divider(height: AppSpacing.lg),
                     Row(
                       children: [

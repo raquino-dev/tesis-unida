@@ -21,7 +21,7 @@ class PredictionsScreen extends ConsumerWidget {
     final colors = context.colors;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Predicciones')),
+      appBar: AppBar(title: const Text('Predicción')),
       body: PremiumGate(
         capability: PremiumCapability.predictions,
         child: state.when(

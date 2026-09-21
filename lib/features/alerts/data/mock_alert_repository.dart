@@ -2,7 +2,6 @@ import '../../../core/errors/app_failure.dart';
 import '../../../mock/mock_data.dart';
 import '../domain/alert_entity.dart';
 import '../domain/alert_repository.dart';
-import '../../movements/domain/movement_entity.dart';
 import '../../movements/domain/movement_repository.dart';
 
 AlertLevel _levelFromString(String value) {
@@ -24,11 +23,11 @@ class MockAlertRepository implements AlertRepository {
   Future<List<AlertEntity>> _load() async {
     final movements = await movementRepository.getMovements();
     final expenses = movements
-        .where((movement) => movement.type == MovementType.expense)
+        .where((movement) => movement.analyticalExpenseAmount != 0)
         .toList();
     final total = expenses.fold<double>(
       0,
-      (sum, movement) => sum + movement.amount,
+      (sum, movement) => sum + movement.analyticalExpenseAmount,
     );
     final transport = expenses
         .where(
@@ -36,7 +35,10 @@ class MockAlertRepository implements AlertRepository {
             (category) => category.id == 'cat_transporte',
           ),
         )
-        .fold<double>(0, (sum, movement) => sum + movement.amount);
+        .fold<double>(
+          0,
+          (sum, movement) => sum + movement.analyticalExpenseAmount,
+        );
     final source = MockData.alerts
         .map((item) => Map<String, dynamic>.from(item))
         .toList();

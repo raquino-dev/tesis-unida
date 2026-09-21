@@ -203,7 +203,7 @@ class PilotLocalStore {
   static Future<void> completePreSurvey() => _setBool(_preSurveyKey, true);
   static Future<void> completePostSurvey() => _setBool(_postSurveyKey, true);
 
-  static bool get darkTheme => _getBool(_themeDarkKey, fallback: true);
+  static bool get darkTheme => _getBool(_themeDarkKey, fallback: false);
   static Future<void> saveDarkTheme(bool enabled) =>
       _setBool(_themeDarkKey, enabled);
 

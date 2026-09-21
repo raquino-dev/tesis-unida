@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'app_radius.dart';
 import 'app_theme_extension.dart';
 import 'app_typography.dart';
 
-/// ThemeData centralizado. La app es dark-first: el modo oscuro es la
-/// experiencia principal y más cuidada.
+/// ThemeData centralizado para la identidad Finanza.
 class AppTheme {
   AppTheme._();
 
@@ -43,19 +43,22 @@ class AppTheme {
       extensions: [colors],
       dividerColor: colors.border,
       appBarTheme: AppBarTheme(
-        backgroundColor: colors.background,
+        backgroundColor: colors.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        centerTitle: false,
+        centerTitle: true,
+        systemOverlayStyle: isDark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
         foregroundColor: colors.textPrimary,
-        titleTextStyle: textTheme.titleLarge,
+        titleTextStyle: textTheme.titleLarge?.copyWith(fontFamily: 'Roboto'),
         iconTheme: IconThemeData(color: colors.textPrimary),
       ),
       cardTheme: CardThemeData(
         color: colors.surface,
         elevation: 0,
         margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.lgRadius),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.mdRadius),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -63,8 +66,8 @@ class AppTheme {
         hintStyle: TextStyle(color: colors.textMuted),
         labelStyle: TextStyle(color: colors.textSecondary),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 16,
+          horizontal: 14,
+          vertical: 12,
         ),
         border: OutlineInputBorder(
           borderRadius: AppRadius.mdRadius,
@@ -136,6 +139,13 @@ class AppTheme {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: AppRadius.pillRadius),
         side: BorderSide.none,
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: colors.surface,
+        modalBackgroundColor: colors.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: colors.surface,
