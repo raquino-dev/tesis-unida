@@ -14,7 +14,7 @@ de recopilar datos del plástico de tarjetas.
 
 - Application ID: `com.tesis.finanzasinteligentes`
 - Nombre visible: `Finanza`
-- Versión: `0.1.0+9`
+- Versión: `0.1.0+10`
 
 ## Verificación local
 
