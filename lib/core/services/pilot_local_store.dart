@@ -243,6 +243,15 @@ class PilotLocalStore {
     await _preferences?.setInt(_pushDeviceVersionKey, version);
   }
 
+  static Future<void> clearPushDevice() async {
+    _memory.remove(_pushDeviceIdKey);
+    _memory.remove(_pushDeviceVersionKey);
+    await Future.wait([
+      _preferences?.remove(_pushDeviceIdKey) ?? Future.value(false),
+      _preferences?.remove(_pushDeviceVersionKey) ?? Future.value(false),
+    ]);
+  }
+
   static int get monthlyOcrCount {
     _resetOcrCounterIfNeeded();
     return _preferences?.getInt(_ocrCountKey) ??

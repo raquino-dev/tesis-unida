@@ -108,6 +108,29 @@ class NotificationRepository {
     await _saveDevice(response.object);
   }
 
+  Future<void> unregisterPushDevice() async {
+    final storedId = PilotLocalStore.pushDeviceId;
+    final storedVersion = PilotLocalStore.pushDeviceVersion;
+    try {
+      if (_useApi && storedId != null && storedVersion != null) {
+        await _api.delete(
+          '/dispositivos/$storedId',
+          headers: {'If-Match': '"$storedVersion"'},
+        );
+      }
+    } on AppFailure catch (failure) {
+      const alreadyRevoked = {
+        'dispositivo_no_encontrado',
+        'etag_desactualizado',
+        'http_404',
+        'http_412',
+      };
+      if (!alreadyRevoked.contains(failure.code)) rethrow;
+    } finally {
+      await PilotLocalStore.clearPushDevice();
+    }
+  }
+
   Future<void> _saveDevice(Map<String, dynamic> json) =>
       PilotLocalStore.savePushDevice(
         id: json['id'] as String,
