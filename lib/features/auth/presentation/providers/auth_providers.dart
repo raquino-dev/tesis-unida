@@ -6,6 +6,7 @@ import '../../data/repositories/mock_auth_repository.dart';
 import '../../data/repositories/api_auth_repository.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/user_alias_policy.dart';
 import '../../../security/presentation/security_providers.dart';
 import '../../../notifications/presentation/notification_providers.dart';
 import '../../../../core/services/pilot_local_store.dart';
@@ -89,10 +90,14 @@ class CurrentUserNotifier extends StateNotifier<UserEntity?> {
         code: 'sesion_invalida',
       );
     }
+    final aliasError = UserAliasPolicy.validate(alias);
+    if (aliasError != null) {
+      throw AppFailure(aliasError, code: 'alias_invalido');
+    }
     final updated = await _repository.updateProfile(
       current: current,
       name: name,
-      alias: alias,
+      alias: UserAliasPolicy.normalize(alias),
     );
     state = updated;
     return updated;
