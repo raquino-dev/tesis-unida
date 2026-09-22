@@ -77,13 +77,17 @@ FCM se habilita sin guardar configuración real en Git:
 
 ```bash
 --dart-define=FIREBASE_API_KEY=... \
---dart-define=FIREBASE_APP_ID=... \
+--dart-define=FIREBASE_ANDROID_APP_ID=... \
 --dart-define=FIREBASE_MESSAGING_SENDER_ID=... \
 --dart-define=FIREBASE_PROJECT_ID=...
 ```
 
-El build sin estos parámetros conserva el modo demo y omite la inicialización
-de Firebase. En producción, Crashlytics captura fallos fatales cuando
+El piloto Android incluye identificadores públicos por defecto; se pueden
+reemplazar con estos parámetros o con `FIREBASE_APP_ID` como override general.
+Para iOS se deben proporcionar `FIREBASE_IOS_APP_ID` y
+`FIREBASE_IOS_BUNDLE_ID`, además de habilitar APNs y la capacidad Push
+Notifications en Xcode. Si no existe una configuración propia para la
+plataforma, Firebase no se inicializa. En producción, Crashlytics captura fallos fatales cuando
 `USE_REAL_API=true`; no deben añadirse datos financieros, tokens ni documentos
 como claves o logs de diagnóstico. Coloque el `google-services.json` descargado
 de Firebase en `android/app/` (está excluido de Git) para que Gradle active

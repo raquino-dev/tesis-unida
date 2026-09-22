@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 
 import 'app_environment.dart';
 
@@ -16,5 +17,8 @@ class PilotFirebaseOptions {
     appId: AppEnvironment.firebaseAppId,
     messagingSenderId: AppEnvironment.firebaseMessagingSenderId,
     projectId: AppEnvironment.firebaseProjectId,
+    iosBundleId: defaultTargetPlatform == TargetPlatform.iOS
+        ? AppEnvironment.firebaseIosBundleId
+        : null,
   );
 }

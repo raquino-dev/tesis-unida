@@ -32,6 +32,7 @@ class CurrentUserNotifier extends StateNotifier<UserEntity?> {
       state = await _repository.currentUser();
     } on AppFailure catch (failure) {
       if (_invalidSession(failure.code)) {
+        await ref.read(pushNotificationServiceProvider).revokeForLogout();
         await PilotLocalStore.clearSession();
       }
       state = null;
