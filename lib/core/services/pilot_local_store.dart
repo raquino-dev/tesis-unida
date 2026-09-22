@@ -203,7 +203,7 @@ class PilotLocalStore {
   static Future<void> completePreSurvey() => _setBool(_preSurveyKey, true);
   static Future<void> completePostSurvey() => _setBool(_postSurveyKey, true);
 
-  static bool get darkTheme => _getBool(_themeDarkKey, fallback: true);
+  static bool get darkTheme => _getBool(_themeDarkKey, fallback: false);
   static Future<void> saveDarkTheme(bool enabled) =>
       _setBool(_themeDarkKey, enabled);
 
@@ -241,6 +241,15 @@ class PilotLocalStore {
     _memory[_pushDeviceVersionKey] = version;
     await _preferences?.setString(_pushDeviceIdKey, id);
     await _preferences?.setInt(_pushDeviceVersionKey, version);
+  }
+
+  static Future<void> clearPushDevice() async {
+    _memory.remove(_pushDeviceIdKey);
+    _memory.remove(_pushDeviceVersionKey);
+    await Future.wait([
+      _preferences?.remove(_pushDeviceIdKey) ?? Future.value(false),
+      _preferences?.remove(_pushDeviceVersionKey) ?? Future.value(false),
+    ]);
   }
 
   static int get monthlyOcrCount {

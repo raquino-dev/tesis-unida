@@ -104,12 +104,14 @@ class ApiReportRepository implements ReportRepository {
               !item.date.isAfter(end.add(const Duration(days: 1))),
         )
         .toList();
-    final income = movements
-        .where((item) => item.type == MovementType.income)
-        .fold<double>(0, (sum, item) => sum + item.amount);
-    final expense = movements
-        .where((item) => item.type == MovementType.expense)
-        .fold<double>(0, (sum, item) => sum + item.amount);
+    final income = movements.fold<double>(
+      0,
+      (sum, item) => sum + item.analyticalIncomeAmount,
+    );
+    final expense = movements.fold<double>(
+      0,
+      (sum, item) => sum + item.analyticalExpenseAmount,
+    );
     final expenseDistribution = _localDistribution(
       movements,
       MovementType.expense,
@@ -126,9 +128,10 @@ class ApiReportRepository implements ReportRepository {
     for (final movement in movements) {
       final month = DateTime(movement.date.year, movement.date.month);
       final current = monthly[month] ?? (0, 0);
-      monthly[month] = movement.type == MovementType.income
-          ? (current.$1 + movement.amount, current.$2)
-          : (current.$1, current.$2 + movement.amount);
+      monthly[month] = (
+        current.$1 + movement.analyticalIncomeAmount,
+        current.$2 + movement.analyticalExpenseAmount,
+      );
     }
     final trend =
         monthly.entries
@@ -188,10 +191,17 @@ class ApiReportRepository implements ReportRepository {
   ) {
     final totals = <String, double>{};
     final movementCategories = <String, CategoryEntity>{};
-    for (final movement in movements.where((item) => item.type == type)) {
+    for (final movement in movements.where((item) {
+      return type == MovementType.income
+          ? item.analyticalIncomeAmount != 0
+          : item.analyticalExpenseAmount != 0;
+    })) {
       if (movement.categories.isEmpty) continue;
       final category = movement.categories.first;
-      totals[category.id] = (totals[category.id] ?? 0) + movement.amount;
+      final amount = type == MovementType.income
+          ? movement.analyticalIncomeAmount
+          : movement.analyticalExpenseAmount;
+      totals[category.id] = (totals[category.id] ?? 0) + amount;
       movementCategories[category.id] = category;
     }
     return totals.entries.map((entry) {

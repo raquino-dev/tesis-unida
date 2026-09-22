@@ -97,7 +97,7 @@ class ApiSecurityRepository implements SecurityRepository {
     try {
       final result = await _localAuthentication.authenticate(
         localizedReason:
-            'Confirmá tu identidad para continuar en Finanzas Inteligentes',
+            'Confirmá tu identidad para continuar en Finanza',
         biometricOnly: true,
         persistAcrossBackgrounding: true,
       );

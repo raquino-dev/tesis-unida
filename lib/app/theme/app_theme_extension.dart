@@ -3,7 +3,7 @@ import 'app_colors.dart';
 
 /// Tokens semánticos accesibles vía `Theme.of(context).extension<AppSemanticColors>()`.
 /// Permiten a los widgets referirse a "surfaceElevated" o "success" sin
-/// acoplarse a los nombres de la paleta Midnight Cat.
+/// acoplarse a los nombres de la paleta de marca.
 class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
   final Color background;
   final Color surface;
@@ -67,8 +67,8 @@ class AppSemanticColors extends ThemeExtension<AppSemanticColors> {
     background: AppColors.lightBackground,
     surface: AppColors.lightSurface,
     surfaceElevated: AppColors.lightSurfaceElevated,
-    primary: AppColors.scampi,
-    primaryVariant: AppColors.martinique,
+    primary: AppColors.emerald,
+    primaryVariant: AppColors.forest,
     textPrimary: AppColors.textPrimaryLight,
     textSecondary: AppColors.textSecondaryLight,
     textMuted: AppColors.textMutedLight,

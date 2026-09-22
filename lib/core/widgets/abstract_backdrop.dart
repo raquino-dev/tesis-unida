@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 
 /// Fondo geométrico abstracto de marca: círculos superpuestos y arcos
-/// gruesos en tonos Midnight Cat, con opacidad baja para no saturar la UI.
+/// gruesos en tonos de marca, con opacidad baja para no saturar la UI.
 class AbstractBackdrop extends StatelessWidget {
   final double height;
   final Color accent;

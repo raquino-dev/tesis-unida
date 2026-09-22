@@ -10,6 +10,9 @@ class MovementModel {
   final List<String> categoryIds;
   final String description;
   final String accountId;
+  final String? creditCardId;
+  final CardOperation? cardOperation;
+  final String? transferId;
   final bool hasAttachment;
   final AttachmentType? attachmentType;
   final OcrStatus? ocrStatus;
@@ -25,6 +28,9 @@ class MovementModel {
     required this.categoryIds,
     required this.description,
     required this.accountId,
+    this.creditCardId,
+    this.cardOperation,
+    this.transferId,
     this.hasAttachment = false,
     this.attachmentType,
     this.ocrStatus,
@@ -44,6 +50,9 @@ class MovementModel {
       categoryIds: List<String>.from(json['categoryIds'] as List),
       description: json['description'] as String,
       accountId: json['accountId'] as String,
+      creditCardId: json['creditCardId'] as String?,
+      cardOperation: cardOperationFromString(json['cardOperation'] as String?),
+      transferId: json['transferId'] as String?,
       hasAttachment: json['hasAttachment'] as bool? ?? false,
       attachmentType: attachmentTypeFromString(
         json['attachmentType'] as String?,
@@ -67,6 +76,9 @@ class MovementModel {
       categories: categories,
       description: description,
       account: account,
+      creditCardId: creditCardId,
+      cardOperation: cardOperation,
+      transferId: transferId,
       hasAttachment: hasAttachment,
       attachmentType: attachmentType,
       ocrStatus: ocrStatus,

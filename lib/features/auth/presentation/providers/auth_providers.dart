@@ -5,6 +5,7 @@ import '../../data/repositories/api_auth_repository.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../../security/presentation/security_providers.dart';
+import '../../../notifications/presentation/notification_providers.dart';
 import '../../../../core/services/pilot_local_store.dart';
 import '../../../../core/config/app_environment.dart';
 import '../../../../core/errors/app_failure.dart';
@@ -69,6 +70,7 @@ class CurrentUserNotifier extends StateNotifier<UserEntity?> {
 
   Future<void> logout() async {
     await OfflineRuntime.instance.clearCurrentUser();
+    await ref.read(pushNotificationServiceProvider).revokeForLogout();
     await _repository.logout();
     await ref.read(securityRepositoryProvider).clearSession();
     await PilotLocalStore.clearSession();

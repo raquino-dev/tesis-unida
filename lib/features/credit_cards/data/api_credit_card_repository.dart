@@ -16,11 +16,24 @@ class ApiCreditCardRepository implements CreditCardRepository {
 
   @override
   Future<List<CreditCardEntity>> getCreditCards() async {
-    final response = (await _api.get('/tarjetas-credito')).object;
     final accounts = await _accounts.getAccounts();
-    return (response['datos'] as List<dynamic>? ?? const [])
-        .map((item) => _fromJson(item as Map<String, dynamic>, accounts))
-        .toList();
+    final cards = <CreditCardEntity>[];
+    String? cursor;
+    do {
+      final path = cursor == null
+          ? '/tarjetas-credito?limite=100'
+          : '/tarjetas-credito?limite=100&cursor=$cursor';
+      final response = (await _api.get(path)).object;
+      cards.addAll(
+        (response['datos'] as List<dynamic>? ?? const []).map(
+          (item) => _fromJson(item as Map<String, dynamic>, accounts),
+        ),
+      );
+      cursor =
+          (response['paginacion'] as Map<String, dynamic>?)?['cursorSiguiente']
+              as String?;
+    } while (cursor != null);
+    return cards;
   }
 
   @override
@@ -138,7 +151,7 @@ class ApiCreditCardRepository implements CreditCardRepository {
       dueDay: (json['diaVencimiento'] as num).toInt(),
       totalLimit: (json['limiteCredito'] as num).toDouble(),
       usedLimit: (json['saldoUtilizado'] as num).toDouble(),
-      color: json['color'] as String? ?? '#6868A6',
+      color: json['color'] as String? ?? '#2586E6',
       version: version,
     );
   }

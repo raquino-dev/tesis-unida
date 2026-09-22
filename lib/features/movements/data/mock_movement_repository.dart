@@ -47,14 +47,16 @@ class MockMovementRepository implements MovementRepository {
   }
 
   @override
-  Future<List<MovementEntity>> getMovements() async {
+  Future<List<MovementEntity>> getMovements({String? accountId}) async {
     await Future.delayed(const Duration(milliseconds: 500));
     final models = await _load();
     final categories = await _categoryRepository.getCategories();
     final accounts = await _accountRepository.getAccounts();
     final sorted = [...models]..sort((a, b) => b.date.compareTo(a.date));
     final result = <MovementEntity>[];
-    for (final m in sorted) {
+    for (final m in sorted.where(
+      (movement) => accountId == null || movement.accountId == accountId,
+    )) {
       result.add(await _toEntity(m, categories, accounts));
     }
     return result;
@@ -86,6 +88,9 @@ class MockMovementRepository implements MovementRepository {
       categoryIds: movement.categories.map((c) => c.id).toList(),
       description: movement.description,
       accountId: movement.account.id,
+      creditCardId: movement.creditCardId,
+      cardOperation: movement.cardOperation,
+      transferId: movement.transferId,
       hasAttachment: movement.hasAttachment,
       attachmentType: movement.attachmentType,
       ocrStatus: movement.ocrStatus,
@@ -114,6 +119,9 @@ class MockMovementRepository implements MovementRepository {
       categoryIds: movement.categories.map((c) => c.id).toList(),
       description: movement.description,
       accountId: movement.account.id,
+      creditCardId: movement.creditCardId,
+      cardOperation: movement.cardOperation,
+      transferId: movement.transferId,
       hasAttachment: movement.hasAttachment,
       attachmentType: movement.attachmentType,
       ocrStatus: movement.ocrStatus,
@@ -149,6 +157,7 @@ class MockMovementRepository implements MovementRepository {
       categoryIds: models[index].categoryIds,
       description: models[index].description,
       accountId: models[index].accountId,
+      creditCardId: models[index].creditCardId,
       hasAttachment: models[index].hasAttachment,
       attachmentType: models[index].attachmentType,
       ocrStatus: OcrStatus.success,

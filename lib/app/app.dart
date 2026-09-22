@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_mode_provider.dart';
-import '../core/config/app_environment.dart';
 import '../core/offline/offline_runtime.dart';
 import '../core/services/pilot_local_store.dart';
 import '../features/security/presentation/security_providers.dart';
@@ -21,14 +21,17 @@ class FinanzasApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
 
     return MaterialApp.router(
-      title: 'Finanzas Inteligentes',
+      title: 'Finanza',
       debugShowCheckedModeBanner: false,
-      builder: (context, child) => Banner(
-        message: AppEnvironment.useApi ? 'API' : 'DEMO',
-        location: BannerLocation.topEnd,
-        color: Theme.of(context).colorScheme.primary,
-        child: _BiometricGate(child: child ?? const SizedBox.shrink()),
-      ),
+      locale: const Locale('es', 'PY'),
+      supportedLocales: const [Locale('es', 'PY')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      builder: (context, child) =>
+          _BiometricGate(child: child ?? const SizedBox.shrink()),
       themeMode: themeMode,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
@@ -115,7 +118,7 @@ class _BiometricGateState extends ConsumerState<_BiometricGate>
               ),
               const SizedBox(height: 20),
               Text(
-                'Finanzas Inteligentes está bloqueada',
+                'Finanza está bloqueada',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleLarge,
               ),

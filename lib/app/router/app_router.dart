@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/accounts/presentation/account_list_screen.dart';
+import '../../features/accounts/presentation/account_detail_screen.dart';
 import '../../features/alerts/presentation/alert_detail_screen.dart';
 import '../../features/alerts/presentation/alert_list_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
@@ -25,7 +26,9 @@ import '../../features/movements/presentation/screens/movement_detail_screen.dar
 import '../../features/movements/presentation/viewmodels/movement_list_viewmodel.dart';
 import '../../features/ocr/presentation/screens/ocr_scan_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
+import '../../features/onboarding/presentation/screens/first_launch_splash_screen.dart';
 import '../../features/predictions/presentation/predictions_screen.dart';
+import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/recurring_movements/presentation/recurring_movement_list_screen.dart';
 import '../../features/score/presentation/score_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
@@ -45,6 +48,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   // restaurado desde la API o desde la caché cifrada del modo sin conexión.
   final authenticated = currentUser != null;
   const publicRoutes = {
+    AppRoutes.splash,
     AppRoutes.onboarding,
     AppRoutes.login,
     AppRoutes.register,
@@ -54,16 +58,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: !PilotLocalStore.onboardingCompleted
-        ? AppRoutes.onboarding
+        ? AppRoutes.splash
         : authenticated
         ? AppRoutes.dashboard
         : AppRoutes.login,
     redirect: (context, state) {
       final location = state.matchedLocation;
-      if (!PilotLocalStore.onboardingCompleted &&
-          location != AppRoutes.onboarding &&
-          location != AppRoutes.resetPassword) {
-        return AppRoutes.onboarding;
+      if (!PilotLocalStore.onboardingCompleted) {
+        if (location != AppRoutes.splash &&
+            location != AppRoutes.onboarding &&
+            location != AppRoutes.resetPassword) {
+          return AppRoutes.splash;
+        }
+      } else if (location == AppRoutes.splash ||
+          location == AppRoutes.onboarding) {
+        return authenticated ? AppRoutes.dashboard : AppRoutes.login;
       }
       if (!authenticated && !publicRoutes.contains(location)) {
         return AppRoutes.login;
@@ -82,6 +91,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(
+        path: AppRoutes.splash,
+        builder: (context, state) => const FirstLaunchSplashScreen(),
+      ),
       GoRoute(
         path: AppRoutes.onboarding,
         builder: (context, state) => const OnboardingScreen(),
@@ -111,8 +124,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.addMovement,
-        builder: (context, state) =>
-            AddEditMovementScreen(initialType: state.extra as MovementType?),
+        builder: (context, state) {
+          final extra = state.extra;
+          return AddEditMovementScreen(
+            initialType: extra is MovementType
+                ? extra
+                : extra is AddMovementArgs
+                ? extra.initialType
+                : null,
+            initialAccountId: extra is AddMovementArgs
+                ? extra.initialAccountId
+                : null,
+          );
+        },
       ),
       GoRoute(
         path: '/movements/:id/edit',
@@ -131,6 +155,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.accounts,
         builder: (context, state) => const AccountListScreen(),
+      ),
+      GoRoute(
+        path: '/accounts/:id',
+        builder: (context, state) =>
+            AccountDetailScreen(accountId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: AppRoutes.ocr,
@@ -260,7 +289,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.profile,
-        builder: (context, state) => const AppShell(initialIndex: 4),
+        builder: (context, state) => const ProfileScreen(),
       ),
     ],
   );

@@ -67,6 +67,7 @@ class PushNotificationService {
     if (!_available) return false;
     if (!enabled) {
       await FirebaseMessaging.instance.setAutoInitEnabled(false);
+      await FirebaseMessaging.instance.deleteToken();
       return true;
     }
     await FirebaseMessaging.instance.setAutoInitEnabled(true);
@@ -83,6 +84,21 @@ class PushNotificationService {
       await _repository.registerPushToken(token);
     }
     return true;
+  }
+
+  Future<void> revokeForLogout() async {
+    try {
+      await _repository.unregisterPushDevice();
+    } catch (_) {
+      // El cierre local debe continuar aunque el servidor no esté disponible.
+    }
+    if (!AppEnvironment.firebaseConfigured) return;
+    try {
+      await FirebaseMessaging.instance.setAutoInitEnabled(false);
+      await FirebaseMessaging.instance.deleteToken();
+    } catch (_) {
+      // Firebase puede no estar inicializado en builds locales o sin conexión.
+    }
   }
 
   void _handleForegroundMessage(RemoteMessage message) {

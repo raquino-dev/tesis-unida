@@ -90,7 +90,7 @@ class AppTypography {
     fontSize: 36,
     fontWeight: FontWeight.w800,
     letterSpacing: -0.8,
-    color: AppColors.textPrimaryDark,
+    color: AppColors.textPrimaryLight,
   );
 
   static const TextStyle metricLarge = TextStyle(

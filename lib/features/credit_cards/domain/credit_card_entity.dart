@@ -25,7 +25,7 @@ class CreditCardEntity {
     this.closingDateOverride,
     required this.totalLimit,
     required this.usedLimit,
-    this.color = '#6868A6',
+    this.color = '#2586E6',
     this.version = 1,
   });
 

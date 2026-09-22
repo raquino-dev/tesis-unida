@@ -6,7 +6,9 @@ import '../../core/widgets/app_speed_dial_fab.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/movements/domain/movement_entity.dart';
 import '../../features/movements/presentation/screens/movement_list_screen.dart';
-import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/movements/presentation/screens/add_edit_movement_screen.dart';
+import '../../features/movements/presentation/viewmodels/movement_list_viewmodel.dart';
+import '../../features/profile/presentation/more_screen.dart';
 import '../../features/reports/presentation/screens/reports_screen.dart';
 import 'app_routes.dart';
 
@@ -26,25 +28,44 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> {
   late int _index = widget.initialIndex;
   bool _speedDialOpen = false;
+  bool _speedDialCenterVisible = false;
 
   static const _screens = [
     DashboardScreen(),
     MovementListScreen(),
     SizedBox.shrink(),
     ReportsScreen(),
-    ProfileScreen(),
+    MoreScreen(),
   ];
 
   void _onTap(int index) {
     if (index == _addIndex) {
-      setState(() => _speedDialOpen = !_speedDialOpen);
+      _setSpeedDialOpen(!_speedDialOpen);
       return;
     }
     setState(() => _index = index);
   }
 
+  void _setSpeedDialOpen(bool open) {
+    setState(() {
+      _speedDialOpen = open;
+      if (open) _speedDialCenterVisible = true;
+    });
+  }
+
+  void _onSpeedDialClosed() {
+    if (!mounted || _speedDialOpen || !_speedDialCenterVisible) return;
+    setState(() => _speedDialCenterVisible = false);
+  }
+
   void _goToAddMovement(MovementType type) {
-    context.push(AppRoutes.addMovement, extra: type);
+    final accountId = _index == 1
+        ? ref.read(movementListViewModelProvider.notifier).filters.accountId
+        : null;
+    context.push(
+      AppRoutes.addMovement,
+      extra: AddMovementArgs(initialType: type, initialAccountId: accountId),
+    );
   }
 
   @override
@@ -57,7 +78,7 @@ class _AppShellState extends ConsumerState<AppShell> {
             currentIndex: _index,
             onTap: _onTap,
             addIndex: _addIndex,
-            centerExpanded: _speedDialOpen,
+            centerExpanded: _speedDialCenterVisible,
             items: const [
               AppBottomNavItem(
                 icon: Icons.home_outlined,
@@ -77,12 +98,12 @@ class _AppShellState extends ConsumerState<AppShell> {
               AppBottomNavItem(
                 icon: Icons.bar_chart_outlined,
                 activeIcon: Icons.bar_chart_rounded,
-                label: 'Reportes',
+                label: 'Análisis',
               ),
               AppBottomNavItem(
-                icon: Icons.person_outline_rounded,
-                activeIcon: Icons.person_rounded,
-                label: 'Perfil',
+                icon: Icons.grid_view_outlined,
+                activeIcon: Icons.grid_view_rounded,
+                label: 'Más',
               ),
             ],
           ),
@@ -90,22 +111,24 @@ class _AppShellState extends ConsumerState<AppShell> {
         Positioned.fill(
           child: AppSpeedDialFab(
             isOpen: _speedDialOpen,
-            onToggle: (open) => setState(() => _speedDialOpen = open),
+            centerVisible: _speedDialCenterVisible,
+            onToggle: _setSpeedDialOpen,
+            onClosed: _onSpeedDialClosed,
             fabCenterFromBottom: AppBottomNav.fabCenterFromBottom(context),
             actions: [
               SpeedDialAction(
-                icon: Icons.remove_circle_outline_rounded,
-                label: 'Añadir gasto',
-                onTap: () => _goToAddMovement(MovementType.expense),
-              ),
-              SpeedDialAction(
-                icon: Icons.add_circle_outline_rounded,
-                label: 'Añadir ingreso',
+                icon: Icons.arrow_circle_up_outlined,
+                label: 'Ingreso',
                 onTap: () => _goToAddMovement(MovementType.income),
               ),
               SpeedDialAction(
+                icon: Icons.arrow_circle_down_outlined,
+                label: 'Gasto',
+                onTap: () => _goToAddMovement(MovementType.expense),
+              ),
+              SpeedDialAction(
                 icon: Icons.document_scanner_outlined,
-                label: 'Escanear factura',
+                label: 'OCR',
                 onTap: () => context.push(AppRoutes.ocr),
               ),
             ],

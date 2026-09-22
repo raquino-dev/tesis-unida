@@ -23,6 +23,7 @@ import '../../../movements/presentation/viewmodels/movement_list_viewmodel.dart'
 import '../../domain/ocr_repository.dart';
 import '../../domain/ocr_result_entity.dart';
 import '../viewmodels/ocr_viewmodel.dart';
+import '../widgets/ocr_processing_illustration.dart';
 import '../../../subscription/domain/subscription_entity.dart';
 import '../../../subscription/presentation/premium_gate.dart';
 import '../../../../core/services/pilot_local_store.dart';
@@ -33,27 +34,46 @@ class OcrScanScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(ocrViewModelProvider);
+    final isProcessing = state.when(
+      empty: () => false,
+      loading: () => true,
+      error: (_) => false,
+      success: (_) => false,
+    );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Escanear factura')),
-      body: PremiumGate(
-        capability: PremiumCapability.ocr,
-        child: state.when(
-          empty: () => _SourcePicker(),
-          loading: () => _ProcessingView(),
-          error: (message) => AppErrorState(
-            message: message,
-            onRetry: () => ref.read(ocrViewModelProvider.notifier).reset(),
-          ),
-          success: (result) => result.status == OcrStatus.failed
-              ? AppErrorState(
-                  message:
-                      'No pudimos leer los datos de este comprobante. Probá con otra foto o cargalo manualmente.',
-                  onRetry: () =>
-                      ref.read(ocrViewModelProvider.notifier).reset(),
-                )
-              : _ResultReview(result: result),
+      appBar: AppBar(
+        title: isProcessing ? null : const Text('Escanear factura'),
+        leading: isProcessing
+            ? IconButton(
+                tooltip: 'Volver',
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                onPressed: () {
+                  ref.read(ocrViewModelProvider.notifier).reset();
+                  if (context.canPop()) context.pop();
+                },
+              )
+            : null,
+      ),
+      body: state.when(
+        empty: () => PremiumGate(
+          capability: PremiumCapability.ocr,
+          child: _SourcePicker(),
         ),
+        loading: () => OcrProcessingView(
+          onCancel: () => ref.read(ocrViewModelProvider.notifier).reset(),
+        ),
+        error: (message) => AppErrorState(
+          message: message,
+          onRetry: () => ref.read(ocrViewModelProvider.notifier).reset(),
+        ),
+        success: (result) => result.status == OcrStatus.failed
+            ? AppErrorState(
+                message:
+                    'No pudimos leer los datos de este comprobante. Probá con otra foto o cargalo manualmente.',
+                onRetry: () => ref.read(ocrViewModelProvider.notifier).reset(),
+              )
+            : _ResultReview(result: result),
       ),
     );
   }
@@ -134,44 +154,248 @@ class _SourcePicker extends ConsumerWidget {
   }
 }
 
-class _ProcessingView extends StatelessWidget {
+class OcrProcessingView extends StatelessWidget {
+  final VoidCallback onCancel;
+
+  const OcrProcessingView({super.key, required this.onCancel});
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 96,
-            height: 96,
-            child: Stack(
-              alignment: Alignment.center,
+    return SafeArea(
+      child: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight - 28),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                CircularProgressIndicator(
-                  strokeWidth: 3,
-                  color: colors.primary,
+                Column(
+                  children: [
+                    const OcrProcessingIllustration(),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      'Analizando tu comprobante',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 25,
+                        fontWeight: FontWeight.w800,
+                        height: 1.15,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      'Estamos procesando tu archivo de forma segura y detectando los datos relevantes.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 15,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 ),
-                Icon(
-                  Icons.receipt_long_outlined,
-                  color: colors.primary,
-                  size: 32,
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                  child: Column(
+                    children: [
+                      _ProcessingStep(
+                        stage: _ProcessingStage.completed,
+                        title: 'Archivo recibido',
+                        description:
+                            'Tu comprobante está listo para procesarse.',
+                      ),
+                      _ProcessingStep(
+                        stage: _ProcessingStage.active,
+                        title: 'Extrayendo información',
+                        description:
+                            'Identificando fecha, comercio, monto y categoría.',
+                      ),
+                      _ProcessingStep(
+                        stage: _ProcessingStage.pending,
+                        title: 'Finalizando',
+                        description: 'Casi listo, un momento...',
+                        isLast: true,
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: colors.primary.withValues(alpha: 0.07),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 25,
+                            backgroundColor: colors.primary.withValues(
+                              alpha: 0.12,
+                            ),
+                            child: Icon(
+                              Icons.lock_outline_rounded,
+                              color: colors.primary,
+                              size: 26,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Tu información está segura',
+                                  style: TextStyle(
+                                    color: colors.primary,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Procesamos el comprobante solo para completar tu movimiento.',
+                                  style: TextStyle(
+                                    color: colors.textSecondary,
+                                    fontSize: 13,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: OutlinedButton(
+                        onPressed: onCancel,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: colors.primary,
+                          side: BorderSide(
+                            color: colors.primary.withValues(alpha: 0.26),
+                          ),
+                          shape: const StadiumBorder(),
+                        ),
+                        child: const Text(
+                          'Cancelar',
+                          style: TextStyle(
+                            fontFamily: 'Roboto',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            'Analizando tu comprobante',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Estamos guardando tu archivo de forma segura y detectando los datos.',
-            style: TextStyle(color: colors.textSecondary, fontSize: 13),
-          ),
-        ],
+        ),
       ),
+    );
+  }
+}
+
+enum _ProcessingStage { completed, active, pending }
+
+class _ProcessingStep extends StatelessWidget {
+  final _ProcessingStage stage;
+  final String title;
+  final String description;
+  final bool isLast;
+
+  const _ProcessingStep({
+    required this.stage,
+    required this.title,
+    required this.description,
+    this.isLast = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final marker = switch (stage) {
+      _ProcessingStage.completed => CircleAvatar(
+        radius: 15,
+        backgroundColor: colors.primary,
+        child: const Icon(Icons.check_rounded, color: Colors.white, size: 21),
+      ),
+      _ProcessingStage.active => SizedBox.square(
+        dimension: 30,
+        child: CircularProgressIndicator(
+          strokeWidth: 3,
+          color: colors.primary,
+          backgroundColor: colors.primary.withValues(alpha: 0.12),
+        ),
+      ),
+      _ProcessingStage.pending => Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: colors.textMuted, width: 2),
+        ),
+      ),
+    };
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 36,
+          child: Column(
+            children: [
+              marker,
+              if (!isLast)
+                Container(
+                  width: 2,
+                  height: 43,
+                  color: stage == _ProcessingStage.completed
+                      ? colors.primary.withValues(alpha: 0.38)
+                      : colors.border,
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  description,
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: 12.5,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -196,10 +420,7 @@ class _ResultReviewState extends ConsumerState<_ResultReview> {
   String? _documentError;
 
   Future<void> _createCategory() async {
-    final created = await showCategoryEditorSheet(
-      context,
-      initialType: CategoryType.expense,
-    );
+    final created = await showCategoryEditorSheet(context);
     if (created != null && mounted) {
       setState(() => _categoryId = created.id);
     }
@@ -261,6 +482,7 @@ class _ResultReviewState extends ConsumerState<_ResultReview> {
         error: (_) {},
         success: (_) {
           ref.read(movementListViewModelProvider.notifier).load();
+          ref.read(accountListViewModelProvider.notifier).load();
           context.go(AppRoutes.dashboard);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

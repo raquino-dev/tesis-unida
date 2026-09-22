@@ -4,7 +4,6 @@ import '../../recurring_movements/domain/recurring_movement_entity.dart';
 import '../../recurring_movements/domain/recurring_movement_repository.dart';
 import '../domain/dashboard_repository.dart';
 import '../domain/dashboard_summary_entity.dart';
-import '../../movements/domain/movement_entity.dart';
 import '../../movements/domain/movement_repository.dart';
 
 class MockDashboardRepository implements DashboardRepository {
@@ -30,19 +29,22 @@ class MockDashboardRepository implements DashboardRepository {
               movement.date.month == now.month,
         )
         .toList();
-    final totalIncome = monthMovements
-        .where((movement) => movement.type == MovementType.income)
-        .fold<double>(0, (sum, movement) => sum + movement.amount);
-    final totalExpense = monthMovements
-        .where((movement) => movement.type == MovementType.expense)
-        .fold<double>(0, (sum, movement) => sum + movement.amount);
+    final totalIncome = monthMovements.fold<double>(
+      0,
+      (sum, movement) => sum + movement.analyticalIncomeAmount,
+    );
+    final totalExpense = monthMovements.fold<double>(
+      0,
+      (sum, movement) => sum + movement.analyticalExpenseAmount,
+    );
     final categoryTotals = <String, double>{};
     for (final movement in monthMovements.where(
-      (movement) => movement.type == MovementType.expense,
+      (movement) => movement.analyticalExpenseAmount != 0,
     )) {
       for (final category in movement.categories) {
         categoryTotals[category.id] =
-            (categoryTotals[category.id] ?? 0) + movement.amount;
+            (categoryTotals[category.id] ?? 0) +
+            movement.analyticalExpenseAmount;
       }
     }
     final rankedCategories = categoryTotals.entries.toList()

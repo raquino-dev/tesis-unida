@@ -19,13 +19,15 @@ final ocrRepositoryProvider = Provider<OcrRepository>((ref) {
 
 class OcrViewModel extends StateNotifier<ViewState<OcrResultEntity>> {
   final Ref _ref;
+  int _operationId = 0;
   OcrViewModel(this._ref) : super(const ViewState.empty());
 
   Future<void> scan(OcrSource source) async {
+    final operationId = ++_operationId;
     try {
       final startedAt = DateTime.now();
       final selected = await AttachmentPickerService.pick(source);
-      if (selected == null) return;
+      if (!mounted || operationId != _operationId || selected == null) return;
       state = const ViewState.loading();
       final result = await _ref
           .read(ocrRepositoryProvider)
@@ -34,6 +36,7 @@ class OcrViewModel extends StateNotifier<ViewState<OcrResultEntity>> {
             documentPath: selected.path,
             documentName: selected.name,
           );
+      if (!mounted || operationId != _operationId) return;
       await PilotLocalStore.registerOcrUse();
       await PilotLocalStore.recordMetric(
         'ocr_processed',
@@ -44,19 +47,29 @@ class OcrViewModel extends StateNotifier<ViewState<OcrResultEntity>> {
           'durationSeconds': DateTime.now().difference(startedAt).inSeconds,
         },
       );
+      if (!mounted || operationId != _operationId) return;
       state = ViewState.success(result);
     } on AppFailure catch (error) {
-      state = ViewState.error(error.message);
+      if (mounted && operationId == _operationId) {
+        state = ViewState.error(error.message);
+      }
     } on FormatException catch (error) {
-      state = ViewState.error(error.message);
+      if (mounted && operationId == _operationId) {
+        state = ViewState.error(error.message);
+      }
     } catch (_) {
-      state = const ViewState.error(
-        'No pudimos abrir o procesar el comprobante. Revisá los permisos e intentá nuevamente.',
-      );
+      if (mounted && operationId == _operationId) {
+        state = const ViewState.error(
+          'No pudimos abrir o procesar el comprobante. Revisá los permisos e intentá nuevamente.',
+        );
+      }
     }
   }
 
-  void reset() => state = const ViewState.empty();
+  void reset() {
+    _operationId++;
+    state = const ViewState.empty();
+  }
 }
 
 final ocrViewModelProvider =

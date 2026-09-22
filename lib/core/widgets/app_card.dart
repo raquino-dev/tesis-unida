@@ -6,8 +6,7 @@ import '../../app/theme/app_theme_extension.dart';
 
 enum AppCardElevation { surface, elevated }
 
-/// Card base de la app. Usa las superficies Ebony Clay / Martinique según
-/// [elevation] para crear separación de capas sin romper la estética oscura.
+/// Superficie compartida de las secciones de Finanza.
 class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -40,13 +39,14 @@ class AppCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: gradient == null ? bg : null,
           gradient: gradient,
-          borderRadius: AppRadius.lgRadius,
-          border: border,
+          borderRadius: AppRadius.mdRadius,
+          border:
+              border ?? Border.all(color: colors.border.withValues(alpha: 0.7)),
           boxShadow: AppShadows.subtle(isDark),
         ),
         child: InkWell(
           onTap: onTap,
-          borderRadius: AppRadius.lgRadius,
+          borderRadius: AppRadius.mdRadius,
           child: Padding(padding: padding, child: child),
         ),
       ),

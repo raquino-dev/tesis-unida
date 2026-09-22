@@ -33,7 +33,7 @@ class RecurringMovementListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Movimientos recurrentes'),
+        title: const Text('Recurrentes'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add_rounded),
@@ -246,12 +246,7 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
   }
 
   Future<void> _createCategory() async {
-    final created = await showCategoryEditorSheet(
-      context,
-      initialType: _type == MovementType.expense
-          ? CategoryType.expense
-          : CategoryType.income,
-    );
+    final created = await showCategoryEditorSheet(context);
     if (created == null || !mounted) return;
     setState(() {
       if (_categories.every((item) => item.id != created.id)) {

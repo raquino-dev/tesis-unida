@@ -1,7 +1,7 @@
 import 'movement_entity.dart';
 
 abstract class MovementRepository {
-  Future<List<MovementEntity>> getMovements();
+  Future<List<MovementEntity>> getMovements({String? accountId});
   Future<MovementEntity> getMovementById(String id);
   Future<MovementEntity> addMovement(MovementEntity movement);
   Future<MovementEntity> updateMovement(MovementEntity movement);

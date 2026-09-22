@@ -14,7 +14,8 @@ class MovementCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final isIncome = movement.type == MovementType.income;
+    final isIncome =
+        movement.type == MovementType.income && !movement.isCardPayment;
     final amountColor = isIncome ? colors.success : colors.textPrimary;
     final sign = isIncome ? '+' : '-';
     final category = movement.primaryCategory;
@@ -57,7 +58,11 @@ class MovementCard extends StatelessWidget {
                       children: [
                         Flexible(
                           child: Text(
-                            extraCategories > 0
+                            movement.isCardPayment
+                                ? 'Pago de tarjeta · ${movement.account.name}'
+                                : movement.isCardRefund
+                                ? 'Reintegro · ${movement.account.name}'
+                                : extraCategories > 0
                                 ? '${category.name} +$extraCategories · ${movement.account.name}'
                                 : '${category.name} · ${movement.account.name}',
                             style: TextStyle(

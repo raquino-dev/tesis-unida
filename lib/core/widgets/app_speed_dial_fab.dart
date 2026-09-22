@@ -1,6 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_radius.dart';
-import '../../app/theme/app_shadows.dart';
 import '../../app/theme/app_theme_extension.dart';
 
 class SpeedDialAction {
@@ -15,28 +17,22 @@ class SpeedDialAction {
   });
 }
 
-/// Overlay del botón central expandible del bottom nav: al presionarse el
-/// "+" (renderizado por [AppBottomNav]), esta capa revela un panel agrupado
-/// con las acciones principales, flotando sobre un fondo que atenúa el
-/// resto de la pantalla para que no se confunda con el contenido detrás.
+/// Menú radial que nace del botón central de la barra de navegación.
 class AppSpeedDialFab extends StatefulWidget {
-  /// Alto total del panel (botón 52 + padding vertical 10 arriba y abajo),
-  /// usado para que su centro quede alineado con [fabCenterFromBottom].
-  static const double panelHeight = 72;
-
   final List<SpeedDialAction> actions;
   final bool isOpen;
+  final bool centerVisible;
   final ValueChanged<bool> onToggle;
-
-  /// Distancia entre el borde inferior de la pantalla y el centro vertical
-  /// del botón que despliega el panel. El panel se centra a esa misma altura.
+  final VoidCallback onClosed;
   final double fabCenterFromBottom;
 
   const AppSpeedDialFab({
     super.key,
     required this.actions,
     required this.isOpen,
+    required this.centerVisible,
     required this.onToggle,
+    required this.onClosed,
     required this.fabCenterFromBottom,
   });
 
@@ -48,24 +44,23 @@ class _AppSpeedDialFabState extends State<AppSpeedDialFab>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 220),
+    duration: const Duration(milliseconds: 380),
+    reverseDuration: const Duration(milliseconds: 270),
   );
-  late final Animation<double> _scale = CurvedAnimation(
-    parent: _controller,
-    curve: Curves.easeOutBack,
-  );
-  late final Animation<double> _fade = CurvedAnimation(
-    parent: _controller,
-    curve: Curves.easeOut,
-  );
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.dismissed) widget.onClosed();
+    });
+  }
 
   @override
   void didUpdateWidget(covariant AppSpeedDialFab oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isOpen && !oldWidget.isOpen) {
-      _controller.forward();
-    } else if (!widget.isOpen && oldWidget.isOpen) {
-      _controller.reverse();
+    if (widget.isOpen != oldWidget.isOpen) {
+      widget.isOpen ? _controller.forward() : _controller.reverse();
     }
   }
 
@@ -77,110 +72,167 @@ class _AppSpeedDialFabState extends State<AppSpeedDialFab>
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return IgnorePointer(
       ignoring: !widget.isOpen,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => widget.onToggle(false),
-                  child: Container(
-                    color: Colors.black.withValues(
-                      alpha: 0.5 * _controller.value,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final height = constraints.maxHeight;
+          final origin = Offset(width / 2, height - widget.fabCenterFromBottom);
+          final center = origin.translate(0, -36);
+          final sideX = math.min(width * .26, 108.0);
+          final sideRise = math.min(height * .135, 110.0);
+          final topRise = math.min(height * .22, 180.0);
+          final positions = [
+            center.translate(-sideX, -sideRise),
+            center.translate(0, -topRise),
+            center.translate(sideX, -sideRise),
+          ];
+
+          return AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              final value = _controller.value;
+              return Stack(
+                children: [
+                  Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => widget.onToggle(false),
+                      child: ColoredBox(
+                        color: Colors.black.withValues(alpha: .46 * value),
+                      ),
+                    ),
+                  ),
+                  for (
+                    var index = 0;
+                    index < widget.actions.length && index < positions.length;
+                    index++
+                  )
+                    _buildAction(
+                      action: widget.actions[index],
+                      position: positions[index],
+                      origin: origin,
+                      index: index,
+                      value: value,
+                    ),
+                  Positioned(
+                    left: center.dx - 26,
+                    top: center.dy - 26,
+                    child: Transform.translate(
+                      offset: Offset(
+                        0,
+                        36 * (1 - Curves.easeOut.transform(value)),
+                      ),
+                      child: Opacity(
+                        opacity: widget.centerVisible ? 1 : 0,
+                        child: Material(
+                          color: AppColors.emerald,
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            onTap: () => widget.onToggle(false),
+                            customBorder: const CircleBorder(),
+                            child: SizedBox(
+                              width: 52,
+                              height: 52,
+                              child: Transform.rotate(
+                                angle: math.pi / 4 * value,
+                                child: const Icon(
+                                  Icons.add_rounded,
+                                  color: Colors.white,
+                                  size: 26,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAction({
+    required SpeedDialAction action,
+    required Offset position,
+    required Offset origin,
+    required int index,
+    required double value,
+  }) {
+    final colors = context.colors;
+    final start = index == 1 ? .08 : .15;
+    final progress = ((value - start) / (1 - start)).clamp(0.0, 1.0);
+    final curved = Curves.easeOutCubic.transform(progress);
+    const actionWidth = 92.0;
+    const iconSize = 60.0;
+
+    void select() {
+      widget.onToggle(false);
+      action.onTap();
+    }
+
+    return Positioned(
+      left: position.dx - actionWidth / 2,
+      top: position.dy - iconSize / 2,
+      child: Transform.translate(
+        offset: Offset(
+          (origin.dx - position.dx) * (1 - curved),
+          (origin.dy - position.dy) * (1 - curved),
+        ),
+        child: Transform.scale(
+          scale: .45 + .55 * curved,
+          child: Opacity(
+            opacity: progress,
+            child: Column(
+              children: [
+                Material(
+                  color: Colors.white,
+                  shape: CircleBorder(
+                    side: BorderSide(color: colors.primary, width: 1.1),
+                  ),
+                  child: InkWell(
+                    onTap: select,
+                    customBorder: const CircleBorder(),
+                    child: SizedBox(
+                      width: iconSize,
+                      height: iconSize,
+                      child: Icon(action.icon, color: colors.primary, size: 27),
                     ),
                   ),
                 ),
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    bottom:
-                        widget.fabCenterFromBottom -
-                        (AppSpeedDialFab.panelHeight / 2),
-                  ),
-                  child: FadeTransition(
-                    opacity: _fade,
-                    child: ScaleTransition(
-                      scale: _scale,
-                      alignment: Alignment.center,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colors.surfaceElevated,
-                          borderRadius: AppRadius.pillRadius,
-                          border: Border.all(color: colors.border),
-                          boxShadow: AppShadows.card(isDark),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: List.generate(
-                            widget.actions.length * 2 - 1,
-                            (i) {
-                              if (i.isOdd) {
-                                return Container(
-                                  width: 1,
-                                  height: 28,
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                  ),
-                                  color: colors.border,
-                                );
-                              }
-                              final action = widget.actions[i ~/ 2];
-                              return _ActionButton(
-                                action: action,
-                                onTap: () {
-                                  widget.onToggle(false);
-                                  action.onTap();
-                                },
-                              );
-                            },
+                Transform.translate(
+                  offset: const Offset(0, -2),
+                  child: Material(
+                    color: const Color(0xFFF1FFFB),
+                    borderRadius: AppRadius.pillRadius,
+                    child: InkWell(
+                      onTap: select,
+                      borderRadius: AppRadius.pillRadius,
+                      child: SizedBox(
+                        width: actionWidth,
+                        height: 28,
+                        child: Center(
+                          child: Text(
+                            action.label,
+                            style: const TextStyle(
+                              color: AppColors.forest,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  final SpeedDialAction action;
-  final VoidCallback onTap;
-  const _ActionButton({required this.action, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Tooltip(
-      message: action.label,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: AppRadius.pillRadius,
-          child: Container(
-            width: 52,
-            height: 52,
-            alignment: Alignment.center,
-            child: Icon(action.icon, color: colors.primary, size: 24),
+              ],
+            ),
           ),
         ),
       ),

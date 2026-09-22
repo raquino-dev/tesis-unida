@@ -14,7 +14,9 @@ class ApiAccountRepository implements AccountRepository {
   Future<List<AccountEntity>> getAccounts() async {
     final data = (await _api.get('/cuentas')).object;
     final items = (data['elementos'] as List<dynamic>? ?? const []);
-    return items.map((item) => _fromJson(item as Map<String, dynamic>)).toList();
+    return items
+        .map((item) => _fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   @override
@@ -44,7 +46,11 @@ class ApiAccountRepository implements AccountRepository {
       offline: OfflineMutation(
         entityType: 'cuenta',
         entityId: account.id,
-        optimisticResponse: _json(account, id: account.id, version: version + 1),
+        optimisticResponse: _json(
+          account,
+          id: account.id,
+          version: version + 1,
+        ),
         collectionPath: '/cuentas',
       ),
     );
@@ -92,7 +98,7 @@ class ApiAccountRepository implements AccountRepository {
     'nombre': account.name,
     'tipo': _typeToApi(account.type),
     'saldoInicial': account.initialBalance.round(),
-    'saldoActual': account.initialBalance.round(),
+    'saldoActual': account.balance.round(),
     'moneda': 'PYG',
     'icono': account.icon.codePoint.toRadixString(16),
     'incluidaEnTotal': account.isActive,
@@ -108,7 +114,8 @@ class ApiAccountRepository implements AccountRepository {
       name: json['nombre'] as String,
       type: type,
       icon: type.defaultIcon,
-      initialBalance: (json['saldoActual'] as num).toDouble(),
+      initialBalance: (json['saldoInicial'] as num).toDouble(),
+      currentBalance: (json['saldoActual'] as num).toDouble(),
       isActive: json['incluidaEnTotal'] as bool? ?? true,
       inUse: false,
     );

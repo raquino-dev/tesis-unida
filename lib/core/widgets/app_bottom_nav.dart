@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../app/theme/app_shadows.dart';
-import '../../app/theme/app_theme_extension.dart';
+import '../../app/theme/app_colors.dart';
 
 class AppBottomNavItem {
   final IconData icon;
@@ -15,7 +15,7 @@ class AppBottomNavItem {
 }
 
 /// Bottom navigation con 5 tabs; el botón de "Añadir" (índice central) tiene
-/// mayor protagonismo visual mediante un contenedor elevado en Scampi.
+/// mayor protagonismo visual mediante un contenedor verde elevado.
 class AppBottomNav extends StatelessWidget {
   static const double _verticalPadding = 10;
   static const double _fabSize = 52;
@@ -46,13 +46,11 @@ class AppBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       decoration: BoxDecoration(
-        color: colors.surface,
-        boxShadow: AppShadows.card(isDark),
+        color: AppColors.mirage,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+        boxShadow: centerExpanded ? null : AppShadows.card(true),
       ),
       padding: const EdgeInsets.only(
         top: _verticalPadding,
@@ -67,40 +65,42 @@ class AppBottomNav extends StatelessWidget {
             final selected = index == currentIndex;
 
             if (index == addIndex) {
-              return GestureDetector(
-                onTap: () => onTap(index),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: _fabSize,
-                      height: _fabSize,
-                      decoration: BoxDecoration(
-                        color: colors.primary,
-                        shape: BoxShape.circle,
-                        boxShadow: AppShadows.glow(colors.primary),
-                      ),
-                      child: AnimatedRotation(
-                        turns: centerExpanded ? 0.125 : 0,
-                        duration: const Duration(milliseconds: 220),
-                        child: Icon(
-                          item.activeIcon,
-                          color: Colors.white,
-                          size: 26,
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onTap(index),
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Opacity(
+                        opacity: centerExpanded ? 0 : 1,
+                        child: Container(
+                          width: _fabSize,
+                          height: _fabSize,
+                          decoration: const BoxDecoration(
+                            color: AppColors.emerald,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            item.activeIcon,
+                            color: Colors.white,
+                            size: 26,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             }
 
-            final color = selected ? colors.primary : colors.textMuted;
-            return GestureDetector(
-              onTap: () => onTap(index),
-              behavior: HitTestBehavior.opaque,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
+            final color = selected
+                ? const Color(0xFF40D49A)
+                : const Color(0xFFD0E7DB);
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => onTap(index),
+                behavior: HitTestBehavior.opaque,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -110,12 +110,15 @@ class AppBottomNav extends StatelessWidget {
                       size: 24,
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      item.label,
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        item.label,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],

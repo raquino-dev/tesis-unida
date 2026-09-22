@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/services/pilot_local_store.dart';
 
-/// La app inicia en modo oscuro por defecto: es la experiencia principal.
+/// El diseño Finanza inicia en modo claro; la elección previa se conserva.
 class AppThemeModeNotifier extends StateNotifier<ThemeMode> {
   AppThemeModeNotifier()
     : super(PilotLocalStore.darkTheme ? ThemeMode.dark : ThemeMode.light);

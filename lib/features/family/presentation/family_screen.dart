@@ -394,7 +394,7 @@ class _FamilyOverview extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        CurrencyFormatter.formatCompact(a.initialBalance),
+                        CurrencyFormatter.formatCompact(a.balance),
                         style: TextStyle(
                           color: colors.textSecondary,
                           fontSize: 12.5,

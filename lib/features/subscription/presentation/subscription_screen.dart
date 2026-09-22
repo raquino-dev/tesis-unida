@@ -21,10 +21,8 @@ class SubscriptionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(subscriptionViewModelProvider);
     final viewModel = ref.read(subscriptionViewModelProvider.notifier);
-    final colors = context.colors;
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Suscripción')),
+      appBar: AppBar(title: const Text('Finanza Premium')),
       body: state.when(
         loading: () => const AppLoadingState(message: 'Procesando...'),
         error: (message) =>
@@ -44,7 +42,7 @@ class SubscriptionScreen extends ConsumerWidget {
             AppCard(
               padding: const EdgeInsets.all(AppSpacing.lg),
               gradient: const LinearGradient(
-                colors: [AppColors.martinique, AppColors.mirage],
+                colors: [AppColors.emerald, AppColors.forest],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -55,7 +53,7 @@ class SubscriptionScreen extends ConsumerWidget {
                     children: [
                       Icon(
                         Icons.workspace_premium_rounded,
-                        color: colors.primary,
+                        color: const Color(0xFFFFC14C),
                       ),
                       const SizedBox(width: 8),
                       Text(

@@ -7,7 +7,9 @@ import '../../../../app/theme/app_theme_extension.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_chip.dart';
 import '../../../../core/widgets/app_state_view.dart';
+import '../../../accounts/presentation/account_providers.dart';
 import '../../domain/movement_entity.dart';
+import 'add_edit_movement_screen.dart';
 import '../viewmodels/movement_list_viewmodel.dart';
 import '../widgets/movement_card.dart';
 import '../widgets/movement_filter_sheet.dart';
@@ -21,6 +23,12 @@ class MovementListScreen extends ConsumerStatefulWidget {
 
 class _MovementListScreenState extends ConsumerState<MovementListScreen> {
   final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   void _openFilterSheet(MovementFilters filters) {
     showModalBottomSheet(
@@ -36,6 +44,23 @@ class _MovementListScreenState extends ConsumerState<MovementListScreen> {
     final state = ref.watch(movementListViewModelProvider);
     final viewModel = ref.read(movementListViewModelProvider.notifier);
     final filters = viewModel.filters;
+    if (_searchController.text != filters.query) {
+      _searchController.value = TextEditingValue(
+        text: filters.query,
+        selection: TextSelection.collapsed(offset: filters.query.length),
+      );
+    }
+    final accountName = ref
+        .watch(accountListViewModelProvider)
+        .when(
+          loading: () => null,
+          error: (_) => null,
+          empty: () => null,
+          success: (accounts) => accounts
+              .where((account) => account.id == filters.accountId)
+              .firstOrNull
+              ?.name,
+        );
 
     return Scaffold(
       appBar: AppBar(
@@ -160,7 +185,7 @@ class _MovementListScreenState extends ConsumerState<MovementListScreen> {
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: AppChip(
-                        label: 'Cuenta',
+                        label: accountName ?? 'Cuenta',
                         selected: true,
                         onRemove: () => viewModel.updateFilters(
                           filters.copyWith(clearAccount: true),
@@ -198,13 +223,21 @@ class _MovementListScreenState extends ConsumerState<MovementListScreen> {
                 message: filters.hasAdvancedFilters || filters.type != null
                     ? 'Probá ajustar o restablecer los filtros aplicados.'
                     : 'Registrá el primero para empezar a ver tu resumen.',
-                actionLabel: filters.hasAdvancedFilters || filters.type != null
-                    ? 'Restablecer filtros'
-                    : 'Añadir movimiento',
+                actionLabel:
+                    filters.accountId != null ||
+                        (!filters.hasAdvancedFilters && filters.type == null)
+                    ? 'Añadir movimiento'
+                    : 'Restablecer filtros',
                 onAction: () =>
-                    (filters.hasAdvancedFilters || filters.type != null)
+                    filters.accountId == null &&
+                        (filters.hasAdvancedFilters || filters.type != null)
                     ? viewModel.updateFilters(const MovementFilters())
-                    : context.push(AppRoutes.addMovement),
+                    : context.push(
+                        AppRoutes.addMovement,
+                        extra: AddMovementArgs(
+                          initialAccountId: filters.accountId,
+                        ),
+                      ),
               ),
               success: (movements) =>
                   _GroupedMovementList(movements: movements),

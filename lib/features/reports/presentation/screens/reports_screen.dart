@@ -1,18 +1,98 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_theme_extension.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_chip.dart';
 import '../../../../core/widgets/app_section_header.dart';
 import '../../../../core/widgets/app_state_view.dart';
 import '../../domain/report_entity.dart';
 import '../viewmodels/report_viewmodel.dart';
+import '../widgets/analysis_overview.dart';
 
-class ReportsScreen extends ConsumerWidget {
+class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
+
+  @override
+  ConsumerState<ReportsScreen> createState() => _ReportsScreenState();
+}
+
+class _ReportsScreenState extends ConsumerState<ReportsScreen> {
+  int _section = 0;
+  DateTime _selectedMonth = DateTime.now();
+  bool _customMonth = false;
+  ReportEntity? _previousReport;
+  int _comparisonRequest = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(_loadPreviousReport);
+  }
+
+  Future<void> _loadPreviousReport() async {
+    final request = ++_comparisonRequest;
+    final viewModel = ref.read(reportViewModelProvider.notifier);
+    final now = DateTime.now();
+    DateTimeRange current;
+    if (_customMonth || viewModel.range == ReportRange.month) {
+      final month = _customMonth ? _selectedMonth : now;
+      final lastDay = DateTime(month.year, month.month + 1, 0);
+      current = DateTimeRange(
+        start: DateTime(month.year, month.month),
+        end: lastDay.isAfter(now) ? now : lastDay,
+      );
+    } else {
+      current = switch (viewModel.range) {
+        ReportRange.week => DateTimeRange(
+          start: now.subtract(const Duration(days: 7)),
+          end: now,
+        ),
+        ReportRange.quarter => DateTimeRange(
+          start: now.subtract(const Duration(days: 90)),
+          end: now,
+        ),
+        ReportRange.year => DateTimeRange(start: DateTime(now.year), end: now),
+        ReportRange.custom =>
+          viewModel.customRange ??
+              DateTimeRange(
+                start: now.subtract(const Duration(days: 30)),
+                end: now,
+              ),
+        ReportRange.month => DateTimeRange(
+          start: DateTime(now.year, now.month),
+          end: now,
+        ),
+      };
+    }
+    final previous = _customMonth || viewModel.range == ReportRange.month
+        ? DateTimeRange(
+            start: DateTime(current.start.year, current.start.month - 1),
+            end: DateTime(current.start.year, current.start.month, 0),
+          )
+        : DateTimeRange(
+            start: current.start.subtract(
+              current.duration + const Duration(days: 1),
+            ),
+            end: current.start.subtract(const Duration(days: 1)),
+          );
+    if (mounted) setState(() => _previousReport = null);
+    try {
+      final report = await ref
+          .read(reportRepositoryProvider)
+          .getReport(ReportRange.custom, customRange: previous);
+      if (mounted && request == _comparisonRequest) {
+        setState(() => _previousReport = report);
+      }
+    } catch (_) {
+      // El resumen sigue disponible cuando falla la comparación anterior.
+    }
+  }
 
   String _rangeLabel(ReportRange r) {
     switch (r) {
@@ -29,177 +109,376 @@ class ReportsScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _selectRange(ReportRange range) async {
+    final viewModel = ref.read(reportViewModelProvider.notifier);
+    if (range == ReportRange.custom) {
+      final now = DateTime.now();
+      final selected = await showDateRangePicker(
+        context: context,
+        firstDate: DateTime(2023),
+        lastDate: now,
+        initialDateRange:
+            viewModel.customRange ??
+            DateTimeRange(
+              start: now.subtract(const Duration(days: 30)),
+              end: now,
+            ),
+      );
+      if (selected == null || !mounted) return;
+      setState(() => _customMonth = false);
+      await viewModel.changeCustomRange(selected);
+    } else {
+      setState(() {
+        _customMonth = false;
+        if (range == ReportRange.month) _selectedMonth = DateTime.now();
+      });
+      await viewModel.changeRange(range);
+    }
+    if (mounted) _loadPreviousReport();
+  }
+
+  Future<void> _pickMonth() async {
+    final now = DateTime.now();
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _selectedMonth.isAfter(now) ? now : _selectedMonth,
+      firstDate: DateTime(2023),
+      lastDate: now,
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _selectedMonth = selected;
+      _customMonth = true;
+    });
+    final lastDay = DateTime(selected.year, selected.month + 1, 0);
+    await ref
+        .read(reportViewModelProvider.notifier)
+        .changeCustomRange(
+          DateTimeRange(
+            start: DateTime(selected.year, selected.month),
+            end: lastDay.isAfter(now) ? now : lastDay,
+          ),
+        );
+    if (mounted) _loadPreviousReport();
+  }
+
+  String _periodLabel(ReportViewModel viewModel) {
+    if (_customMonth || viewModel.range == ReportRange.month) {
+      final month = _customMonth ? _selectedMonth : DateTime.now();
+      final text = DateFormatter.monthYear(month);
+      return text[0].toUpperCase() + text.substring(1);
+    }
+    return switch (viewModel.range) {
+      ReportRange.week => 'Últimos 7 días',
+      ReportRange.quarter => 'Últimos 90 días',
+      ReportRange.year => 'Año ${DateTime.now().year}',
+      ReportRange.custom =>
+        viewModel.customRange == null
+            ? 'Período personalizado'
+            : '${DateFormatter.short(viewModel.customRange!.start)} – ${DateFormatter.short(viewModel.customRange!.end)}',
+      ReportRange.month => '',
+    };
+  }
+
+  Widget _sectionTabs(AppSemanticColors colors) {
+    const labels = ['Resumen', 'Categorías', 'Tendencias', 'Predicción'];
+    return Container(
+      height: 43,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: colors.surfaceElevated,
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Row(
+        children: [
+          for (var index = 0; index < labels.length; index++)
+            Expanded(
+              child: InkWell(
+                onTap: () => setState(() => _section = index),
+                borderRadius: BorderRadius.circular(99),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: _section == index
+                        ? colors.primary
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      labels[index],
+                      style: TextStyle(
+                        color: _section == index
+                            ? Colors.white
+                            : colors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _periodControls(AppSemanticColors colors, ReportViewModel viewModel) {
+    return Row(
+      children: [
+        PopupMenuButton<ReportRange>(
+          onSelected: _selectRange,
+          itemBuilder: (_) => [
+            for (final range in ReportRange.values)
+              PopupMenuItem(value: range, child: Text(_rangeLabel(range))),
+          ],
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+            decoration: BoxDecoration(
+              color: colors.surfaceElevated,
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(color: colors.border),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_today_rounded,
+                  color: colors.primary,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _customMonth ? 'Mes' : _rangeLabel(viewModel.range),
+                  style: TextStyle(
+                    color: colors.primary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.arrow_drop_down_rounded,
+                  color: colors.primary,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: InkWell(
+            onTap: (_customMonth || viewModel.range == ReportRange.month)
+                ? _pickMonth
+                : null,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Text(
+                _periodLabel(viewModel),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: colors.textSecondary, fontSize: 13),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final state = ref.watch(reportViewModelProvider);
     final viewModel = ref.read(reportViewModelProvider.notifier);
     final colors = context.colors;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Reportes')),
-      body: Column(
-        children: [
-          SizedBox(
-            height: 42,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              children: ReportRange.values.map((r) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: AppChip(
-                    label: _rangeLabel(r),
-                    selected: viewModel.range == r,
-                    onTap: () async {
-                      if (r != ReportRange.custom) {
-                        await viewModel.changeRange(r);
-                        return;
-                      }
-                      final now = DateTime.now();
-                      final selected = await showDateRangePicker(
-                        context: context,
-                        firstDate: DateTime(2023),
-                        lastDate: now,
-                        initialDateRange:
-                            viewModel.customRange ??
-                            DateTimeRange(
-                              start: now.subtract(const Duration(days: 30)),
-                              end: now,
-                            ),
-                      );
-                      if (selected != null) {
-                        await viewModel.changeCustomRange(selected);
-                      }
-                    },
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Expanded(
-            child: state.when(
-              loading: () => const AppLoadingState(),
-              error: (message) =>
-                  AppErrorState(message: message, onRetry: viewModel.load),
-              empty: () => const AppEmptyState(
-                title: 'Sin reportes',
-                message:
-                    'Todavía no hay suficientes movimientos para generar reportes.',
-              ),
-              success: (report) => ListView(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.md,
-                  0,
-                  AppSpacing.md,
-                  AppSpacing.xxl,
-                ),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _SummaryTile(
-                          label: 'Ingresos',
-                          value: report.totalIncome,
-                          color: colors.success,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _SummaryTile(
-                          label: 'Gastos',
-                          value: report.totalExpense,
-                          color: colors.error,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _SummaryTile(
-                          label: 'Balance',
-                          value: report.balance,
-                          color: colors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  const AppSectionHeader(title: 'Distribución por categoría'),
-                  const SizedBox(height: AppSpacing.sm),
-                  _DistributionSection(
-                    expenseDistribution: report.expenseDistribution,
-                    incomeDistribution: report.incomeDistribution,
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  const AppSectionHeader(title: 'Comparación mensual'),
-                  const SizedBox(height: AppSpacing.sm),
-                  if (report.trend.any(
-                    (item) => item.income != 0 || item.expense != 0,
-                  ))
-                    _MonthlyComparisonCard(trend: report.trend)
-                  else
-                    const _ReportSectionEmpty(
-                      icon: Icons.bar_chart_rounded,
-                      title: 'Sin movimientos para comparar',
-                      message:
-                          'La comparación aparecerá cuando haya ingresos o gastos en el período seleccionado.',
-                    ),
-                  const SizedBox(height: AppSpacing.lg),
-                  const AppSectionHeader(title: 'Tendencia histórica'),
-                  const SizedBox(height: AppSpacing.sm),
-                  if (report.trend.any(
-                    (item) => item.income != 0 || item.expense != 0,
-                  ))
-                    _HistoricalTrendCard(trend: report.trend)
-                  else
-                    const _ReportSectionEmpty(
-                      icon: Icons.show_chart_rounded,
-                      title: 'Sin tendencia disponible',
-                      message:
-                          'La evolución de tus gastos se mostrará cuando registres movimientos.',
-                    ),
-                  const SizedBox(height: AppSpacing.lg),
-                  const AppSectionHeader(title: 'Insights'),
-                  const SizedBox(height: AppSpacing.sm),
-                  if (report.insights.isEmpty)
-                    const _ReportSectionEmpty(
-                      icon: Icons.lightbulb_outline_rounded,
-                      title: 'Sin insights por ahora',
-                      message:
-                          'Cuando haya suficiente información, vas a recibir observaciones sobre tus finanzas.',
-                    )
-                  else
-                    ...report.insights.map(
-                      (i) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: AppCard(
-                          elevation: AppCardElevation.elevated,
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.lightbulb_outline_rounded,
-                                color: colors.primary,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  i,
-                                  style: TextStyle(
-                                    color: colors.textSecondary,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Análisis',
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontSize: 29,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Conocé tus finanzas en detalle',
+                          style: TextStyle(
+                            color: colors.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+                  Container(
+                    width: 45,
+                    height: 45,
+                    decoration: BoxDecoration(
+                      color: colors.surfaceElevated,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.bar_chart_rounded, color: colors.primary),
+                  ),
                 ],
               ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: _sectionTabs(colors),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                13,
+                AppSpacing.md,
+                17,
+              ),
+              child: _periodControls(colors, viewModel),
+            ),
+            Expanded(
+              child: state.when(
+                loading: () => const AppLoadingState(),
+                error: (message) =>
+                    AppErrorState(message: message, onRetry: viewModel.load),
+                empty: () => const AppEmptyState(
+                  title: 'Sin reportes',
+                  message:
+                      'Todavía no hay suficientes movimientos para generar reportes.',
+                ),
+                success: (report) => ListView(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    0,
+                    AppSpacing.md,
+                    AppSpacing.xxl,
+                  ),
+                  children: [
+                    if (_section == 0) ...[
+                      AnalysisSummaryCards(
+                        report: report,
+                        previous: _previousReport,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      AnalysisBalanceCard(
+                        trend: report.trend,
+                        onDetails: () => setState(() => _section = 2),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      AnalysisCategoryCard(
+                        distribution: report.expenseDistribution,
+                        onDetails: () => setState(() => _section = 1),
+                      ),
+                    ],
+                    if (_section == 1) ...[
+                      const AppSectionHeader(
+                        title: 'Distribución por categoría',
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      _DistributionSection(
+                        expenseDistribution: report.expenseDistribution,
+                        incomeDistribution: report.incomeDistribution,
+                      ),
+                    ],
+                    if (_section == 2) ...[
+                      AnalysisBalanceCard(trend: report.trend),
+                      const SizedBox(height: AppSpacing.lg),
+                      const AppSectionHeader(title: 'Comparación mensual'),
+                      const SizedBox(height: AppSpacing.sm),
+                      if (report.trend.any(
+                        (item) => item.income != 0 || item.expense != 0,
+                      ))
+                        _MonthlyComparisonCard(trend: report.trend)
+                      else
+                        const _ReportSectionEmpty(
+                          icon: Icons.bar_chart_rounded,
+                          title: 'Sin movimientos para comparar',
+                          message:
+                              'La comparación aparecerá cuando haya ingresos o gastos en el período seleccionado.',
+                        ),
+                      const SizedBox(height: AppSpacing.lg),
+                      const AppSectionHeader(title: 'Tendencia histórica'),
+                      const SizedBox(height: AppSpacing.sm),
+                      if (report.trend.any(
+                        (item) => item.income != 0 || item.expense != 0,
+                      ))
+                        _HistoricalTrendCard(trend: report.trend)
+                      else
+                        const _ReportSectionEmpty(
+                          icon: Icons.show_chart_rounded,
+                          title: 'Sin tendencia disponible',
+                          message:
+                              'La evolución de tus gastos se mostrará cuando registres movimientos.',
+                        ),
+                    ],
+                    if (_section == 3) ...[
+                      const AppSectionHeader(title: 'Recomendaciones'),
+                      const SizedBox(height: AppSpacing.sm),
+                      if (report.insights.isEmpty)
+                        const _ReportSectionEmpty(
+                          icon: Icons.lightbulb_outline_rounded,
+                          title: 'Sin recomendaciones por ahora',
+                          message:
+                              'Cuando haya suficiente información, vas a recibir observaciones sobre tus finanzas.',
+                        )
+                      else
+                        ...report.insights.map(
+                          (insight) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: AppCard(
+                              elevation: AppCardElevation.elevated,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.lightbulb_outline_rounded,
+                                    color: colors.primary,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      insight,
+                                      style: TextStyle(
+                                        color: colors.textSecondary,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: AppSpacing.md),
+                      FilledButton.icon(
+                        onPressed: () => context.push(AppRoutes.predictions),
+                        icon: const Icon(Icons.auto_graph_rounded),
+                        label: const Text('Ver predicción completa'),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -920,41 +1199,4 @@ class _ReportSectionEmpty extends StatelessWidget {
       ],
     ),
   );
-}
-
-class _SummaryTile extends StatelessWidget {
-  final String label;
-  final double value;
-  final Color color;
-  const _SummaryTile({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return AppCard(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(color: colors.textSecondary, fontSize: 11.5),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            CurrencyFormatter.formatCompact(value),
-            style: TextStyle(
-              color: color,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
