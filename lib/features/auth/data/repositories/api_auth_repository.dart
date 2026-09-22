@@ -1,3 +1,4 @@
+import '../../../../core/errors/app_failure.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/services/pilot_local_store.dart';
 import '../../domain/entities/user_entity.dart';
@@ -32,7 +33,10 @@ class ApiAuthRepository implements AuthRepository {
         },
       },
     );
-    await _api.saveSessionResponse(response.object);
+    await _api.saveSessionResponse(
+      response.object,
+      rememberSession: rememberDevice,
+    );
     return currentUser();
   }
 
@@ -64,7 +68,15 @@ class ApiAuthRepository implements AuthRepository {
 
   @override
   Future<UserEntity> currentUser() async {
-    final json = (await _api.get('/perfil')).object;
+    final response = await _api.get('/perfil');
+    if (response.headers['x-offline-cache'] == 'true' &&
+        !PilotLocalStore.offlineSessionValid) {
+      throw const AppFailure(
+        'Conectate a internet para renovar tu sesión.',
+        code: 'offline_session_expired',
+      );
+    }
+    final json = response.object;
     return _userFromJson(json);
   }
 

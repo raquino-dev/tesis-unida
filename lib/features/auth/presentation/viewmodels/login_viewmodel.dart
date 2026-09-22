@@ -37,7 +37,10 @@ class LoginViewModel extends StateNotifier<ViewState<UserEntity>> {
         final session = await _ref
             .read(securityRepositoryProvider)
             .createSession(trustedDevice: rememberSession);
-        await PilotLocalStore.saveSession(session.refreshToken);
+        await PilotLocalStore.saveSession(
+          session.refreshToken,
+          rememberSession: rememberSession,
+        );
       }
       await PilotLocalStore.recordMetric(
         'login_completed',

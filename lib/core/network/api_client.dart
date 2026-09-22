@@ -452,12 +452,15 @@ class ApiClient {
     }
   }
 
-  Future<void> saveSessionResponse(Map<String, dynamic> json) =>
-      PilotLocalStore.saveApiSession(
-        accessToken: json['accessToken'] as String,
-        refreshToken: json['refreshToken'] as String,
-        sessionId: json['id'] as String,
-      );
+  Future<void> saveSessionResponse(
+    Map<String, dynamic> json, {
+    bool? rememberSession,
+  }) => PilotLocalStore.saveApiSession(
+    accessToken: json['accessToken'] as String,
+    refreshToken: json['refreshToken'] as String,
+    sessionId: json['id'] as String,
+    rememberSession: rememberSession,
+  );
 
   void close() => _http.close();
 
