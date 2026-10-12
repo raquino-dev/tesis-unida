@@ -244,13 +244,14 @@ class _BudgetEditorSheet extends ConsumerStatefulWidget {
 class _BudgetEditorSheetState extends ConsumerState<_BudgetEditorSheet> {
   late final _name = TextEditingController(text: widget.budget?.name ?? '');
   late final _amount = TextEditingController(
-    text: widget.budget?.amount.toStringAsFixed(0) ?? '',
+    text: CurrencyFormatter.inputValue(widget.budget?.amount),
   );
   late BudgetPeriod _period = widget.budget?.period ?? BudgetPeriod.monthly;
   late final List<CategoryEntity> _categories = List.of(
     widget.budget?.categories ?? [],
   );
   String? _errorMessage;
+  bool _isProcessing = false;
 
   bool get isEditing => widget.budget != null;
 
@@ -285,18 +286,43 @@ class _BudgetEditorSheetState extends ConsumerState<_BudgetEditorSheet> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   if (isEditing)
-                    IconButton(
-                      icon: Icon(
-                        Icons.delete_outline_rounded,
-                        color: colors.error,
-                      ),
-                      onPressed: () async {
-                        await ref
-                            .read(budgetViewModelProvider.notifier)
-                            .deleteBudget(widget.budget!.id);
-                        if (context.mounted) Navigator.of(context).pop();
-                      },
-                    ),
+                    _isProcessing
+                        ? const SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: Padding(
+                              padding: EdgeInsets.all(13),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : IconButton(
+                            icon: Icon(
+                              Icons.delete_outline_rounded,
+                              color: colors.error,
+                            ),
+                            onPressed: () async {
+                              setState(() {
+                                _isProcessing = true;
+                                _errorMessage = null;
+                              });
+                              try {
+                                await ref
+                                    .read(budgetViewModelProvider.notifier)
+                                    .deleteBudget(widget.budget!.id);
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                }
+                              } catch (_) {
+                                if (mounted) {
+                                  setState(() {
+                                    _isProcessing = false;
+                                    _errorMessage =
+                                        'No pudimos eliminar el presupuesto.';
+                                  });
+                                }
+                              }
+                            },
+                          ),
                 ],
               ),
               const SizedBox(height: AppSpacing.md),
@@ -310,6 +336,7 @@ class _BudgetEditorSheetState extends ConsumerState<_BudgetEditorSheet> {
                 label: 'Monto presupuestado (Gs.)',
                 controller: _amount,
                 keyboardType: TextInputType.number,
+                inputFormatters: const [CurrencyInputFormatter()],
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
@@ -391,13 +418,14 @@ class _BudgetEditorSheetState extends ConsumerState<_BudgetEditorSheet> {
               const SizedBox(height: AppSpacing.lg),
               AppButton(
                 label: isEditing ? 'Guardar cambios' : 'Crear presupuesto',
-                onPressed: _name.text.trim().isEmpty
+                isLoading: _isProcessing,
+                onPressed: _isProcessing || _name.text.trim().isEmpty
                     ? null
                     : () async {
                         final viewModel = ref.read(
                           budgetViewModelProvider.notifier,
                         );
-                        final amount = double.tryParse(_amount.text) ?? 0;
+                        final amount = CurrencyFormatter.parse(_amount.text);
                         if (amount <= 0) {
                           setState(
                             () => _errorMessage = 'Ingresá un monto válido.',
@@ -419,11 +447,20 @@ class _BudgetEditorSheetState extends ConsumerState<_BudgetEditorSheet> {
                           period: _period,
                           categories: _categories,
                         );
+                        setState(() {
+                          _isProcessing = true;
+                          _errorMessage = null;
+                        });
                         final error = isEditing
                             ? await viewModel.updateBudget(entity)
                             : await viewModel.createBudget(entity);
                         if (error != null) {
-                          setState(() => _errorMessage = error);
+                          if (mounted) {
+                            setState(() {
+                              _isProcessing = false;
+                              _errorMessage = error;
+                            });
+                          }
                           return;
                         }
                         if (context.mounted) Navigator.of(context).pop();

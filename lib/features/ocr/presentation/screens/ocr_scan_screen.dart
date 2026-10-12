@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_theme_extension.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/abstract_backdrop.dart';
 import '../../../../core/widgets/app_button.dart';
@@ -410,7 +411,7 @@ class _ResultReview extends ConsumerStatefulWidget {
 
 class _ResultReviewState extends ConsumerState<_ResultReview> {
   late final _amount = TextEditingController(
-    text: widget.result.amount.toStringAsFixed(0),
+    text: CurrencyFormatter.inputValue(widget.result.amount),
   );
   late final _merchant = TextEditingController(text: widget.result.merchant);
   late String _categoryId = widget.result.suggestedCategoryId;
@@ -579,6 +580,7 @@ class _ResultReviewState extends ConsumerState<_ResultReview> {
               label: 'Monto detectado (Gs.)',
               controller: _amount,
               keyboardType: TextInputType.number,
+              inputFormatters: const [CurrencyInputFormatter()],
             ),
             const SizedBox(height: AppSpacing.md),
             AppTextField(label: 'Comercio', controller: _merchant),
@@ -742,7 +744,7 @@ class _ResultReviewState extends ConsumerState<_ResultReview> {
                       .read(ocrRepositoryProvider)
                       .correctReceipt(
                         widget.result,
-                        amount: double.tryParse(_amount.text) ?? 0,
+                        amount: CurrencyFormatter.parse(_amount.text),
                         date: _date,
                         merchant: _merchant.text.trim(),
                         categoryId: category.id,
@@ -762,7 +764,7 @@ class _ResultReviewState extends ConsumerState<_ResultReview> {
                     .read(addMovementViewModelProvider.notifier)
                     .submit(
                       type: MovementType.expense,
-                      amount: double.tryParse(_amount.text) ?? 0,
+                      amount: CurrencyFormatter.parse(_amount.text),
                       date: _date,
                       categories: [category],
                       account: account,

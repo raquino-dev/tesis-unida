@@ -54,6 +54,11 @@ class CreditCardListViewModel
       return (entity: created, error: null);
     } on AppFailure catch (e) {
       return (entity: null, error: e.message);
+    } catch (e) {
+      return (
+        entity: null,
+        error: appErrorMessage(e, fallback: 'No pudimos crear la tarjeta.'),
+      );
     }
   }
 
@@ -64,6 +69,8 @@ class CreditCardListViewModel
       return null;
     } on AppFailure catch (e) {
       return e.message;
+    } catch (e) {
+      return appErrorMessage(e, fallback: 'No pudimos actualizar la tarjeta.');
     }
   }
 

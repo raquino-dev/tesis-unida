@@ -1,0 +1,18 @@
+  Determinando los proyectos que se van a restaurar...
+  Todos los proyectos están actualizados para la restauración.
+  FinanzasInteligentes.ArchitectureTests -> /Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.ArchitectureTests/bin/Debug/net10.0/FinanzasInteligentes.ArchitectureTests.dll
+  FinanzasInteligentes.BuildingBlocks -> /Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/src/FinanzasInteligentes.BuildingBlocks/bin/Debug/net10.0/FinanzasInteligentes.BuildingBlocks.dll
+  FinanzasInteligentes.Dominio -> /Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/src/FinanzasInteligentes.Dominio/bin/Debug/net10.0/FinanzasInteligentes.Dominio.dll
+  FinanzasInteligentes.UnitTests -> /Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.UnitTests/bin/Debug/net10.0/FinanzasInteligentes.UnitTests.dll
+  FinanzasInteligentes.Aplicacion -> /Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/src/FinanzasInteligentes.Aplicacion/bin/Debug/net10.0/FinanzasInteligentes.Aplicacion.dll
+  FinanzasInteligentes.Infraestructura -> /Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/src/FinanzasInteligentes.Infraestructura/bin/Debug/net10.0/FinanzasInteligentes.Infraestructura.dll
+  FinanzasInteligentes.Worker -> /Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/src/FinanzasInteligentes.Worker/bin/Debug/net10.0/FinanzasInteligentes.Worker.dll
+  FinanzasInteligentes.IntegrationTests -> /Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.IntegrationTests/bin/Debug/net10.0/FinanzasInteligentes.IntegrationTests.dll
+  FinanzasInteligentes.Api -> /Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/src/FinanzasInteligentes.Api/bin/Debug/net10.0/FinanzasInteligentes.Api.dll
+  FinanzasInteligentes.ContractTests -> /Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.ContractTests/bin/Debug/net10.0/FinanzasInteligentes.ContractTests.dll
+
+Compilación correcta.
+    0 Advertencia(s)
+    0 Errores
+
+Tiempo transcurrido 00:00:01.64

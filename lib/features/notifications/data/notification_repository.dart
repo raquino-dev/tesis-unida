@@ -46,17 +46,21 @@ class NotificationRepository {
     if (_useApi) {
       final current = await _api.get('/perfil/preferencias');
       final json = current.object;
-      final version = (json['version'] as num).toInt();
-      await _api.put(
+      final etag = _preferenceEtag(current);
+      final response = await _api.put(
         '/perfil/preferencias',
-        headers: {'If-Match': '"$version"'},
+        headers: etag == null ? const {} : {'If-Match': etag},
         body: {
           'tema': json['tema'] as String? ?? 'oscuro',
           'idioma': json['idioma'] as String? ?? 'es',
+          'moneda': json['moneda'] as String? ?? 'PYG',
           'notificacionesPush': pushEnabled,
           'resumenSemanal': weeklySummary,
         },
       );
+      final updated = response.object;
+      pushEnabled = updated['notificacionesPush'] as bool? ?? pushEnabled;
+      weeklySummary = updated['resumenSemanal'] as bool? ?? weeklySummary;
     }
     await PilotLocalStore.savePushNotifications(pushEnabled);
     await PilotLocalStore.saveWeeklySummary(weeklySummary);
@@ -64,6 +68,17 @@ class NotificationRepository {
       pushEnabled: pushEnabled,
       weeklySummary: weeklySummary,
     );
+  }
+
+  String? _preferenceEtag(ApiResponse response) {
+    final header = response.headers['etag']?.trim();
+    if (header != null && header.isNotEmpty) return header;
+
+    // Compatibilidad con implementaciones anteriores que incluían la versión
+    // dentro del JSON en vez de exponer únicamente el ETag HTTP.
+    final version = response.object['version'];
+    if (version is num) return '"${version.toInt()}"';
+    return null;
   }
 
   Future<void> registerPushToken(String token) async {

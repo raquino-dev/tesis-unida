@@ -10,15 +10,23 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_state_view.dart';
 import '../domain/subscription_entity.dart';
 import 'subscription_viewmodel.dart';
+import 'subscription_purchase_result_screen.dart';
 import '../../security/domain/security_entity.dart';
 import '../../security/presentation/security_providers.dart';
 import '../../security/presentation/widgets/otp_verification_dialog.dart';
 
-class SubscriptionScreen extends ConsumerWidget {
+class SubscriptionScreen extends ConsumerStatefulWidget {
   const SubscriptionScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SubscriptionScreen> createState() => _SubscriptionScreenState();
+}
+
+class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
+  bool _restoring = false;
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(subscriptionViewModelProvider);
     final viewModel = ref.read(subscriptionViewModelProvider.notifier);
     return Scaffold(
@@ -75,7 +83,7 @@ class SubscriptionScreen extends ConsumerWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  if (subscription.status == SubscriptionStatus.active) ...[
+                  if (subscription.renews) ...[
                     const SizedBox(height: 4),
                     Text(
                       'Se renueva el ${subscription.renewalDateLabel}',
@@ -83,6 +91,15 @@ class SubscriptionScreen extends ConsumerWidget {
                         color: AppColors.textMutedDark,
                         fontSize: 12.5,
                       ),
+                    ),
+                  ],
+                  if (subscription.status == SubscriptionStatus.cancelled) ...[
+                    const SizedBox(height: 8),
+                    AppBadge(
+                      label: subscription.hasRenewalDate
+                          ? 'Cancelada · acceso hasta ${subscription.renewalDateLabel}'
+                          : 'Suscripción cancelada',
+                      tone: AppBadgeTone.warning,
                     ),
                   ],
                   if (subscription.status == SubscriptionStatus.expired) ...[
@@ -102,22 +119,8 @@ class SubscriptionScreen extends ConsumerWidget {
                 child: _PlanCard(
                   plan: plan,
                   isCurrent: plan.id == subscription.currentPlan,
-                  onSelect: () async {
-                    final verificationId = await requestOtpVerification(
-                      context,
-                      ref,
-                      reason: 'Activar plan premium',
-                    );
-                    if (verificationId == null) return;
-                    await viewModel.purchase(plan.id, verificationId);
-                    await ref
-                        .read(securityRepositoryProvider)
-                        .recordEvent(
-                          SecurityEventType.criticalAction,
-                          'Suscripción premium activada',
-                        );
-                    ref.invalidate(securityEventsProvider);
-                  },
+                  onSelect: () =>
+                      _purchasePlan(context, ref, viewModel, plan.id),
                 ),
               ),
             ),
@@ -125,9 +128,11 @@ class SubscriptionScreen extends ConsumerWidget {
             AppButton(
               label: 'Restaurar compra',
               variant: AppButtonVariant.ghost,
-              onPressed: viewModel.restore,
+              isLoading: _restoring,
+              onPressed: _restoring ? null : () => _restorePurchase(viewModel),
             ),
-            if (subscription.isPremium) ...[
+            if (subscription.status == SubscriptionStatus.active &&
+                subscription.currentPlan != PlanId.free) ...[
               const SizedBox(height: AppSpacing.sm),
               AppButton(
                 label: 'Cancelar suscripción',
@@ -138,7 +143,7 @@ class SubscriptionScreen extends ConsumerWidget {
                     builder: (context) => AlertDialog(
                       title: const Text('Cancelar suscripción'),
                       content: const Text(
-                        'Volverás al plan gratuito y conservarás tus datos.',
+                        'La renovación quedará cancelada. Mantendrás el acceso Premium hasta el final del período actual.',
                       ),
                       actions: [
                         TextButton(
@@ -160,6 +165,72 @@ class SubscriptionScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _restorePurchase(SubscriptionViewModel viewModel) async {
+    setState(() => _restoring = true);
+    final outcome = await viewModel.restore();
+    if (!mounted) return;
+    setState(() => _restoring = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          outcome.succeeded
+              ? 'Tu compra se restauró correctamente.'
+              : outcome.errorMessage ?? 'No pudimos restaurar tu compra.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _purchasePlan(
+    BuildContext context,
+    WidgetRef ref,
+    SubscriptionViewModel viewModel,
+    PlanId plan,
+  ) async {
+    final verificationId = await requestOtpVerification(
+      context,
+      ref,
+      reason: 'Activar plan premium',
+    );
+    if (verificationId == null || !context.mounted) return;
+
+    final outcome = await viewModel.purchase(plan, verificationId);
+    if (!context.mounted) return;
+    if (outcome.succeeded) {
+      await ref
+          .read(securityRepositoryProvider)
+          .recordEvent(
+            SecurityEventType.criticalAction,
+            'Suscripción premium activada',
+          );
+      ref.invalidate(securityEventsProvider);
+      if (!context.mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => SubscriptionPurchaseResultScreen.success(
+            subscription: outcome.subscription!,
+          ),
+        ),
+      );
+      return;
+    }
+
+    final action = await Navigator.of(context).push<SubscriptionPurchaseAction>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => SubscriptionPurchaseResultScreen.failure(
+          errorMessage:
+              outcome.errorMessage ?? 'No pudimos procesar la compra.',
+        ),
+      ),
+    );
+    if (!context.mounted) return;
+    await viewModel.load();
+    if (action == null || !context.mounted) return;
+    await _purchasePlan(context, ref, viewModel, plan);
   }
 
   String _planName(SubscriptionEntity s) {
@@ -188,11 +259,32 @@ class _PlanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final currentPlanGradient = LinearGradient(
+      colors: [
+        Color.alphaBlend(
+          colors.primary.withValues(alpha: 0.14),
+          colors.surface,
+        ),
+        Color.alphaBlend(
+          colors.primary.withValues(alpha: 0.05),
+          colors.surface,
+        ),
+      ],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+
     return AppCard(
-      elevation: plan.highlighted
+      elevation: isCurrent || plan.highlighted
           ? AppCardElevation.elevated
           : AppCardElevation.surface,
-      border: plan.highlighted
+      gradient: isCurrent ? currentPlanGradient : null,
+      border: isCurrent
+          ? Border.all(
+              color: colors.primary.withValues(alpha: 0.65),
+              width: 1.4,
+            )
+          : plan.highlighted
           ? Border.all(color: colors.primary.withValues(alpha: 0.5))
           : null,
       child: Column(
@@ -210,7 +302,11 @@ class _PlanCard extends StatelessWidget {
                 ),
               ),
               if (isCurrent)
-                const AppBadge(label: 'Plan actual', tone: AppBadgeTone.info)
+                const AppBadge(
+                  label: 'Plan actual',
+                  tone: AppBadgeTone.success,
+                  icon: Icons.check_rounded,
+                )
               else if (plan.highlighted)
                 const AppBadge(
                   label: 'Recomendado',

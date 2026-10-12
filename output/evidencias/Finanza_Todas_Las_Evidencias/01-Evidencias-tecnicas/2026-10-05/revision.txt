@@ -1,0 +1,2 @@
+Flutter HEAD a5ab0285956f6f837d86951fefc0bb467c27f204 + cambios locales
+Backend HEAD 0b3606348027411deac1cb5d05a360f343ab422d + estado actual

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/app_failure.dart';
+import '../../../app/theme/app_radius.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme_extension.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -16,18 +17,27 @@ import '../../accounts/domain/account_entity.dart';
 import '../../accounts/presentation/account_providers.dart';
 import '../../../core/services/pilot_local_store.dart';
 
-class SavingsGoalsScreen extends ConsumerWidget {
+enum _GoalAction { edit, delete }
+
+class SavingsGoalsScreen extends ConsumerStatefulWidget {
   const SavingsGoalsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SavingsGoalsScreen> createState() => _SavingsGoalsScreenState();
+}
+
+class _SavingsGoalsScreenState extends ConsumerState<SavingsGoalsScreen> {
+  SavingsGoalScope _selectedScope = SavingsGoalScope.private;
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(savingsGoalProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Metas de ahorro')),
-      floatingActionButton: FloatingActionButton.extended(
+      appBar: AppBar(centerTitle: true, title: const Text('Metas de ahorro')),
+      floatingActionButton: FloatingActionButton(
         onPressed: () => _openCreate(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva meta'),
+        tooltip: 'Nueva meta',
+        child: const Icon(Icons.add_rounded, size: 34),
       ),
       body: state.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -39,50 +49,266 @@ class SavingsGoalsScreen extends ConsumerWidget {
             ),
           ),
         ),
-        data: (goals) => ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          children: [
-            _section(
-              context,
-              ref,
-              'Metas privadas',
-              goals
-                  .where((goal) => goal.scope == SavingsGoalScope.private)
-                  .toList(),
+        data: (goals) {
+          final privateGoals = goals
+              .where((goal) => goal.scope == SavingsGoalScope.private)
+              .toList();
+          final sharedGoals = goals
+              .where((goal) => goal.scope == SavingsGoalScope.family)
+              .toList();
+          final showingPrivate = _selectedScope == SavingsGoalScope.private;
+          final selectedGoals = showingPrivate ? privateGoals : sharedGoals;
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.xs,
+              AppSpacing.md,
+              112,
             ),
-            const SizedBox(height: AppSpacing.lg),
-            _section(
-              context,
-              ref,
-              'Metas compartidas',
-              goals
-                  .where((goal) => goal.scope == SavingsGoalScope.family)
-                  .toList(),
+            children: [
+              _scopeSelector(privateGoals.length, sharedGoals.length),
+              const SizedBox(height: AppSpacing.md),
+              _encouragementBanner(),
+              const SizedBox(height: AppSpacing.lg),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 260),
+                curve: Curves.easeInOutCubic,
+                alignment: Alignment.topCenter,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  layoutBuilder: (currentChild, previousChildren) => Stack(
+                    alignment: Alignment.topCenter,
+                    children: [...previousChildren, ?currentChild],
+                  ),
+                  transitionBuilder: (child, animation) =>
+                      FadeTransition(opacity: animation, child: child),
+                  child: KeyedSubtree(
+                    key: ValueKey(_selectedScope),
+                    child: _section(
+                      context,
+                      showingPrivate ? 'Metas privadas' : 'Metas compartidas',
+                      selectedGoals,
+                      _selectedScope,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _adviceBanner(),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _scopeSelector(int privateCount, int sharedCount) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.xxs),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceElevated,
+        borderRadius: AppRadius.pillRadius,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _scopeOption(
+              scope: SavingsGoalScope.private,
+              icon: Icons.person_rounded,
+              label: 'Privadas ($privateCount)',
             ),
-          ],
+          ),
+          Expanded(
+            child: _scopeOption(
+              scope: SavingsGoalScope.family,
+              icon: Icons.groups_2_outlined,
+              label: 'Compartidas ($sharedCount)',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _scopeOption({
+    required SavingsGoalScope scope,
+    required IconData icon,
+    required String label,
+  }) {
+    final selected = _selectedScope == scope;
+    final foreground = selected ? Colors.white : context.colors.textSecondary;
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: InkWell(
+        borderRadius: AppRadius.pillRadius,
+        onTap: () => _goToScope(scope),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: 13,
+          ),
+          decoration: BoxDecoration(
+            color: selected ? context.colors.primary : Colors.transparent,
+            borderRadius: AppRadius.pillRadius,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: foreground, size: 22),
+              const SizedBox(width: AppSpacing.xs),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: foreground,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  void _goToScope(SavingsGoalScope scope) {
+    if (_selectedScope == scope) return;
+    setState(() => _selectedScope = scope);
+  }
+
+  Widget _encouragementBanner() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: context.colors.successBg.withValues(alpha: 0.72),
+        borderRadius: AppRadius.mdRadius,
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.eco_outlined, color: context.colors.primary, size: 32),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Pequeños aportes, grandes logros',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Tus metas te acercan al futuro que querés.',
+                  style: TextStyle(color: context.colors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _section(
     BuildContext context,
-    WidgetRef ref,
     String title,
     List<SavingsGoalEntity> goals,
+    SavingsGoalScope scope,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.sm),
+        Text(
+          title,
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: AppSpacing.md),
         if (goals.isEmpty)
-          const Text('No hay metas en este ámbito.')
+          _emptySection(scope)
         else
           ...goals.map(
             (goal) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: AppCard(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: _goalCard(goal),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _emptySection(SavingsGoalScope scope) {
+    final shared = scope == SavingsGoalScope.family;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        borderRadius: AppRadius.mdRadius,
+        border: Border.all(color: context.colors.border),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            shared ? Icons.groups_2_outlined : Icons.savings_outlined,
+            color: context.colors.primary,
+            size: 34,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            shared
+                ? 'Todavía no tenés metas compartidas.'
+                : 'Todavía no tenés metas privadas.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _goalCard(SavingsGoalEntity goal) {
+    final shared = goal.scope == SavingsGoalScope.family;
+    final progress = goal.progress.clamp(0.0, 1.0);
+    final percentage = (progress * 100).round();
+    final subtitle = goal.accountName?.trim().isNotEmpty == true
+        ? goal.accountName!
+        : shared
+        ? 'Una meta para alcanzar juntos'
+        : 'Tu ahorro personal';
+
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: context.colors.successBg,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  shared ? Icons.groups_2_outlined : Icons.shield_outlined,
+                  color: context.colors.primary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -91,49 +317,247 @@ class SavingsGoalsScreen extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             goal.name,
-                            style: const TextStyle(fontWeight: FontWeight.w700),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w800),
                           ),
                         ),
-                        IconButton(
-                          onPressed: () => _openCreate(context, goal),
-                          icon: const Icon(Icons.edit_outlined),
-                        ),
-                        if (goal.savedAmount <= 0)
-                          IconButton(
-                            tooltip: 'Eliminar meta',
-                            onPressed: () => ref
-                                .read(savingsGoalProvider.notifier)
-                                .delete(goal.id),
-                            icon: const Icon(Icons.delete_outline_rounded),
+                        if (shared) ...[
+                          const SizedBox(width: AppSpacing.xs),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm,
+                              vertical: AppSpacing.xxs,
+                            ),
+                            decoration: BoxDecoration(
+                              color: context.colors.successBg,
+                              borderRadius: AppRadius.pillRadius,
+                            ),
+                            child: Text(
+                              'Compartida',
+                              style: TextStyle(
+                                color: context.colors.primaryVariant,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
+                        ],
                       ],
                     ),
-                    LinearProgressIndicator(value: goal.progress),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 2),
                     Text(
-                      '${CurrencyFormatter.format(goal.savedAmount)} de ${CurrencyFormatter.format(goal.targetAmount)}',
-                    ),
-                    Text(
-                      'Objetivo: ${DateFormatter.short(goal.targetDate)}',
-                      style: TextStyle(
-                        color: context.colors.textSecondary,
-                        fontSize: 12,
-                      ),
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () => _openContribution(context, goal),
-                        child: const Text('Registrar aporte'),
-                      ),
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: context.colors.textSecondary),
                     ),
                   ],
                 ),
               ),
-            ),
+              PopupMenuButton<_GoalAction>(
+                tooltip: 'Opciones de la meta',
+                onSelected: (action) => _handleGoalAction(action, goal),
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                    value: _GoalAction.edit,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.edit_outlined),
+                      title: Text('Editar'),
+                    ),
+                  ),
+                  if (goal.savedAmount <= 0)
+                    const PopupMenuItem(
+                      value: _GoalAction.delete,
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(Icons.delete_outline_rounded),
+                        title: Text('Eliminar'),
+                      ),
+                    ),
+                ],
+                icon: const Icon(Icons.more_vert_rounded),
+              ),
+            ],
           ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: AppRadius.pillRadius,
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 9,
+                    backgroundColor: context.colors.successBg,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                '$percentage%',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _amountDetail(
+                  label: 'Monto actual',
+                  amount: CurrencyFormatter.format(goal.savedAmount),
+                  supporting:
+                      'de ${CurrencyFormatter.format(goal.targetAmount)}',
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 78,
+                margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                color: context.colors.border,
+              ),
+              Expanded(
+                child: _amountDetail(
+                  label: 'Te faltan',
+                  amount: CurrencyFormatter.format(goal.remaining),
+                  supporting:
+                      'Objetivo: ${DateFormatter.short(goal.targetDate)}',
+                  icon: Icons.calendar_month_outlined,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 52,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _openCreate(context, goal),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Editar'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: SizedBox(
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: () => _openContribution(context, goal),
+                    child: const Text('Registrar aporte'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _amountDetail({
+    required String label,
+    required String amount,
+    required String supporting,
+    IconData? icon,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(color: context.colors.textSecondary)),
+        const SizedBox(height: 2),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            amount,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Row(
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 17, color: context.colors.textSecondary),
+              const SizedBox(width: AppSpacing.xxs),
+            ],
+            Expanded(
+              child: Text(
+                supporting,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: context.colors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
       ],
     );
+  }
+
+  Widget _adviceBanner() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: context.colors.successBg.withValues(alpha: 0.68),
+        borderRadius: AppRadius.mdRadius,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.lightbulb_outline_rounded,
+            color: context.colors.primary,
+            size: 30,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Consejo',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  'La constancia hoy construye tus grandes planes mañana.',
+                  style: TextStyle(color: context.colors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleGoalAction(
+    _GoalAction action,
+    SavingsGoalEntity goal,
+  ) async {
+    switch (action) {
+      case _GoalAction.edit:
+        _openCreate(context, goal);
+      case _GoalAction.delete:
+        final error = await ref
+            .read(savingsGoalProvider.notifier)
+            .delete(goal.id);
+        if (error != null && mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(error)));
+        }
+    }
   }
 
   void _openCreate(BuildContext context, [SavingsGoalEntity? goal]) =>
@@ -160,7 +584,7 @@ class _CreateGoalSheet extends ConsumerStatefulWidget {
 class _CreateGoalSheetState extends ConsumerState<_CreateGoalSheet> {
   late final _name = TextEditingController(text: widget.goal?.name ?? '');
   late final _target = TextEditingController(
-    text: widget.goal?.targetAmount.toStringAsFixed(0) ?? '',
+    text: CurrencyFormatter.inputValue(widget.goal?.targetAmount),
   );
   late SavingsGoalScope _scope = widget.goal?.scope ?? SavingsGoalScope.private;
   late DateTime _targetDate =
@@ -202,6 +626,7 @@ class _CreateGoalSheetState extends ConsumerState<_CreateGoalSheet> {
             label: 'Monto objetivo',
             controller: _target,
             keyboardType: TextInputType.number,
+            inputFormatters: const [CurrencyInputFormatter()],
           ),
           const SizedBox(height: AppSpacing.md),
           SegmentedButton<SavingsGoalScope>(
@@ -286,7 +711,7 @@ class _CreateGoalSheetState extends ConsumerState<_CreateGoalSheet> {
             label: widget.goal == null ? 'Crear meta' : 'Guardar cambios',
             onPressed: () async {
               if (_name.text.trim().isEmpty ||
-                  (double.tryParse(_target.text) ?? 0) <= 0 ||
+                  CurrencyFormatter.parse(_target.text) <= 0 ||
                   _accountId == null) {
                 setState(
                   () => _error = 'Completá nombre, monto y cuenta de la meta.',
@@ -303,7 +728,7 @@ class _CreateGoalSheetState extends ConsumerState<_CreateGoalSheet> {
               final goal = SavingsGoalEntity(
                 id: widget.goal?.id ?? '',
                 name: _name.text.trim(),
-                targetAmount: double.tryParse(_target.text) ?? 0,
+                targetAmount: CurrencyFormatter.parse(_target.text),
                 savedAmount: widget.goal?.savedAmount ?? 0,
                 targetDate: _targetDate,
                 scope: _scope,
@@ -364,6 +789,7 @@ class _ContributionSheetState extends ConsumerState<_ContributionSheet> {
             label: 'Monto del aporte',
             controller: _amount,
             keyboardType: TextInputType.number,
+            inputFormatters: const [CurrencyInputFormatter()],
           ),
           const SizedBox(height: AppSpacing.md),
           const Align(
@@ -405,7 +831,7 @@ class _ContributionSheetState extends ConsumerState<_ContributionSheet> {
             onPressed: _account == null
                 ? null
                 : () async {
-                    final amount = double.tryParse(_amount.text) ?? 0;
+                    final amount = CurrencyFormatter.parse(_amount.text);
                     if (amount <= 0) {
                       setState(() => _error = 'Ingresá un aporte válido.');
                       return;

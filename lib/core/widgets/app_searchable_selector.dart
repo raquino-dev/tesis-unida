@@ -626,7 +626,7 @@ class _SelectorSheetState<T> extends State<_SelectorSheet<T>> {
                           ),
                       IconButton.filled(
                         tooltip: widget.createActions.length == 1
-                            ? 'Crear categoría'
+                            ? widget.createActions.single.label
                             : 'Crear cuenta o tarjeta',
                         style: IconButton.styleFrom(
                           foregroundColor: Colors.white,

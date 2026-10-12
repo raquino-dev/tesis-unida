@@ -1269,6 +1269,8 @@ Map<String, dynamic> _exportJson(String id, {required String estado}) => {
   'id': id,
   'formato': 'pdf',
   'estado': estado,
+  'desde': '2026-07-01',
+  'hasta': '2026-07-30',
   'creadoEn': '2026-07-30T15:10:00Z',
   'finalizadoEn': '2026-07-30T15:10:02Z',
   'cantidadMovimientos': estado == 'completado' ? 1 : 0,

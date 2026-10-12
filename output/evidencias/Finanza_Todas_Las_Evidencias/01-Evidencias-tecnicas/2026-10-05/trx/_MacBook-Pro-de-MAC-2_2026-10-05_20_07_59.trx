@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="f050b7a4-d834-4910-93a2-d431da0d7db9" name="@MacBook-Pro-de-MAC-2 2026-10-05 20:07:59" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-05T20:07:59.1877890-03:00" queuing="2026-10-05T20:07:59.1877890-03:00" start="2026-10-05T20:07:58.7429180-03:00" finish="2026-10-05T20:07:59.1905420-03:00" />
+  <TestSettings name="default" id="721f69e7-53b5-488f-b748-9f92cfb2cc77">
+    <Deployment runDeploymentRoot="_MacBook-Pro-de-MAC-2_2026-10-05_20_07_59" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="b6da3636-5663-45c7-bd32-9235d566321f" testId="a5d15e4d-ff2f-83a8-63c0-af09b4e67f4a" testName="FinanzasInteligentes.ArchitectureTests.Capas.DependenciasTests.ProgramSoloComponeLaAplicacion" computerName="MacBook-Pro-de-MAC-2" duration="00:00:00.0004937" startTime="2026-10-05T20:07:59.1208250-03:00" endTime="2026-10-05T20:07:59.1208250-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b6da3636-5663-45c7-bd32-9235d566321f" />
+    <UnitTestResult executionId="89b41ca8-2efc-49e7-bfb9-bf20d53063ee" testId="36ac8585-647a-dc70-4f88-97859f122647" testName="FinanzasInteligentes.ArchitectureTests.Capas.DependenciasTests.DominioNoReferenciaAplicacionNiInfraestructura" computerName="MacBook-Pro-de-MAC-2" duration="00:00:00.0000731" startTime="2026-10-05T20:07:59.1209340-03:00" endTime="2026-10-05T20:07:59.1209340-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="89b41ca8-2efc-49e7-bfb9-bf20d53063ee" />
+    <UnitTestResult executionId="c8d2d066-4acd-4123-b795-c88fa2a66204" testId="378b7065-a0da-a61b-75ff-540d8a372ab0" testName="FinanzasInteligentes.ArchitectureTests.Capas.DependenciasTests.EndpointsNoAccedenDirectamenteAEfCore" computerName="MacBook-Pro-de-MAC-2" duration="00:00:00.0126437" startTime="2026-10-05T20:07:59.1196790-03:00" endTime="2026-10-05T20:07:59.1196850-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c8d2d066-4acd-4123-b795-c88fa2a66204" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="FinanzasInteligentes.ArchitectureTests.Capas.DependenciasTests.ProgramSoloComponeLaAplicacion" storage="/users/maccanales3/documents/desarrollos/tesis-unida-back/backend/tests/finanzasinteligentes.architecturetests/bin/debug/net10.0/finanzasinteligentes.architecturetests.dll" id="a5d15e4d-ff2f-83a8-63c0-af09b4e67f4a">
+      <Execution id="b6da3636-5663-45c7-bd32-9235d566321f" />
+      <TestMethod codeBase="/Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.ArchitectureTests/bin/Debug/net10.0/FinanzasInteligentes.ArchitectureTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="FinanzasInteligentes.ArchitectureTests.Capas.DependenciasTests" name="ProgramSoloComponeLaAplicacion" />
+    </UnitTest>
+    <UnitTest name="FinanzasInteligentes.ArchitectureTests.Capas.DependenciasTests.EndpointsNoAccedenDirectamenteAEfCore" storage="/users/maccanales3/documents/desarrollos/tesis-unida-back/backend/tests/finanzasinteligentes.architecturetests/bin/debug/net10.0/finanzasinteligentes.architecturetests.dll" id="378b7065-a0da-a61b-75ff-540d8a372ab0">
+      <Execution id="c8d2d066-4acd-4123-b795-c88fa2a66204" />
+      <TestMethod codeBase="/Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.ArchitectureTests/bin/Debug/net10.0/FinanzasInteligentes.ArchitectureTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="FinanzasInteligentes.ArchitectureTests.Capas.DependenciasTests" name="EndpointsNoAccedenDirectamenteAEfCore" />
+    </UnitTest>
+    <UnitTest name="FinanzasInteligentes.ArchitectureTests.Capas.DependenciasTests.DominioNoReferenciaAplicacionNiInfraestructura" storage="/users/maccanales3/documents/desarrollos/tesis-unida-back/backend/tests/finanzasinteligentes.architecturetests/bin/debug/net10.0/finanzasinteligentes.architecturetests.dll" id="36ac8585-647a-dc70-4f88-97859f122647">
+      <Execution id="89b41ca8-2efc-49e7-bfb9-bf20d53063ee" />
+      <TestMethod codeBase="/Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.ArchitectureTests/bin/Debug/net10.0/FinanzasInteligentes.ArchitectureTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="FinanzasInteligentes.ArchitectureTests.Capas.DependenciasTests" name="DominioNoReferenciaAplicacionNiInfraestructura" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="a5d15e4d-ff2f-83a8-63c0-af09b4e67f4a" executionId="b6da3636-5663-45c7-bd32-9235d566321f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="36ac8585-647a-dc70-4f88-97859f122647" executionId="89b41ca8-2efc-49e7-bfb9-bf20d53063ee" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="378b7065-a0da-a61b-75ff-540d8a372ab0" executionId="c8d2d066-4acd-4123-b795-c88fa2a66204" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Resultados sin formato de lista" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="Todos los resultados cargados" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="3" executed="3" passed="3" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 10.0.5)
+[xUnit.net 00:00:00.04]   Discovering: FinanzasInteligentes.ArchitectureTests
+[xUnit.net 00:00:00.05]   Discovered:  FinanzasInteligentes.ArchitectureTests
+[xUnit.net 00:00:00.05]   Starting:    FinanzasInteligentes.ArchitectureTests
+[xUnit.net 00:00:00.08]   Finished:    FinanzasInteligentes.ArchitectureTests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

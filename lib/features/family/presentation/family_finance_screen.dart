@@ -252,6 +252,7 @@ class _TreasuryOperationSheetState
             label: 'Monto',
             controller: _amount,
             keyboardType: TextInputType.number,
+            inputFormatters: const [CurrencyInputFormatter()],
           ),
           const SizedBox(height: AppSpacing.md),
           AppTextField(label: 'Concepto', controller: _description),
@@ -324,7 +325,7 @@ class _TreasuryOperationSheetState
                       TreasuryOperationEntity(
                         id: '',
                         type: widget.type,
-                        amount: double.tryParse(_amount.text) ?? 0,
+                        amount: CurrencyFormatter.parse(_amount.text),
                         description: _description.text.trim().isEmpty
                             ? 'Operación de caja'
                             : _description.text.trim(),
@@ -463,6 +464,7 @@ class _FamilyBudgetSheetState extends ConsumerState<_FamilyBudgetSheet> {
             label: 'Monto',
             controller: _amount,
             keyboardType: TextInputType.number,
+            inputFormatters: const [CurrencyInputFormatter()],
           ),
           const SizedBox(height: AppSpacing.lg),
           AppButton(
@@ -476,7 +478,7 @@ class _FamilyBudgetSheetState extends ConsumerState<_FamilyBudgetSheet> {
                           FamilyBudgetEntity(
                             id: '',
                             categoryName: _category!.name,
-                            amount: double.tryParse(_amount.text) ?? 0,
+                            amount: CurrencyFormatter.parse(_amount.text),
                             spent: 0,
                             categoryId: _category!.id,
                           ),

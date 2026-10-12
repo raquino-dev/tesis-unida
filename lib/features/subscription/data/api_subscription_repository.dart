@@ -55,7 +55,14 @@ class ApiSubscriptionRepository implements SubscriptionRepository {
       );
     }
     final purchase = await _billing.purchase(product);
-    _billing.validate(purchase);
+    try {
+      _billing.validate(purchase);
+    } on AppFailure {
+      // Google Play también solicita cerrar las compras fallidas para que el
+      // mismo evento no vuelva a bloquear intentos posteriores.
+      await _completeFailedPurchase(purchase);
+      rethrow;
+    }
     try {
       final current = _current;
       final response =
@@ -177,20 +184,41 @@ class ApiSubscriptionRepository implements SubscriptionRepository {
     List<SubscriptionPlan> plans,
   ) {
     final plan = json['plan'] as Map<String, dynamic>;
+    final planId = _planId(plan['codigo'] as String);
     final status = (json['estado'] as String).toLowerCase();
     return SubscriptionEntity(
       status: switch (status) {
         'activa' || 'active' => SubscriptionStatus.active,
+        'cancelada' || 'cancelled' => SubscriptionStatus.cancelled,
         'vencida' || 'expired' => SubscriptionStatus.expired,
         _ => SubscriptionStatus.free,
       },
-      currentPlan: _planId(plan['codigo'] as String),
-      renewalDateLabel: DateTime.parse(
-        json['finPeriodoEn'] as String,
-      ).toLocal().toString().split(' ').first,
+      currentPlan: planId,
+      renewalDateLabel: _renewalDateLabel(json['finPeriodoEn'], planId),
+      startedDateLabel: _dateLabel(json['iniciadaEn']),
+      paymentMethodLabel: planId == PlanId.free ? '' : 'Google Play',
       plans: plans,
       version: (json['version'] as num).toInt(),
     );
+  }
+
+  String _renewalDateLabel(Object? value, PlanId planId) {
+    if (planId == PlanId.free || value is! String) return '';
+    return _dateLabel(value);
+  }
+
+  String _dateLabel(Object? value) {
+    if (value is! String) return '';
+    final date = DateTime.tryParse(value);
+    return date?.toLocal().toString().split(' ').first ?? '';
+  }
+
+  Future<void> _completeFailedPurchase(PurchaseDetails purchase) async {
+    try {
+      await _billing.complete(purchase);
+    } catch (_) {
+      // Conservamos el rechazo original, que es el mensaje útil para el usuario.
+    }
   }
 
   Map<String, Object> _purchaseBody(

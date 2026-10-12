@@ -55,6 +55,8 @@ class AccountListViewModel
       return null;
     } on AppFailure catch (e) {
       return e.message;
+    } catch (e) {
+      return appErrorMessage(e, fallback: 'No pudimos eliminar la cuenta.');
     }
   }
 }

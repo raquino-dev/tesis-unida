@@ -1,0 +1,77 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="39be4260-8914-450d-b4b0-c7debd5b4e37" name="@MacBook-Pro-de-MAC-2 2026-10-05 20:07:59" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-10-05T20:07:59.7240890-03:00" queuing="2026-10-05T20:07:59.7240890-03:00" start="2026-10-05T20:07:58.7105670-03:00" finish="2026-10-05T20:07:59.7305110-03:00" />
+  <TestSettings name="default" id="179a0764-ba57-4d1b-b2d3-607940aaf4d7">
+    <Deployment runDeploymentRoot="_MacBook-Pro-de-MAC-2_2026-10-05_20_07_59" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="ba846e4c-95db-4193-b395-9f2f20e29952" testId="fe50c901-14fd-924c-45a8-a36a4a0f8a27" testName="FinanzasInteligentes.IntegrationTests.Persistencia.ModeloPostgreSqlTests.ModeloMapeaFechasDeCreacionDelPilotoEnSnakeCase" computerName="MacBook-Pro-de-MAC-2" duration="00:00:00.0067257" startTime="2026-10-05T20:07:59.5384910-03:00" endTime="2026-10-05T20:07:59.5384920-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ba846e4c-95db-4193-b395-9f2f20e29952" />
+    <UnitTestResult executionId="b04508cf-9031-4c6c-8b20-acc85bbb1fc7" testId="4817a02f-7d71-9be2-8864-9e107345bf67" testName="FinanzasInteligentes.IntegrationTests.Persistencia.ModeloPostgreSqlTests.ModeloAsignaEntidadesASusEsquemas" computerName="MacBook-Pro-de-MAC-2" duration="00:00:00.0139580" startTime="2026-10-05T20:07:59.5524810-03:00" endTime="2026-10-05T20:07:59.5524810-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b04508cf-9031-4c6c-8b20-acc85bbb1fc7" />
+    <UnitTestResult executionId="7dc3d8fb-9952-4714-92bf-454dee0f814e" testId="0fc321ee-e6f7-fd4c-b4e4-8a41eacfa8cc" testName="FinanzasInteligentes.IntegrationTests.Persistencia.ModeloPostgreSqlTests.CursorDeMovimientosSeTraduceAPostgreSql" computerName="MacBook-Pro-de-MAC-2" duration="00:00:00.1236349" startTime="2026-10-05T20:07:59.6761730-03:00" endTime="2026-10-05T20:07:59.6761730-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7dc3d8fb-9952-4714-92bf-454dee0f814e" />
+    <UnitTestResult executionId="4b5a0fc7-6a76-4409-a483-18fe3769a143" testId="20e5fe8e-1961-979d-920d-a3a5b4968e56" testName="FinanzasInteligentes.IntegrationTests.Persistencia.ModeloPostgreSqlTests.MovimientoVinculaTarjetaDeCreditoOpcional" computerName="MacBook-Pro-de-MAC-2" duration="00:00:00.4251288" startTime="2026-10-05T20:07:59.5317420-03:00" endTime="2026-10-05T20:07:59.5317420-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4b5a0fc7-6a76-4409-a483-18fe3769a143" />
+    <UnitTestResult executionId="3ab10b52-d14b-4411-b4be-9bc607322ac5" testId="18b9fb02-7c52-e3b3-4b95-29e5a1ab11e6" testName="FinanzasInteligentes.IntegrationTests.FinanzasPersonales.OperacionesTarjetaPostgreSqlTests.CompraReintegroYPagoMantienenSaldosYAnaliticaConsistentes" computerName="MacBook-Pro-de-MAC-2" duration="00:00:00.0010000" startTime="2026-10-05T20:07:59.1039060-03:00" endTime="2026-10-05T20:07:59.1039230-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="NotExecuted" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3ab10b52-d14b-4411-b4be-9bc607322ac5">
+      <Output>
+        <ErrorInfo>
+          <Message>Requiere FINANZAS_INTEGRATION_POSTGRESQL y una instancia PostgreSQL desechable.</Message>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="dd33d905-f7af-4472-a561-dcf8a28fd2a3" testId="ef57b83b-bee0-fefb-92ff-8593bacd81ee" testName="FinanzasInteligentes.IntegrationTests.Procesamiento.ExtractoPdfGeneratorTests.Crear_GeneraPdfPaginadoConResumenYDetalle" computerName="MacBook-Pro-de-MAC-2" duration="00:00:00.0292642" startTime="2026-10-05T20:07:59.1371930-03:00" endTime="2026-10-05T20:07:59.1371930-03:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dd33d905-f7af-4472-a561-dcf8a28fd2a3" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="FinanzasInteligentes.IntegrationTests.Persistencia.ModeloPostgreSqlTests.CursorDeMovimientosSeTraduceAPostgreSql" storage="/users/maccanales3/documents/desarrollos/tesis-unida-back/backend/tests/finanzasinteligentes.integrationtests/bin/debug/net10.0/finanzasinteligentes.integrationtests.dll" id="0fc321ee-e6f7-fd4c-b4e4-8a41eacfa8cc">
+      <Execution id="7dc3d8fb-9952-4714-92bf-454dee0f814e" />
+      <TestMethod codeBase="/Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.IntegrationTests/bin/Debug/net10.0/FinanzasInteligentes.IntegrationTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="FinanzasInteligentes.IntegrationTests.Persistencia.ModeloPostgreSqlTests" name="CursorDeMovimientosSeTraduceAPostgreSql" />
+    </UnitTest>
+    <UnitTest name="FinanzasInteligentes.IntegrationTests.FinanzasPersonales.OperacionesTarjetaPostgreSqlTests.CompraReintegroYPagoMantienenSaldosYAnaliticaConsistentes" storage="/users/maccanales3/documents/desarrollos/tesis-unida-back/backend/tests/finanzasinteligentes.integrationtests/bin/debug/net10.0/finanzasinteligentes.integrationtests.dll" id="18b9fb02-7c52-e3b3-4b95-29e5a1ab11e6">
+      <Execution id="3ab10b52-d14b-4411-b4be-9bc607322ac5" />
+      <TestMethod codeBase="/Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.IntegrationTests/bin/Debug/net10.0/FinanzasInteligentes.IntegrationTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="FinanzasInteligentes.IntegrationTests.FinanzasPersonales.OperacionesTarjetaPostgreSqlTests" name="CompraReintegroYPagoMantienenSaldosYAnaliticaConsistentes" />
+    </UnitTest>
+    <UnitTest name="FinanzasInteligentes.IntegrationTests.Procesamiento.ExtractoPdfGeneratorTests.Crear_GeneraPdfPaginadoConResumenYDetalle" storage="/users/maccanales3/documents/desarrollos/tesis-unida-back/backend/tests/finanzasinteligentes.integrationtests/bin/debug/net10.0/finanzasinteligentes.integrationtests.dll" id="ef57b83b-bee0-fefb-92ff-8593bacd81ee">
+      <Execution id="dd33d905-f7af-4472-a561-dcf8a28fd2a3" />
+      <TestMethod codeBase="/Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.IntegrationTests/bin/Debug/net10.0/FinanzasInteligentes.IntegrationTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="FinanzasInteligentes.IntegrationTests.Procesamiento.ExtractoPdfGeneratorTests" name="Crear_GeneraPdfPaginadoConResumenYDetalle" />
+    </UnitTest>
+    <UnitTest name="FinanzasInteligentes.IntegrationTests.Persistencia.ModeloPostgreSqlTests.MovimientoVinculaTarjetaDeCreditoOpcional" storage="/users/maccanales3/documents/desarrollos/tesis-unida-back/backend/tests/finanzasinteligentes.integrationtests/bin/debug/net10.0/finanzasinteligentes.integrationtests.dll" id="20e5fe8e-1961-979d-920d-a3a5b4968e56">
+      <Execution id="4b5a0fc7-6a76-4409-a483-18fe3769a143" />
+      <TestMethod codeBase="/Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.IntegrationTests/bin/Debug/net10.0/FinanzasInteligentes.IntegrationTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="FinanzasInteligentes.IntegrationTests.Persistencia.ModeloPostgreSqlTests" name="MovimientoVinculaTarjetaDeCreditoOpcional" />
+    </UnitTest>
+    <UnitTest name="FinanzasInteligentes.IntegrationTests.Persistencia.ModeloPostgreSqlTests.ModeloMapeaFechasDeCreacionDelPilotoEnSnakeCase" storage="/users/maccanales3/documents/desarrollos/tesis-unida-back/backend/tests/finanzasinteligentes.integrationtests/bin/debug/net10.0/finanzasinteligentes.integrationtests.dll" id="fe50c901-14fd-924c-45a8-a36a4a0f8a27">
+      <Execution id="ba846e4c-95db-4193-b395-9f2f20e29952" />
+      <TestMethod codeBase="/Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.IntegrationTests/bin/Debug/net10.0/FinanzasInteligentes.IntegrationTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="FinanzasInteligentes.IntegrationTests.Persistencia.ModeloPostgreSqlTests" name="ModeloMapeaFechasDeCreacionDelPilotoEnSnakeCase" />
+    </UnitTest>
+    <UnitTest name="FinanzasInteligentes.IntegrationTests.Persistencia.ModeloPostgreSqlTests.ModeloAsignaEntidadesASusEsquemas" storage="/users/maccanales3/documents/desarrollos/tesis-unida-back/backend/tests/finanzasinteligentes.integrationtests/bin/debug/net10.0/finanzasinteligentes.integrationtests.dll" id="4817a02f-7d71-9be2-8864-9e107345bf67">
+      <Execution id="b04508cf-9031-4c6c-8b20-acc85bbb1fc7" />
+      <TestMethod codeBase="/Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.IntegrationTests/bin/Debug/net10.0/FinanzasInteligentes.IntegrationTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="FinanzasInteligentes.IntegrationTests.Persistencia.ModeloPostgreSqlTests" name="ModeloAsignaEntidadesASusEsquemas" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="fe50c901-14fd-924c-45a8-a36a4a0f8a27" executionId="ba846e4c-95db-4193-b395-9f2f20e29952" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4817a02f-7d71-9be2-8864-9e107345bf67" executionId="b04508cf-9031-4c6c-8b20-acc85bbb1fc7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0fc321ee-e6f7-fd4c-b4e4-8a41eacfa8cc" executionId="7dc3d8fb-9952-4714-92bf-454dee0f814e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="20e5fe8e-1961-979d-920d-a3a5b4968e56" executionId="4b5a0fc7-6a76-4409-a483-18fe3769a143" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="18b9fb02-7c52-e3b3-4b95-29e5a1ab11e6" executionId="3ab10b52-d14b-4411-b4be-9bc607322ac5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ef57b83b-bee0-fefb-92ff-8593bacd81ee" executionId="dd33d905-f7af-4472-a561-dcf8a28fd2a3" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Resultados sin formato de lista" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="Todos los resultados cargados" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="6" executed="5" passed="5" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 10.0.5)
+[xUnit.net 00:00:00.04]   Discovering: FinanzasInteligentes.IntegrationTests
+[xUnit.net 00:00:00.05]   Discovered:  FinanzasInteligentes.IntegrationTests
+[xUnit.net 00:00:00.05]   Starting:    FinanzasInteligentes.IntegrationTests
+[xUnit.net 00:00:00.07]       Requiere FINANZAS_INTEGRATION_POSTGRESQL y una instancia PostgreSQL desechable.
+[xUnit.net 00:00:00.64]   Finished:    FinanzasInteligentes.IntegrationTests
+Se ha omitido la prueba 'FinanzasInteligentes.IntegrationTests.FinanzasPersonales.OperacionesTarjetaPostgreSqlTests.CompraReintegroYPagoMantienenSaldosYAnaliticaConsistentes' en la serie de pruebas.
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="MacBook-Pro-de-MAC-2" outcome="Warning" timestamp="2026-10-05T20:07:59.1036000-03:00">
+        <Text>[xUnit.net 00:00:00.07]     FinanzasInteligentes.IntegrationTests.FinanzasPersonales.OperacionesTarjetaPostgreSqlTests.CompraReintegroYPagoMantienenSaldosYAnaliticaConsistentes [SKIP]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

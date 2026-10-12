@@ -17,6 +17,7 @@ import '../../core/widgets/offline_status_bar.dart';
 import '../../features/budgets/presentation/budgets_screen.dart';
 import '../../features/categories/presentation/category_list_screen.dart';
 import '../../features/credit_cards/presentation/credit_card_list_screen.dart';
+import '../../features/credit_cards/presentation/credit_card_detail_screen.dart';
 import '../../features/export/presentation/export_screen.dart';
 import '../../features/family/presentation/family_screen.dart';
 import '../../features/family/presentation/family_finance_screen.dart';
@@ -150,6 +151,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             initialAccountId: extra is AddMovementArgs
                 ? extra.initialAccountId
                 : null,
+            initialCreditCardId: extra is AddMovementArgs
+                ? extra.initialCreditCardId
+                : null,
           );
         },
       ),
@@ -244,6 +248,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.creditCards,
         builder: (context, state) => const CreditCardListScreen(),
+      ),
+      GoRoute(
+        path: '/credit-cards/:id',
+        builder: (context, state) =>
+            CreditCardDetailScreen(cardId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: AppRoutes.transfers,

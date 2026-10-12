@@ -9,6 +9,7 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/app_searchable_selector.dart';
 import '../../accounts/domain/account_entity.dart';
+import '../../accounts/presentation/account_list_screen.dart';
 import '../../accounts/presentation/account_providers.dart';
 import 'transfer_viewmodel.dart';
 
@@ -98,6 +99,7 @@ class _TransferScreenState extends ConsumerState<TransferScreen> {
               return _AccountPicker(
                 accounts: accounts,
                 selectedId: _from?.id,
+                onCreate: () => showAccountEditorSheet(context),
                 onSelect: (a) => setState(() {
                   _from = a;
                   if (_to?.id == a.id) _to = null;
@@ -124,6 +126,7 @@ class _TransferScreenState extends ConsumerState<TransferScreen> {
               return _AccountPicker(
                 accounts: options,
                 selectedId: _to?.id,
+                onCreate: () => showAccountEditorSheet(context),
                 onSelect: (a) => setState(() => _to = a),
               );
             },
@@ -133,6 +136,7 @@ class _TransferScreenState extends ConsumerState<TransferScreen> {
             label: 'Monto (Gs.)',
             controller: _amount,
             keyboardType: TextInputType.number,
+            inputFormatters: const [CurrencyInputFormatter()],
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
@@ -186,7 +190,7 @@ class _TransferScreenState extends ConsumerState<TransferScreen> {
                       .transfer(
                         fromAccountId: _from!.id,
                         toAccountId: _to!.id,
-                        amount: double.tryParse(_amount.text) ?? 0,
+                        amount: CurrencyFormatter.parse(_amount.text),
                         date: _date,
                         note: _note.text.trim(),
                       ),
@@ -233,6 +237,15 @@ class _TransferScreenState extends ConsumerState<TransferScreen> {
                                       DateFormatter.medium(t.date),
                                       style: TextStyle(
                                         color: colors.textMuted,
+                                        fontSize: 11.5,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Nota: ${t.note.trim().isEmpty ? 'Sin descripción' : t.note.trim()}',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: colors.textSecondary,
                                         fontSize: 11.5,
                                       ),
                                     ),
@@ -292,11 +305,13 @@ class _TransferScreenState extends ConsumerState<TransferScreen> {
 class _AccountPicker extends StatelessWidget {
   final List<AccountEntity> accounts;
   final String? selectedId;
+  final Future<AccountEntity?> Function() onCreate;
   final ValueChanged<AccountEntity> onSelect;
 
   const _AccountPicker({
     required this.accounts,
     required this.selectedId,
+    required this.onCreate,
     required this.onSelect,
   });
 
@@ -310,6 +325,14 @@ class _AccountPicker extends StatelessWidget {
         value: accounts.where((item) => item.id == selectedId).firstOrNull,
         hint: 'Seleccionar cuenta',
         searchHint: 'Buscar cuentas',
+        sheetTitle: 'Cuentas',
+        createActions: [
+          SelectorCreateAction<AccountEntity>(
+            label: 'Nueva cuenta',
+            icon: Icons.account_balance_wallet_outlined,
+            onCreate: onCreate,
+          ),
+        ],
         onChanged: onSelect,
       );
 }

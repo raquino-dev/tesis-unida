@@ -46,11 +46,18 @@ Future<CategoryEntity?> showCategoryEditorSheet(
   builder: (_) => _CategoryEditorSheet(category: category),
 );
 
-class CategoryListScreen extends ConsumerWidget {
+class CategoryListScreen extends ConsumerStatefulWidget {
   const CategoryListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CategoryListScreen> createState() => _CategoryListScreenState();
+}
+
+class _CategoryListScreenState extends ConsumerState<CategoryListScreen> {
+  String? _deletingId;
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(categoryListViewModelProvider);
     final viewModel = ref.read(categoryListViewModelProvider.notifier);
 
@@ -78,7 +85,7 @@ class CategoryListScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(AppSpacing.md),
           itemCount: categories.length,
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-          itemBuilder: (context, index) {
+          itemBuilder: (_, index) {
             final c = categories[index];
             final colors = context.colors;
             return AppCard(
@@ -114,24 +121,39 @@ class CategoryListScreen extends ConsumerWidget {
                     ],
                   ],
                 ),
-                trailing: PopupMenuButton<String>(
-                  onSelected: (value) async {
-                    if (value == 'edit') {
-                      showCategoryEditorSheet(context, category: c);
-                    } else if (value == 'delete') {
-                      final error = await viewModel.delete(c.id);
-                      if (error != null && context.mounted) {
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(content: Text(error)));
-                      }
-                    }
-                  },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(value: 'edit', child: Text('Editar')),
-                    PopupMenuItem(value: 'delete', child: Text('Eliminar')),
-                  ],
-                ),
+                trailing: _deletingId == c.id
+                    ? const SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: Padding(
+                          padding: EdgeInsets.all(10),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : PopupMenuButton<String>(
+                        onSelected: (value) async {
+                          if (value == 'edit') {
+                            showCategoryEditorSheet(context, category: c);
+                          } else if (value == 'delete') {
+                            setState(() => _deletingId = c.id);
+                            final error = await viewModel.delete(c.id);
+                            if (!context.mounted) return;
+                            setState(() => _deletingId = null);
+                            if (error != null) {
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(SnackBar(content: Text(error)));
+                            }
+                          }
+                        },
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(value: 'edit', child: Text('Editar')),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Text('Eliminar'),
+                          ),
+                        ],
+                      ),
               ),
             );
           },
@@ -156,6 +178,7 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
   late Color _color = widget.category?.color ?? _colorOptions.first;
   late CategoryType _type = widget.category?.type ?? CategoryType.both;
   String? _errorMessage;
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -307,9 +330,15 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
               label: widget.category == null
                   ? 'Crear categoría'
                   : 'Guardar cambios',
-              onPressed: _name.text.trim().isEmpty && _name.text.isEmpty
+              isLoading: _isSaving,
+              onPressed:
+                  _isSaving || (_name.text.trim().isEmpty && _name.text.isEmpty)
                   ? null
                   : () async {
+                      setState(() {
+                        _isSaving = true;
+                        _errorMessage = null;
+                      });
                       final viewModel = ref.read(
                         categoryListViewModelProvider.notifier,
                       );
@@ -336,7 +365,12 @@ class _CategoryEditorSheetState extends ConsumerState<_CategoryEditorSheet> {
                         saved = error == null ? entity : null;
                       }
                       if (error != null) {
-                        setState(() => _errorMessage = error);
+                        if (mounted) {
+                          setState(() {
+                            _isSaving = false;
+                            _errorMessage = error;
+                          });
+                        }
                         return;
                       }
                       if (context.mounted) Navigator.of(context).pop(saved);

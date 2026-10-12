@@ -6,6 +6,56 @@ Inicio · Movimientos · Añadir · Análisis · Más. Puede
 ejecutarse con repositorios mock para demostraciones aisladas o conectada a la
 API ASP.NET Core mediante parámetros de compilación.
 
+## Manual técnico y de operación
+
+El manual técnico documenta la construcción de **Finanza** y permite que un
+tercero pueda instalar, configurar, ejecutar, mantener y auditar el sistema. Su
+versión completa se incluye en los anexos del trabajo, mientras que los
+repositorios conservan las instrucciones ejecutables y la documentación que
+debe mantenerse alineada con cada versión publicada.
+
+- Repositorio de la aplicación móvil:
+  [https://github.com/raquino-dev/tesis-unida](https://github.com/raquino-dev/tesis-unida)
+- Repositorio del backend:
+  [https://github.com/raquino-dev/tesis-unida-back](https://github.com/raquino-dev/tesis-unida-back)
+
+El manual comprende los requisitos previos de hardware y software, con las
+versiones empleadas de Flutter, Dart, Android SDK, .NET 10, PostgreSQL y Docker
+Compose; el procedimiento de instalación de la aplicación, la API y el Worker;
+la configuración mediante `dart-define`, variables de entorno y credenciales
+externas que no se incorporan al código fuente; la arquitectura de monolito
+modular y la responsabilidad de cada componente; la estructura de PostgreSQL y
+las migraciones versionadas `M0001`–`M0030`; y la persistencia local mediante
+SQLite cifrada, outbox y cursor de sincronización.
+
+También documenta la seguridad aplicada mediante HTTPS/TLS, JWT, refresh tokens
+rotativos, OTP, almacenamiento seguro en el dispositivo, idempotencia,
+`ETag`/`If-Match`, mínimo privilegio y auditoría; la integración con Supabase,
+Amazon S3, Textract, SES, Firebase Cloud Messaging y Google Play Billing; el
+respaldo y restauración de PostgreSQL y de los objetos privados; los comandos de
+compilación, pruebas y despliegue; y los procedimientos de monitoreo,
+diagnóstico y recuperación. Ninguna contraseña, clave privada, token o
+credencial de proveedor forma parte del repositorio.
+
+### Contenido disponible en los repositorios
+
+| Contenido | Referencia |
+|---|---|
+| Instalación y ejecución móvil | Secciones [Verificación local](#verificación-local) e [Integración con la API](#integración-con-la-api) |
+| Configuración segura de Android, Firebase y Billing | [Configuración segura](#configuración-segura) y [Google Play Billing y Firebase](#google-play-billing-y-firebase) |
+| Distribución del piloto | [docs/BETA_DISTRIBUTION.md](docs/BETA_DISTRIBUTION.md) |
+| Sincronización y operación sin conexión | [docs/MODO_SIN_CONEXION.md](docs/MODO_SIN_CONEXION.md) |
+| Alcance y proveedores del piloto | [docs/DECISIONES_PILOTO.md](docs/DECISIONES_PILOTO.md) y [docs/PROVEEDORES_PILOTO.md](docs/PROVEEDORES_PILOTO.md) |
+| Instalación, API, Worker y migraciones | [README del backend](https://github.com/raquino-dev/tesis-unida-back#readme) |
+| Arquitectura, seguridad, respaldo y operación | [Documentación técnica del backend](https://github.com/raquino-dev/tesis-unida-back/tree/main/docs/backend) |
+
+Para reproducir el sistema se deben clonar ambos repositorios, restaurar sus
+dependencias, configurar los valores del ambiente fuera de Git, aplicar las
+migraciones antes de iniciar una versión que dependa de ellas, comprobar los
+endpoints de salud de la API y ejecutar la aplicación con la URL HTTPS del
+ambiente correspondiente. Las intervenciones operativas deben registrar fecha,
+versión, responsable, impacto, resultado y acciones de seguimiento.
+
 Las [decisiones aprobadas del piloto](docs/DECISIONES_PILOTO.md) fijan el alcance
 móvil, Google Play Billing de prueba, Firebase Cloud Messaging y la prohibición
 de recopilar datos del plástico de tarjetas.

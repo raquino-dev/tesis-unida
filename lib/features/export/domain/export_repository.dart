@@ -5,6 +5,10 @@ import 'export_entity.dart';
 abstract class ExportRepository {
   Future<List<ExportRecord>> getHistory();
 
+  /// Recupera el archivo asociado a un registro del historial y devuelve su
+  /// ruta local persistente para abrirlo o compartirlo.
+  Future<String> downloadExport(ExportRecord record);
+
   /// Genera un extracto para [range], respetando [filters] (los mismos
   /// filtros combinables del módulo de Movimientos). Incluye ingresos,
   /// egresos y transferencias visibles en ese rango.

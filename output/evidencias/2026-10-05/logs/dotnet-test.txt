@@ -1,0 +1,22 @@
+Serie de pruebas para /Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.UnitTests/bin/Debug/net10.0/FinanzasInteligentes.UnitTests.dll (.NETCoreApp,Version=v10.0)
+Serie de pruebas para /Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.ContractTests/bin/Debug/net10.0/FinanzasInteligentes.ContractTests.dll (.NETCoreApp,Version=v10.0)
+Serie de pruebas para /Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.IntegrationTests/bin/Debug/net10.0/FinanzasInteligentes.IntegrationTests.dll (.NETCoreApp,Version=v10.0)
+Serie de pruebas para /Users/maccanales3/Documents/Desarrollos/tesis-unida-back/backend/tests/FinanzasInteligentes.ArchitectureTests/bin/Debug/net10.0/FinanzasInteligentes.ArchitectureTests.dll (.NETCoreApp,Version=v10.0)
+1 archivos de prueba en total coincidieron con el patrón especificado.
+1 archivos de prueba en total coincidieron con el patrón especificado.
+1 archivos de prueba en total coincidieron con el patrón especificado.
+1 archivos de prueba en total coincidieron con el patrón especificado.
+[xUnit.net 00:00:00.07]     FinanzasInteligentes.IntegrationTests.FinanzasPersonales.OperacionesTarjetaPostgreSqlTests.CompraReintegroYPagoMantienenSaldosYAnaliticaConsistentes [SKIP]
+Archivo de resultados: /Users/maccanales3/Documents/Desarrollos/practica-flutter/output/evidencias/2026-10-05/trx/_MacBook-Pro-de-MAC-2_2026-10-05_20_07_59.trx
+
+Correctas! - Con error:     0, Superado:     3, Omitido:     0, Total:     3, Duración: 13 ms - FinanzasInteligentes.ArchitectureTests.dll (net10.0)
+Archivo de resultados: /Users/maccanales3/Documents/Desarrollos/practica-flutter/output/evidencias/2026-10-05/trx/_MacBook-Pro-de-MAC-2_2026-10-05_20_07_59[1].trx
+
+Correctas! - Con error:     0, Superado:    75, Omitido:     0, Total:    75, Duración: 26 ms - FinanzasInteligentes.UnitTests.dll (net10.0)
+Archivo de resultados: /Users/maccanales3/Documents/Desarrollos/practica-flutter/output/evidencias/2026-10-05/trx/_MacBook-Pro-de-MAC-2_2026-10-05_20_07_59[2].trx
+
+Correctas! - Con error:     0, Superado:    26, Omitido:     0, Total:    26, Duración: 297 ms - FinanzasInteligentes.ContractTests.dll (net10.0)
+  Omitidas FinanzasInteligentes.IntegrationTests.FinanzasPersonales.OperacionesTarjetaPostgreSqlTests.CompraReintegroYPagoMantienenSaldosYAnaliticaConsistentes [1 ms]
+Archivo de resultados: /Users/maccanales3/Documents/Desarrollos/practica-flutter/output/evidencias/2026-10-05/trx/_MacBook-Pro-de-MAC-2_2026-10-05_20_07_59[3].trx
+
+Correctas! - Con error:     0, Superado:     5, Omitido:     1, Total:     6, Duración: 573 ms - FinanzasInteligentes.IntegrationTests.dll (net10.0)

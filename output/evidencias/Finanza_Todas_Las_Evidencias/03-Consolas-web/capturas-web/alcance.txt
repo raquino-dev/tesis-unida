@@ -1,0 +1,9 @@
+Capturas reales de las consolas, tomadas el 5 de octubre de 2026.
+E2E-01: proyecto Supabase y respaldos diarios; no se ejecutó restauración.
+E2E-02: buckets S3 y tres documentos almacenados; no se probó recuperación desde la app.
+E2E-03: historial de Bulk Document Uploader de Textract sin documentos. No corresponde al historial de las llamadas API; no demuestra OCR completo.
+E2E-04: SES sandbox, cuenta en buen estado e identidades verificadas; no se demostró entrega del OTP.
+E2E-05: proyecto Firebase e informe FCM sin datos; no se demostró recepción push.
+E2E-06: versión 10 (0.1.0) disponible en prueba interna y catálogo Premium mensual/anual; no se demostró compra validada por backend.
+E2E-07: Lightsail Running, DNS de API apuntando a la IP de Lightsail en DNS only y modo Full (strict) de Cloudflare. No se probó recuperación de fallos.
+E2E-08: no se obtuvo evidencia web de sincronización y conflictos entre dispositivos.

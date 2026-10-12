@@ -50,6 +50,8 @@ class BudgetViewModel extends StateNotifier<ViewState<BudgetOverview>> {
       return null;
     } on AppFailure catch (e) {
       return e.message;
+    } catch (e) {
+      return appErrorMessage(e, fallback: 'No pudimos crear el presupuesto.');
     }
   }
 
@@ -60,6 +62,11 @@ class BudgetViewModel extends StateNotifier<ViewState<BudgetOverview>> {
       return null;
     } on AppFailure catch (e) {
       return e.message;
+    } catch (e) {
+      return appErrorMessage(
+        e,
+        fallback: 'No pudimos actualizar el presupuesto.',
+      );
     }
   }
 

@@ -30,14 +30,6 @@ class _AppShellState extends ConsumerState<AppShell> {
   bool _speedDialOpen = false;
   bool _speedDialCenterVisible = false;
 
-  static const _screens = [
-    DashboardScreen(),
-    MovementListScreen(),
-    SizedBox.shrink(),
-    ReportsScreen(),
-    MoreScreen(),
-  ];
-
   void _onTap(int index) {
     if (index == _addIndex) {
       _setSpeedDialOpen(!_speedDialOpen);
@@ -70,10 +62,18 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final screens = [
+      DashboardScreen(onOpenMovements: () => _onTap(1)),
+      const MovementListScreen(),
+      const SizedBox.shrink(),
+      const ReportsScreen(),
+      const MoreScreen(),
+    ];
+
     return Stack(
       children: [
         Scaffold(
-          body: IndexedStack(index: _index, children: _screens),
+          body: IndexedStack(index: _index, children: screens),
           bottomNavigationBar: AppBottomNav(
             currentIndex: _index,
             onTap: _onTap,

@@ -5,6 +5,7 @@ import '../../../app/router/app_routes.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme_extension.dart';
 import '../../../app/theme/theme_mode_provider.dart';
+import '../../../core/errors/app_failure.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../security/presentation/security_providers.dart';
 import '../../../core/services/pilot_local_store.dart';
@@ -298,14 +299,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         await ref.read(pushNotificationServiceProvider).setEnabled(false);
       }
       ref.invalidate(notificationPreferencesProvider);
-    } catch (_) {
+    } catch (error) {
+      if (push && push != previousPush) {
+        try {
+          await ref.read(pushNotificationServiceProvider).setEnabled(false);
+        } catch (_) {
+          // La preferencia visual igualmente debe volver a su estado anterior.
+        }
+      }
       if (!mounted) return;
       setState(() {
         _pushNotifications = previousPush;
         _weeklySummary = previousWeekly;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No pudimos guardar las preferencias.')),
+        SnackBar(
+          content: Text(
+            error is StateError
+                ? 'No pudimos activar las notificaciones. Revisá el permiso del dispositivo e intentá nuevamente.'
+                : appErrorMessage(
+                    error,
+                    fallback: 'No pudimos guardar las preferencias.',
+                  ),
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _savingNotifications = false);
@@ -376,8 +393,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               value,
               style: TextStyle(color: colors.textSecondary, fontSize: 12.5),
             ),
-          const SizedBox(width: 4),
-          Icon(Icons.chevron_right_rounded, color: colors.textMuted, size: 18),
+          if (onTap != null) ...[
+            const SizedBox(width: 4),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: colors.textMuted,
+              size: 18,
+            ),
+          ],
         ],
       ),
     );

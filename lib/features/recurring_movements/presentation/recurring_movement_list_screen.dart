@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../app/theme/app_radius.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme_extension.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -207,7 +206,7 @@ class _RecurringEditorSheet extends ConsumerStatefulWidget {
 class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
   late MovementType _type = widget.recurring?.type ?? MovementType.expense;
   late final _amount = TextEditingController(
-    text: widget.recurring?.amount.toStringAsFixed(0) ?? '',
+    text: CurrencyFormatter.inputValue(widget.recurring?.amount),
   );
   late final _description = TextEditingController(
     text: widget.recurring?.description ?? '',
@@ -217,12 +216,10 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
   bool _indefinite = true;
   late RecurrenceFrequency _frequency =
       widget.recurring?.frequency ?? RecurrenceFrequency.monthly;
-  late final _occurrences = TextEditingController(
-    text: widget.recurring?.totalOccurrences?.toString() ?? '',
-  );
   List<CategoryEntity> _categories = [];
   AccountEntity? _account;
   String? _errorMessage;
+  bool _isProcessing = false;
 
   bool get isEditing => widget.recurring != null;
 
@@ -241,29 +238,16 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
   void dispose() {
     _amount.dispose();
     _description.dispose();
-    _occurrences.dispose();
     super.dispose();
   }
 
-  Future<void> _createCategory() async {
-    final created = await showCategoryEditorSheet(context);
-    if (created == null || !mounted) return;
-    setState(() {
-      if (_categories.every((item) => item.id != created.id)) {
-        _categories = [..._categories, created];
-      }
-    });
-  }
+  Future<CategoryEntity?> _createCategory() => showCategoryEditorSheet(context);
 
-  Future<AccountEntity?> _createAccount() async {
-    final created = await showAccountEditorSheet(context);
-    if (created != null && mounted) setState(() => _account = created);
-    return created;
-  }
+  Future<AccountEntity?> _createAccount() => showAccountEditorSheet(context);
 
-  Future<void> _createCreditCard() async {
+  Future<AccountEntity?> _createCreditCard() async {
     final paymentAccount = _account ?? await _createAccount();
-    if (paymentAccount == null || !mounted) return;
+    if (paymentAccount == null || !mounted) return null;
     final created = await showCreditCardEditorSheet(
       context,
       initialAccount: paymentAccount,
@@ -273,6 +257,68 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
         SnackBar(content: Text('Tarjeta “${created.alias}” creada.')),
       );
     }
+    return created?.account;
+  }
+
+  Widget _categorySelector(
+    List<CategoryEntity> categories,
+    AppSemanticColors colors,
+  ) {
+    final expectedType = _type == MovementType.expense
+        ? CategoryType.expense
+        : CategoryType.income;
+    final available = categories
+        .where((item) => item.type.appliesTo(expectedType))
+        .toList();
+    return AppSearchableMultiSelector<CategoryEntity>(
+      items: available,
+      idOf: (item) => item.id,
+      labelOf: (item) => item.name,
+      leadingOf: (item) => Icon(item.icon, color: item.color),
+      values: _categories,
+      hint: 'Buscar y seleccionar categorías',
+      searchHint: 'Buscar categorías',
+      sheetTitle: 'Categorías',
+      createActions: [
+        SelectorCreateAction<CategoryEntity>(
+          label: '',
+          icon: Icons.add_rounded,
+          onCreate: _createCategory,
+        ),
+      ],
+      onChanged: (values) => setState(() => _categories = values),
+    );
+  }
+
+  Widget _accountSelector(
+    List<AccountEntity> accounts,
+    AppSemanticColors colors,
+  ) {
+    _account ??= accounts.isNotEmpty ? accounts.first : null;
+    return AppSearchableSingleSelector<AccountEntity>(
+      items: accounts,
+      idOf: (item) => item.id,
+      labelOf: (item) => item.name,
+      leadingOf: (item) => Icon(item.icon, color: colors.primary),
+      value: _account,
+      hint: 'Seleccionar cuenta',
+      searchHint: 'Buscar cuentas o métodos de pago',
+      sheetTitle: 'Cuentas y tarjetas',
+      applySelection: true,
+      createActions: [
+        SelectorCreateAction<AccountEntity>(
+          label: 'Nueva cuenta',
+          icon: Icons.account_balance_wallet_outlined,
+          onCreate: _createAccount,
+        ),
+        SelectorCreateAction<AccountEntity>(
+          label: 'Nueva tarjeta',
+          icon: Icons.credit_card_outlined,
+          onCreate: _createCreditCard,
+        ),
+      ],
+      onChanged: (value) => setState(() => _account = value),
+    );
   }
 
   Future<void> _pickStartDate() async {
@@ -327,20 +373,43 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   if (isEditing)
-                    IconButton(
-                      icon: Icon(
-                        Icons.delete_outline_rounded,
-                        color: colors.error,
-                      ),
-                      onPressed: () async {
-                        await ref
-                            .read(
-                              recurringMovementListViewModelProvider.notifier,
-                            )
-                            .delete(widget.recurring!.id);
-                        if (context.mounted) Navigator.of(context).pop();
-                      },
-                    ),
+                    _isProcessing
+                        ? const SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: Padding(
+                              padding: EdgeInsets.all(13),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : IconButton(
+                            icon: Icon(
+                              Icons.delete_outline_rounded,
+                              color: colors.error,
+                            ),
+                            onPressed: () async {
+                              setState(() => _isProcessing = true);
+                              try {
+                                await ref
+                                    .read(
+                                      recurringMovementListViewModelProvider
+                                          .notifier,
+                                    )
+                                    .delete(widget.recurring!.id);
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                }
+                              } catch (_) {
+                                if (mounted) {
+                                  setState(() {
+                                    _isProcessing = false;
+                                    _errorMessage =
+                                        'No pudimos eliminar la recurrencia.';
+                                  });
+                                }
+                              }
+                            },
+                          ),
                 ],
               ),
               const SizedBox(height: AppSpacing.md),
@@ -368,6 +437,7 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
                 label: 'Monto (Gs.)',
                 controller: _amount,
                 keyboardType: TextInputType.number,
+                inputFormatters: const [CurrencyInputFormatter()],
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
@@ -391,36 +461,8 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
                   'No pudimos cargar tus categorías.',
                   style: TextStyle(color: colors.textSecondary, fontSize: 13),
                 ),
-                empty: () => Text(
-                  'No tenés categorías registradas todavía.',
-                  style: TextStyle(color: colors.textSecondary, fontSize: 13),
-                ),
-                success: (categories) {
-                  final expectedType = _type == MovementType.expense
-                      ? CategoryType.expense
-                      : CategoryType.income;
-                  final available = categories
-                      .where((item) => item.type.appliesTo(expectedType))
-                      .toList();
-                  return AppSearchableMultiSelector<CategoryEntity>(
-                    items: available,
-                    idOf: (item) => item.id,
-                    labelOf: (item) => item.name,
-                    leadingOf: (item) => Icon(item.icon, color: item.color),
-                    values: _categories,
-                    hint: 'Buscar y seleccionar categorías',
-                    searchHint: 'Buscar categorías',
-                    onChanged: (values) => setState(() => _categories = values),
-                  );
-                },
-              ),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: _createCategory,
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Crear categoría'),
-                ),
+                empty: () => _categorySelector(const [], colors),
+                success: (categories) => _categorySelector(categories, colors),
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
@@ -438,38 +480,8 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
                   'No pudimos cargar tus cuentas.',
                   style: TextStyle(color: colors.textSecondary, fontSize: 13),
                 ),
-                empty: () => Text(
-                  'No tenés cuentas registradas todavía.',
-                  style: TextStyle(color: colors.textSecondary, fontSize: 13),
-                ),
-                success: (accounts) {
-                  _account ??= accounts.isNotEmpty ? accounts.first : null;
-                  return AppSearchableSingleSelector<AccountEntity>(
-                    items: accounts,
-                    idOf: (item) => item.id,
-                    labelOf: (item) => item.name,
-                    leadingOf: (item) => Icon(item.icon, color: colors.primary),
-                    value: _account,
-                    hint: 'Seleccionar cuenta',
-                    searchHint: 'Buscar cuentas',
-                    onChanged: (value) => setState(() => _account = value),
-                  );
-                },
-              ),
-              Wrap(
-                spacing: AppSpacing.xs,
-                children: [
-                  TextButton.icon(
-                    onPressed: _createAccount,
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: const Text('Crear cuenta'),
-                  ),
-                  TextButton.icon(
-                    onPressed: _createCreditCard,
-                    icon: const Icon(Icons.credit_card_outlined, size: 18),
-                    label: const Text('Crear tarjeta'),
-                  ),
-                ],
+                empty: () => _accountSelector(const [], colors),
+                success: (accounts) => _accountSelector(accounts, colors),
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
@@ -481,35 +493,14 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
                 ),
               ),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: RecurrenceFrequency.values.map((f) {
-                  final selected = f == _frequency;
-                  return GestureDetector(
-                    onTap: () => setState(() => _frequency = f),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 9,
-                      ),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? colors.primary
-                            : colors.surfaceElevated,
-                        borderRadius: AppRadius.pillRadius,
-                      ),
-                      child: Text(
-                        f.label,
-                        style: TextStyle(
-                          color: selected ? Colors.white : colors.textSecondary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+              AppSearchableSingleSelector<RecurrenceFrequency>(
+                items: RecurrenceFrequency.values,
+                idOf: (item) => item.name,
+                labelOf: (item) => item.label,
+                value: _frequency,
+                hint: 'Seleccionar frecuencia',
+                searchHint: 'Buscar frecuencia',
+                onChanged: (value) => setState(() => _frequency = value),
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
@@ -587,13 +578,6 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
                   ),
                 ),
               ],
-              const SizedBox(height: AppSpacing.md),
-              AppTextField(
-                label: 'Cantidad de repeticiones (opcional)',
-                controller: _occurrences,
-                keyboardType: TextInputType.number,
-                hint: 'Indefinida si se deja vacío',
-              ),
               if (_errorMessage != null) ...[
                 const SizedBox(height: AppSpacing.sm),
                 Text(
@@ -604,10 +588,11 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
               const SizedBox(height: AppSpacing.lg),
               AppButton(
                 label: isEditing ? 'Guardar cambios' : 'Crear recurrencia',
-                onPressed: _account == null
+                isLoading: _isProcessing,
+                onPressed: _isProcessing || _account == null
                     ? null
                     : () async {
-                        final amount = double.tryParse(_amount.text) ?? 0;
+                        final amount = CurrencyFormatter.parse(_amount.text);
                         if (amount <= 0) {
                           setState(
                             () => _errorMessage = 'Ingresá un monto válido.',
@@ -640,7 +625,7 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
                           startDate: _startDate,
                           endDate: _indefinite ? null : _endDate,
                           frequency: _frequency,
-                          totalOccurrences: int.tryParse(_occurrences.text),
+                          totalOccurrences: null,
                           nextExecutionDate:
                               widget.recurring?.nextExecutionDate ?? _startDate,
                           status:
@@ -650,11 +635,20 @@ class _RecurringEditorSheetState extends ConsumerState<_RecurringEditorSheet> {
                         final viewModel = ref.read(
                           recurringMovementListViewModelProvider.notifier,
                         );
+                        setState(() {
+                          _isProcessing = true;
+                          _errorMessage = null;
+                        });
                         final error = isEditing
                             ? await viewModel.update(entity)
                             : await viewModel.create(entity);
                         if (error != null) {
-                          setState(() => _errorMessage = error);
+                          if (mounted) {
+                            setState(() {
+                              _isProcessing = false;
+                              _errorMessage = error;
+                            });
+                          }
                           return;
                         }
                         if (context.mounted) Navigator.of(context).pop();

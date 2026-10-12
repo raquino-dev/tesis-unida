@@ -39,6 +39,7 @@ class PilotLocalStore {
   static const _pushDeviceVersionKey = 'pilot.notifications.device.version';
   static const _installationIdKey = 'pilot.installation.id';
   static const _lastOnlineAuthenticationKey = 'pilot.auth.last_online';
+  static const _financialProductsOrderKey = 'pilot.financial_products.order';
 
   static Future<void> initialize() async {
     _preferences = await SharedPreferences.getInstance();
@@ -291,6 +292,19 @@ class PilotLocalStore {
       _setBool(_pushKey, enabled);
   static Future<void> saveWeeklySummary(bool enabled) =>
       _setBool(_weeklyKey, enabled);
+
+  /// Orden local de cuentas y tarjetas en la vista unificada.
+  /// Los valores llevan prefijo (`account:` o `card:`) para evitar colisiones.
+  static List<String> get financialProductsOrder =>
+      _preferences?.getStringList(_financialProductsOrderKey) ??
+      (_memory[_financialProductsOrderKey] as List<String>?) ??
+      const [];
+
+  static Future<void> saveFinancialProductsOrder(List<String> order) async {
+    final value = List<String>.unmodifiable(order);
+    _memory[_financialProductsOrderKey] = value;
+    await _preferences?.setStringList(_financialProductsOrderKey, value);
+  }
 
   static String? get pushDeviceId =>
       _preferences?.getString(_pushDeviceIdKey) ??

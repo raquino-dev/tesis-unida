@@ -1,4 +1,4 @@
-enum SubscriptionStatus { free, active, expired }
+enum SubscriptionStatus { free, active, cancelled, expired }
 
 enum PlanId { free, premiumMonthly, premiumAnnual }
 
@@ -32,6 +32,8 @@ class SubscriptionEntity {
   final SubscriptionStatus status;
   final PlanId currentPlan;
   final String renewalDateLabel;
+  final String startedDateLabel;
+  final String paymentMethodLabel;
   final List<SubscriptionPlan> plans;
   final int version;
 
@@ -39,11 +41,17 @@ class SubscriptionEntity {
     required this.status,
     required this.currentPlan,
     required this.renewalDateLabel,
+    this.startedDateLabel = '',
+    this.paymentMethodLabel = '',
     required this.plans,
     this.version = 0,
   });
 
   bool get isPremium =>
-      status == SubscriptionStatus.active && currentPlan != PlanId.free;
+      (status == SubscriptionStatus.active ||
+          status == SubscriptionStatus.cancelled) &&
+      currentPlan != PlanId.free;
+  bool get hasRenewalDate => isPremium && renewalDateLabel.trim().isNotEmpty;
+  bool get renews => status == SubscriptionStatus.active && hasRenewalDate;
   bool allows(PremiumCapability capability) => isPremium;
 }

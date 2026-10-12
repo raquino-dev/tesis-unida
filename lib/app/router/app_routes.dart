@@ -42,5 +42,6 @@ class AppRoutes {
   static String movementDetailPath(String id) => '/movements/$id';
   static String movementEditPath(String id) => '/movements/$id/edit';
   static String accountDetailPath(String id) => '/accounts/$id';
+  static String creditCardDetailPath(String id) => '/credit-cards/$id';
   static String alertDetailPath(String id) => '/alerts/$id';
 }

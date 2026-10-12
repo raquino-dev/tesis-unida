@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart' show DateTimeRange;
-import 'dart:convert';
 import 'dart:io';
 import '../../../core/errors/app_failure.dart';
 import '../../../core/utils/date_formatter.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../mock/mock_data.dart';
 import '../../movements/domain/movement_entity.dart';
 import '../../movements/domain/movement_repository.dart';
@@ -10,6 +10,7 @@ import '../../movements/presentation/viewmodels/movement_list_viewmodel.dart';
 import '../../transfers/domain/transfer_repository.dart';
 import '../domain/export_entity.dart';
 import '../domain/export_repository.dart';
+import 'statement_pdf_builder.dart';
 
 class MockExportRepository implements ExportRepository {
   final MovementRepository _movementRepository;
@@ -35,6 +36,23 @@ class MockExportRepository implements ExportRepository {
   Future<List<ExportRecord>> getHistory() async {
     await Future.delayed(const Duration(milliseconds: 400));
     return List.unmodifiable(_history.reversed);
+  }
+
+  @override
+  Future<String> downloadExport(ExportRecord record) async {
+    final path = record.artifactPath;
+    if (path != null && await File(path).exists()) return path;
+    return record.format == ExportFormat.pdf
+        ? _writePdf(
+            movements: const [],
+            period: record.range,
+            account: 'Todas las cuentas',
+            generatedAt: record.date,
+            totalIncome: record.totalIncome,
+            totalExpense: record.totalExpense,
+            movementCount: record.movementCount,
+          )
+        : _writeExcel(const []);
   }
 
   @override
@@ -100,6 +118,21 @@ class MockExportRepository implements ExportRepository {
 
     final artifactPath = format == ExportFormat.pdf
         ? await _writePdf(
+            movements: movements,
+            period:
+                '${DateFormatter.short(range.start)} - ${DateFormatter.short(range.end)}',
+            account: filters.accountId == null
+                ? 'Todas las cuentas'
+                : movements
+                          .where(
+                            (movement) =>
+                                movement.account.id == filters.accountId,
+                          )
+                          .firstOrNull
+                          ?.account
+                          .name ??
+                      'Cuenta seleccionada',
+            generatedAt: DateTime.now(),
             totalIncome: totalIncome,
             totalExpense: totalExpense,
             movementCount: movements.length,
@@ -142,9 +175,7 @@ class MockExportRepository implements ExportRepository {
 <Row><Cell><Data ss:Type="String">Fecha</Data></Cell><Cell><Data ss:Type="String">Descripción</Data></Cell><Cell><Data ss:Type="String">Tipo</Data></Cell><Cell><Data ss:Type="String">Monto</Data></Cell></Row>
 $rows
 </Table></Worksheet></Workbook>''';
-    final file = File(
-      '${Directory.systemTemp.path}/extracto_${DateTime.now().millisecondsSinceEpoch}.xls',
-    );
+    final file = await _newArtifactFile('xlsx');
     await file.writeAsString(content);
     return file.path;
   }
@@ -155,49 +186,39 @@ $rows
       .replaceAll('>', '&gt;');
 
   Future<String> _writePdf({
+    required List<MovementEntity> movements,
+    required String period,
+    required String account,
+    required DateTime generatedAt,
     required double totalIncome,
     required double totalExpense,
     required int movementCount,
   }) async {
-    final lines = [
-      'Extracto financiero',
-      'Ingresos: ${totalIncome.toStringAsFixed(0)} PYG',
-      'Gastos: ${totalExpense.toStringAsFixed(0)} PYG',
-      'Movimientos incluidos: $movementCount',
-    ];
-    final stream = StringBuffer('BT /F1 18 Tf 50 770 Td ');
-    for (var index = 0; index < lines.length; index++) {
-      if (index > 0) stream.write('0 -28 Td ');
-      stream.write(
-        '(${lines[index].replaceAll('(', r'\(').replaceAll(')', r'\)')}) Tj ',
-      );
-    }
-    stream.write('ET');
-    final objects = <String>[
-      '<< /Type /Catalog /Pages 2 0 R >>',
-      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
-      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-      '<< /Length ${latin1.encode(stream.toString()).length} >>\nstream\n$stream\nendstream',
-    ];
-    final buffer = StringBuffer('%PDF-1.4\n');
-    final offsets = <int>[];
-    for (var index = 0; index < objects.length; index++) {
-      offsets.add(latin1.encode(buffer.toString()).length);
-      buffer.write('${index + 1} 0 obj\n${objects[index]}\nendobj\n');
-    }
-    final xref = latin1.encode(buffer.toString()).length;
-    buffer.write('xref\n0 ${objects.length + 1}\n0000000000 65535 f \n');
-    for (final offset in offsets) {
-      buffer.write('${offset.toString().padLeft(10, '0')} 00000 n \n');
-    }
-    buffer.write(
-      'trailer << /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n$xref\n%%EOF',
+    final bytes = await StatementPdfBuilder.build(
+      period: period,
+      account: account,
+      generatedAt: generatedAt,
+      totalIncome: totalIncome,
+      totalExpense: totalExpense,
+      movementCount: movementCount,
+      movements: movements,
     );
-    final file = File(
-      '${Directory.systemTemp.path}/extracto_${DateTime.now().millisecondsSinceEpoch}.pdf',
-    );
-    await file.writeAsBytes(latin1.encode(buffer.toString()));
+    final file = await _newArtifactFile('pdf');
+    await file.writeAsBytes(bytes, flush: true);
     return file.path;
+  }
+
+  Future<File> _newArtifactFile(String extension) async {
+    Directory root;
+    try {
+      root = await getApplicationDocumentsDirectory();
+    } catch (_) {
+      root = Directory.systemTemp;
+    }
+    final directory = Directory('${root.path}/extractos');
+    await directory.create(recursive: true);
+    return File(
+      '${directory.path}/extracto_${DateTime.now().millisecondsSinceEpoch}.$extension',
+    );
   }
 }
