@@ -24,10 +24,10 @@ void main() {
           200,
           {
             'tema': 'oscuro',
-            'idioma': 'es',
+            'idioma': 'es-PY',
+            'moneda': 'PYG',
             'notificacionesPush': true,
             'resumenSemanal': false,
-            'version': 7,
           },
           headers: {'etag': '"7"'},
         );
@@ -37,7 +37,10 @@ void main() {
       final body = jsonDecode(request.body) as Map<String, dynamic>;
       expect(body['notificacionesPush'], false);
       expect(body['resumenSemanal'], true);
-      return _json(200, {...body, 'version': 8});
+      expect(body['tema'], 'oscuro');
+      expect(body['idioma'], 'es-PY');
+      expect(body['moneda'], 'PYG');
+      return _json(200, body, headers: {'etag': '"8"'});
     });
     final repository = NotificationRepository(
       ApiClient(httpClient: client, baseUrl: 'http://localhost:8080/api/v1'),
@@ -53,6 +56,39 @@ void main() {
     expect(result.weeklySummary, true);
     expect(requests.map((request) => request.method), ['GET', 'PUT']);
   });
+
+  test(
+    'mantiene compatibilidad si el backend expone version en el JSON',
+    () async {
+      final requests = <http.Request>[];
+      final client = MockClient((request) async {
+        requests.add(request);
+        if (request.method == 'GET') {
+          return _json(200, {
+            'tema': 'claro',
+            'idioma': 'es',
+            'moneda': 'PYG',
+            'notificacionesPush': false,
+            'resumenSemanal': false,
+            'version': 4,
+          });
+        }
+        expect(request.headers['if-match'], '"4"');
+        return _json(200, jsonDecode(request.body));
+      });
+      final repository = NotificationRepository(
+        ApiClient(httpClient: client, baseUrl: 'http://localhost:8080/api/v1'),
+        useApi: true,
+      );
+
+      await repository.updatePreferences(
+        pushEnabled: true,
+        weeklySummary: false,
+      );
+
+      expect(requests.map((request) => request.method), ['GET', 'PUT']);
+    },
+  );
 
   test(
     'revoca el dispositivo push con su ETag y limpia el vínculo local',

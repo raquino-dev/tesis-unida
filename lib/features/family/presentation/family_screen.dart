@@ -1064,6 +1064,7 @@ class _AddFamilyMovementSheetState
                 label: 'Monto (Gs.)',
                 controller: _amount,
                 keyboardType: TextInputType.number,
+                inputFormatters: const [CurrencyInputFormatter()],
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
@@ -1134,7 +1135,7 @@ class _AddFamilyMovementSheetState
                 onPressed: _category == null || _account == null
                     ? null
                     : () async {
-                        final amount = double.tryParse(_amount.text) ?? 0;
+                        final amount = CurrencyFormatter.parse(_amount.text);
                         if (amount <= 0) {
                           setState(() => _error = 'Ingresá un monto válido.');
                           return;

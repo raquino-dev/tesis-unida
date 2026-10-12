@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class AppEnvironment {
   AppEnvironment._();
 
@@ -30,9 +32,21 @@ class AppEnvironment {
     'FIREBASE_API_KEY',
     defaultValue: 'AIzaSyCM77v5DU2sSA4j_UTwBov5nMTfY6EGCS4',
   );
-  static const firebaseAppId = String.fromEnvironment(
+  static const _firebaseAppIdOverride = String.fromEnvironment(
     'FIREBASE_APP_ID',
+    defaultValue: '',
+  );
+  static const firebaseAndroidAppId = String.fromEnvironment(
+    'FIREBASE_ANDROID_APP_ID',
     defaultValue: '1:874909933539:android:885f26c9a43616ab4dcad6',
+  );
+  static const firebaseIosAppId = String.fromEnvironment(
+    'FIREBASE_IOS_APP_ID',
+    defaultValue: '',
+  );
+  static const firebaseIosBundleId = String.fromEnvironment(
+    'FIREBASE_IOS_BUNDLE_ID',
+    defaultValue: 'com.tesis.finanzasinteligentes',
   );
   static const firebaseMessagingSenderId = String.fromEnvironment(
     'FIREBASE_MESSAGING_SENDER_ID',
@@ -42,6 +56,17 @@ class AppEnvironment {
     'FIREBASE_PROJECT_ID',
     defaultValue: 'finanzas-piloto-ra-2026',
   );
+
+  static String firebaseAppIdFor(TargetPlatform platform) {
+    if (_firebaseAppIdOverride.isNotEmpty) return _firebaseAppIdOverride;
+    return switch (platform) {
+      TargetPlatform.android => firebaseAndroidAppId,
+      TargetPlatform.iOS => firebaseIosAppId,
+      _ => '',
+    };
+  }
+
+  static String get firebaseAppId => firebaseAppIdFor(defaultTargetPlatform);
 
   static bool get firebaseConfigured =>
       firebaseApiKey.isNotEmpty &&

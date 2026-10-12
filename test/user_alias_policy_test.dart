@@ -14,5 +14,18 @@ void main() {
       expect(UserAliasPolicy.validate('ro drigo'), isNotNull);
       expect(UserAliasPolicy.validate('rodri@go'), isNotNull);
     });
+
+    test('exige entre 3 y 24 caracteres', () {
+      expect(UserAliasPolicy.validate('ab'), isNotNull);
+      expect(UserAliasPolicy.validate('abc'), isNull);
+      expect(
+        UserAliasPolicy.validate('a${List.filled(23, 'b').join()}'),
+        isNull,
+      );
+      expect(
+        UserAliasPolicy.validate('a${List.filled(24, 'b').join()}'),
+        isNotNull,
+      );
+    });
   });
 }

@@ -52,6 +52,9 @@ class ExportViewModel extends StateNotifier<ViewState<ExportRecord>> {
   }
 
   void reset() => state = const ViewState.empty();
+
+  Future<String> download(ExportRecord record) =>
+      _ref.read(exportRepositoryProvider).downloadExport(record);
 }
 
 final exportViewModelProvider =

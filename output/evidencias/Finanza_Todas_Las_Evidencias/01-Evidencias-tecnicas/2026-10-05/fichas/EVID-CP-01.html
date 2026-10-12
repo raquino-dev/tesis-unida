@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><style>body{font:17px Arial;color:#182332;background:#eef2f4;margin:0;padding:28px}main{background:white;padding:28px;border:1px solid #cad2d9;border-radius:12px}h1{font-size:25px}h2{font-size:20px}pre{white-space:pre-wrap;word-break:break-word;font:13px monospace;background:#f2f4f6;padding:18px}p{line-height:1.45}.scope{padding:12px;background:#fff4d8}small{color:#586575}</style><main><small>Finanza · evidencias reproducidas · 5 de octubre de 2026</small><h1>EVID-CP-01 · Pruebas Flutter</h1><p class="scope">Resultado actual: 95 aprobadas y 1 fallida. La cifra histórica de 58 no se reproduce en esta ejecución.</p><p>Fuente: flutter-test.txt</p><pre>s locales válidos en PDF y Excel [E]
+  Binding has not yet been initialized.
+  The &quot;instance&quot; getter on the ServicesBinding binding mixin is only available once that binding has been initialized.
+  Typically, this is done by calling &quot;WidgetsFlutterBinding.ensureInitialized()&quot; or &quot;runApp()&quot; (the latter calls the former). Typically this call is done in the &quot;void main()&quot; method. The &quot;ensureInitialized&quot; method is idempotent; calling it multiple times is not harmful. After calling that method, the &quot;instance&quot; getter will return the binding.
+  In a test, one can call &quot;TestWidgetsFlutterBinding.ensureInitialized()&quot; as the first line in the test&#x27;s &quot;main()&quot; method to initialize the binding.
+  If ServicesBinding is a custom binding mixin, there must also be a custom binding class, like WidgetsFlutterBinding, but that mixes in the selected binding, and that is the class that must be constructed before using the &quot;instance&quot; getter.
+  package:flutter/src/foundation/binding.dart 315:9                             BindingBase.checkInstance.&lt;fn&gt;
+  package:flutter/src/foundation/binding.dart 402:6                             BindingBase.checkInstance
+  package:flutter/src/services/binding.dart 73:54                               ServicesBinding.instance
+  package:flutter/src/services/asset_bundle.dart 328:54                         PlatformAssetBundle.load
+  package:finanzas_app/features/export/data/statement_pdf_builder.dart 32:24    StatementPdfBuilder.build
+  package:finanzas_app/features/export/data/mock_export_repository.dart 197:45  MockExportRepository._writePdf
+  package:finanzas_app/features/export/data/mock_export_repository.dart 120:17  MockExportRepository.requestExport
+  
+00:45 +89 -1: /Users/maccanales3/Documents/Desarrollos/practica-flutter/test/acceptance/functional_requirements_acceptance_test.dart: Pruebas de aceptación RF-01 a RF-21 RF-16 proyecta gasto mensual y por categoría desde el historial
+00:47 +90 -1: /Users/maccanales3/Documents/Desarrollos/practica-flutter/test/acceptance/functional_requirements_acceptance_test.dart: Pruebas de aceptación RF-01 a RF-21 RF-17 emite alertas y recomendaciones comprensibles
+00:49 +91 -1: /Users/maccanales3/Documents/Desarrollos/practica-flutter/test/acceptance/functional_requirements_acceptance_test.dart: Pruebas de aceptación RF-01 a RF-21 RF-18 habilita y ejecuta autenticación biométrica mock
+00:49 +92 -1: /Users/maccanales3/Documents/Desarrollos/practica-flutter/test/acceptance/functional_requirements_acceptance_test.dart: Pruebas de aceptación RF-01 a RF-21 RF-19 exige y valida OTP en acciones sensibles
+00:50 +93 -1: /Users/maccanales3/Documents/Desarrollos/practica-flutter/test/acceptance/functional_requirements_acceptance_test.dart: Pruebas de aceptación RF-01 a RF-21 RF-20 registra eventos relevantes de seguridad y auditoría
+00:50 +94 -1: /Users/maccanales3/Documents/Desarrollos/practica-flutter/test/acceptance/functional_requirements_acceptance_test.dart: Pruebas de aceptación RF-01 a RF-21 RF-21 diferencia funcionalidades Free y Premium
+00:52 +95 -1: Some tests failed.
+
+Failing tests:
+  /Users/maccanales3/Documents/Desarrollos/practica-flutter/test/acceptance/functional_requirements_acceptance_test.dart: Pruebas de aceptación RF-01 a RF-21 RF-15 exporta reportes locales válidos en PDF y Excel
+</pre><p><small>Ficha derivada de archivos reales de esta ejecución; no es una captura del proveedor ni una evidencia histórica.</small></p></main>

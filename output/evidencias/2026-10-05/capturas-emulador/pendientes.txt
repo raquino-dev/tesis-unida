@@ -1,0 +1,3 @@
+Modo demo: capturas reales de la interfaz Android.
+Pendientes: sincronización offline conectada, restauración Supabase, S3/Textract/SES/FCM reales, compra Google Play y métricas históricas OCR.
+CP-01/02/10/11/12: evidencias técnicas o documentales; no se sustituyen por pantallas funcionales.

@@ -1,0 +1,7 @@
+Evidencias por capturas de Finanza
+
+EVID-E2E-08 / CP-13: uso de la app sin internet. Se incluyen el estado Wi-Fi y datos móviles desactivados, la app abierta y el formulario de movimiento disponible en ese estado. La app utilizada está en modo demo.
+
+EVID-E2E-03 / CP-07: demostración OCR en modo demo mediante la pantalla de revisión del resultado. Esta captura corresponde al procesador demo, no a una ejecución del servicio AWS Textract.
+
+Alcance acordado: capturas de uso sin internet y demostración OCR; no se requieren capturas de sincronización ni resolución de conflictos.

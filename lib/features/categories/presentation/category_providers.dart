@@ -56,6 +56,14 @@ class CategoryListViewModel
           fallback: 'No pudimos guardar la categoría. Intentá nuevamente.',
         ),
       );
+    } catch (e) {
+      return (
+        entity: null,
+        error: appErrorMessage(
+          e,
+          fallback: 'No pudimos guardar la categoría. Intentá nuevamente.',
+        ),
+      );
     }
   }
 
@@ -69,6 +77,11 @@ class CategoryListViewModel
         e,
         fallback: 'No pudimos actualizar la categoría. Intentá nuevamente.',
       );
+    } catch (e) {
+      return appErrorMessage(
+        e,
+        fallback: 'No pudimos actualizar la categoría. Intentá nuevamente.',
+      );
     }
   }
 
@@ -78,6 +91,11 @@ class CategoryListViewModel
       await load();
       return null;
     } on AppFailure catch (e) {
+      return appErrorMessage(
+        e,
+        fallback: 'No pudimos eliminar la categoría. Intentá nuevamente.',
+      );
+    } catch (e) {
       return appErrorMessage(
         e,
         fallback: 'No pudimos eliminar la categoría. Intentá nuevamente.',

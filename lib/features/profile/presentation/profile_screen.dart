@@ -328,6 +328,11 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     super.dispose();
   }
 
+  String? get _aliasError {
+    if (_alias.text.isEmpty) return null;
+    return UserAliasPolicy.validate(_alias.text);
+  }
+
   Future<void> _save() async {
     final name = _name.text.trim();
     final aliasError = UserAliasPolicy.validate(_alias.text);
@@ -336,7 +341,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
       return;
     }
     if (aliasError != null) {
-      setState(() => _error = aliasError);
+      setState(() => _error = null);
       return;
     }
     setState(() {
@@ -409,6 +414,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                 label: 'Alias único',
                 controller: _alias,
                 hint: '@Rodrigo001',
+                errorText: _aliasError,
                 prefixIcon: const Icon(Icons.alternate_email_rounded),
                 onChanged: (_) => setState(() => _error = null),
               ),

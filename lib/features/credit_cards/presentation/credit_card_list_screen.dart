@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../app/router/app_routes.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme_extension.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -76,7 +78,7 @@ class _CreditCardTile extends StatelessWidget {
     final colors = context.colors;
     return AppCard(
       elevation: AppCardElevation.elevated,
-      onTap: () => showCreditCardEditorSheet(context, card: card),
+      onTap: () => context.push(AppRoutes.creditCardDetailPath(card.id)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -196,13 +198,14 @@ class _CreditCardEditorSheetState
     text: (widget.card?.dueDay ?? 5).toString(),
   );
   late final _totalLimit = TextEditingController(
-    text: widget.card?.totalLimit.toStringAsFixed(0) ?? '',
+    text: CurrencyFormatter.inputValue(widget.card?.totalLimit),
   );
   late final _usedLimit = TextEditingController(
-    text: (widget.card?.usedLimit ?? 0).toStringAsFixed(0),
+    text: CurrencyFormatter.inputValue(widget.card?.usedLimit),
   );
   AccountEntity? _account;
   String? _errorMessage;
+  bool _isProcessing = false;
 
   bool get isEditing => widget.card != null;
 
@@ -247,18 +250,45 @@ class _CreditCardEditorSheetState
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   if (isEditing)
-                    IconButton(
-                      icon: Icon(
-                        Icons.delete_outline_rounded,
-                        color: colors.error,
-                      ),
-                      onPressed: () async {
-                        await ref
-                            .read(creditCardListViewModelProvider.notifier)
-                            .delete(widget.card!.id);
-                        if (context.mounted) Navigator.of(context).pop();
-                      },
-                    ),
+                    _isProcessing
+                        ? const SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: Padding(
+                              padding: EdgeInsets.all(13),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : IconButton(
+                            icon: Icon(
+                              Icons.delete_outline_rounded,
+                              color: colors.error,
+                            ),
+                            onPressed: () async {
+                              setState(() {
+                                _isProcessing = true;
+                                _errorMessage = null;
+                              });
+                              try {
+                                await ref
+                                    .read(
+                                      creditCardListViewModelProvider.notifier,
+                                    )
+                                    .delete(widget.card!.id);
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                }
+                              } catch (_) {
+                                if (mounted) {
+                                  setState(() {
+                                    _isProcessing = false;
+                                    _errorMessage =
+                                        'No pudimos eliminar la tarjeta.';
+                                  });
+                                }
+                              }
+                            },
+                          ),
                 ],
               ),
               const SizedBox(height: AppSpacing.md),
@@ -334,12 +364,14 @@ class _CreditCardEditorSheetState
                 label: 'Línea total (Gs.)',
                 controller: _totalLimit,
                 keyboardType: TextInputType.number,
+                inputFormatters: const [CurrencyInputFormatter()],
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
                 label: 'Línea utilizada (Gs.)',
                 controller: _usedLimit,
                 keyboardType: TextInputType.number,
+                inputFormatters: const [CurrencyInputFormatter()],
               ),
               if (_errorMessage != null) ...[
                 const SizedBox(height: AppSpacing.sm),
@@ -351,11 +383,15 @@ class _CreditCardEditorSheetState
               const SizedBox(height: AppSpacing.lg),
               AppButton(
                 label: isEditing ? 'Guardar cambios' : 'Crear tarjeta',
-                onPressed: _alias.text.trim().isEmpty || _account == null
+                isLoading: _isProcessing,
+                onPressed:
+                    _isProcessing ||
+                        _alias.text.trim().isEmpty ||
+                        _account == null
                     ? null
                     : () async {
-                        final total = double.tryParse(_totalLimit.text) ?? 0;
-                        final used = double.tryParse(_usedLimit.text) ?? 0;
+                        final total = CurrencyFormatter.parse(_totalLimit.text);
+                        final used = CurrencyFormatter.parse(_usedLimit.text);
                         final closingDay = int.tryParse(_closingDay.text) ?? 20;
                         final dueDay = int.tryParse(_dueDay.text) ?? 5;
                         if (total <= 0) {
@@ -394,6 +430,10 @@ class _CreditCardEditorSheetState
                         final viewModel = ref.read(
                           creditCardListViewModelProvider.notifier,
                         );
+                        setState(() {
+                          _isProcessing = true;
+                          _errorMessage = null;
+                        });
                         CreditCardEntity? saved;
                         String? error;
                         if (isEditing) {
@@ -407,7 +447,12 @@ class _CreditCardEditorSheetState
                           error = result.error;
                         }
                         if (error != null) {
-                          setState(() => _errorMessage = error);
+                          if (mounted) {
+                            setState(() {
+                              _isProcessing = false;
+                              _errorMessage = error;
+                            });
+                          }
                           return;
                         }
                         if (context.mounted) Navigator.of(context).pop(saved);

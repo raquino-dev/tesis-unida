@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -63,6 +64,8 @@ class _Fixture {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('Pruebas de aceptación RF-01 a RF-21', () {
     test(
       'RF-01 registro e inicio de sesión emiten una sesión protegida mock',
@@ -365,10 +368,18 @@ void main() {
       );
       final pdfFile = File(pdf.artifactPath!);
       final excelFile = File(excel.artifactPath!);
-      expect(await pdfFile.readAsString(), startsWith('%PDF-1.4'));
-      expect(await excelFile.readAsString(), contains('<Workbook'));
-      await pdfFile.delete();
-      await excelFile.delete();
+      try {
+        final pdfBytes = await pdfFile.readAsBytes();
+        expect(ascii.decode(pdfBytes.take(5).toList()), '%PDF-');
+        expect(
+          ascii.decode(pdfBytes.skip(pdfBytes.length - 6).toList()),
+          contains('%%EOF'),
+        );
+        expect(await excelFile.readAsString(), contains('<Workbook'));
+      } finally {
+        await pdfFile.delete();
+        await excelFile.delete();
+      }
     });
 
     test(

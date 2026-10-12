@@ -32,7 +32,9 @@ final _recentMovementsProvider =
     });
 
 class DashboardScreen extends ConsumerWidget {
-  const DashboardScreen({super.key});
+  final VoidCallback onOpenMovements;
+
+  const DashboardScreen({super.key, required this.onOpenMovements});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -77,6 +79,7 @@ class DashboardScreen extends ConsumerWidget {
                         value: summary.totalIncome,
                         tone: AppBadgeToneSuccess.success,
                         movementType: MovementType.income,
+                        onOpenMovements: onOpenMovements,
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
@@ -86,6 +89,7 @@ class DashboardScreen extends ConsumerWidget {
                         value: summary.totalExpense,
                         tone: AppBadgeToneSuccess.error,
                         movementType: MovementType.expense,
+                        onOpenMovements: onOpenMovements,
                       ),
                     ),
                   ],
@@ -124,7 +128,7 @@ class DashboardScreen extends ConsumerWidget {
                 AppSectionHeader(
                   title: 'Movimientos recientes',
                   actionLabel: 'Ver todos',
-                  onAction: () => context.go(AppRoutes.movements),
+                  onAction: onOpenMovements,
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 recentMovements.when(
@@ -541,11 +545,13 @@ class _MetricTile extends ConsumerWidget {
   final double value;
   final AppBadgeToneSuccess tone;
   final MovementType movementType;
+  final VoidCallback onOpenMovements;
   const _MetricTile({
     required this.label,
     required this.value,
     required this.tone,
     required this.movementType,
+    required this.onOpenMovements,
   });
 
   @override
@@ -558,7 +564,7 @@ class _MetricTile extends ConsumerWidget {
       onTap: () {
         final viewModel = ref.read(movementListViewModelProvider.notifier);
         viewModel.updateFilters(viewModel.filters.copyWith(type: movementType));
-        context.go(AppRoutes.movements);
+        onOpenMovements();
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

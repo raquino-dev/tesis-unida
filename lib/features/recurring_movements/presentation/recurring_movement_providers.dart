@@ -57,6 +57,11 @@ class RecurringMovementListViewModel
       return null;
     } on AppFailure catch (e) {
       return e.message;
+    } catch (e) {
+      return appErrorMessage(
+        e,
+        fallback: 'No pudimos crear el movimiento recurrente.',
+      );
     }
   }
 
@@ -67,6 +72,11 @@ class RecurringMovementListViewModel
       return null;
     } on AppFailure catch (e) {
       return e.message;
+    } catch (e) {
+      return appErrorMessage(
+        e,
+        fallback: 'No pudimos actualizar el movimiento recurrente.',
+      );
     }
   }
 

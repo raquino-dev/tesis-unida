@@ -73,7 +73,9 @@ class MockSubscriptionRepository implements SubscriptionRepository {
     return SubscriptionEntity(
       status: _status,
       currentPlan: _currentPlan,
-      renewalDateLabel: MockData.renewalDateLabel,
+      renewalDateLabel: _currentPlan == PlanId.free
+          ? ''
+          : MockData.renewalDateLabel,
       plans: _plans,
     );
   }

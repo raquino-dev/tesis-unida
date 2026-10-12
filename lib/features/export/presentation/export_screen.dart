@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/app_radius.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../app/theme/app_theme_extension.dart';
+import '../../../core/errors/app_failure.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../core/widgets/app_button.dart';
@@ -247,59 +248,136 @@ class _ExportScreenState extends ConsumerState<ExportScreen> {
                       ),
                     )
                   : Column(
-                      children: records.map((r) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: AppCard(
-                            child: Row(
-                              children: [
-                                Icon(
-                                  r.format == ExportFormat.pdf
-                                      ? Icons.picture_as_pdf_outlined
-                                      : Icons.table_chart_outlined,
-                                  color: colors.primary,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        r.range,
-                                        style: TextStyle(
-                                          color: colors.textPrimary,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                      Text(
-                                        DateFormatter.medium(r.date),
-                                        style: TextStyle(
-                                          color: colors.textMuted,
-                                          fontSize: 11.5,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Text(
-                                  '${r.movementCount} mov.',
-                                  style: TextStyle(
-                                    color: colors.textSecondary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
+                      children: records
+                          .map(
+                            (record) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: _ExportHistoryCard(record: record),
                             ),
-                          ),
-                        );
-                      }).toList(),
+                          )
+                          .toList(),
                     ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ExportHistoryCard extends ConsumerStatefulWidget {
+  const _ExportHistoryCard({required this.record});
+
+  final ExportRecord record;
+
+  @override
+  ConsumerState<_ExportHistoryCard> createState() => _ExportHistoryCardState();
+}
+
+class _ExportHistoryCardState extends ConsumerState<_ExportHistoryCard> {
+  bool _downloading = false;
+
+  Future<void> _openOrShare() async {
+    setState(() => _downloading = true);
+    try {
+      final path = await ref
+          .read(exportViewModelProvider.notifier)
+          .download(widget.record);
+      if (!mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(path)],
+          subject: 'Extracto financiero ${widget.record.range}',
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            appErrorMessage(
+              error,
+              fallback: 'No pudimos recuperar el archivo del extracto.',
+            ),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _downloading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final record = widget.record;
+    final isPdf = record.format == ExportFormat.pdf;
+    final formatColor = isPdf ? colors.error : colors.success;
+    return AppCard(
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: formatColor.withValues(alpha: .12),
+              borderRadius: AppRadius.smRadius,
+            ),
+            child: Icon(
+              isPdf ? Icons.picture_as_pdf_rounded : Icons.table_view_rounded,
+              color: formatColor,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Extracto ${isPdf ? 'PDF' : 'Excel'}',
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  'Período: ${record.range}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: colors.textSecondary, fontSize: 11.5),
+                ),
+                Text(
+                  'Generado: ${DateFormatter.medium(record.date)}',
+                  style: TextStyle(color: colors.textMuted, fontSize: 11.5),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${record.movementCount} mov.',
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Abrir o compartir extracto',
+                onPressed: _downloading ? null : _openOrShare,
+                icon: _downloading
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.ios_share_rounded, size: 20),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

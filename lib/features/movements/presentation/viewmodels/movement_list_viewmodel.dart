@@ -14,6 +14,7 @@ class MovementFilters {
   final MovementType? type;
   final String? categoryId;
   final String? accountId;
+  final String? creditCardId;
   final DateTimeRange? dateRange;
   final OcrFilter ocrFilter;
 
@@ -22,6 +23,7 @@ class MovementFilters {
     this.type,
     this.categoryId,
     this.accountId,
+    this.creditCardId,
     this.dateRange,
     this.ocrFilter = OcrFilter.any,
   });
@@ -29,12 +31,14 @@ class MovementFilters {
   bool get hasAdvancedFilters =>
       categoryId != null ||
       accountId != null ||
+      creditCardId != null ||
       dateRange != null ||
       ocrFilter != OcrFilter.any;
 
   int get activeAdvancedCount =>
       (categoryId != null ? 1 : 0) +
       (accountId != null ? 1 : 0) +
+      (creditCardId != null ? 1 : 0) +
       (dateRange != null ? 1 : 0) +
       (ocrFilter != OcrFilter.any ? 1 : 0);
 
@@ -46,6 +50,8 @@ class MovementFilters {
     bool clearCategory = false,
     String? accountId,
     bool clearAccount = false,
+    String? creditCardId,
+    bool clearCreditCard = false,
     DateTimeRange? dateRange,
     bool clearDateRange = false,
     OcrFilter? ocrFilter,
@@ -55,6 +61,9 @@ class MovementFilters {
       type: clearType ? null : (type ?? this.type),
       categoryId: clearCategory ? null : (categoryId ?? this.categoryId),
       accountId: clearAccount ? null : (accountId ?? this.accountId),
+      creditCardId: clearCreditCard
+          ? null
+          : (creditCardId ?? this.creditCardId),
       dateRange: clearDateRange ? null : (dateRange ?? this.dateRange),
       ocrFilter: ocrFilter ?? this.ocrFilter,
     );
@@ -82,6 +91,7 @@ class MovementFilters {
             (m.creditCardId != null && !m.isCardPayment))) {
       return false;
     }
+    if (creditCardId != null && m.creditCardId != creditCardId) return false;
     if (dateRange != null) {
       final start = DateTime(
         dateRange!.start.year,

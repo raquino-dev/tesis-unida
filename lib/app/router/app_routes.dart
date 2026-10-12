@@ -3,6 +3,7 @@ class AppRoutes {
   AppRoutes._();
 
   static const splash = '/splash';
+  static const restoringSession = '/restoring-session';
   static const onboarding = '/onboarding';
   static const login = '/login';
   static const register = '/register';
@@ -41,5 +42,6 @@ class AppRoutes {
   static String movementDetailPath(String id) => '/movements/$id';
   static String movementEditPath(String id) => '/movements/$id/edit';
   static String accountDetailPath(String id) => '/accounts/$id';
+  static String creditCardDetailPath(String id) => '/credit-cards/$id';
   static String alertDetailPath(String id) => '/alerts/$id';
 }

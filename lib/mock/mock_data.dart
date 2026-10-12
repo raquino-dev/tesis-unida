@@ -217,6 +217,8 @@ class MockData {
       'categoryIds': ['cat_alimentacion'],
       'description': 'Almuerzo',
       'accountId': 'acc_credito_itau',
+      'creditCardId': 'cc_itau',
+      'cardOperation': 'compra',
       'hasAttachment': false,
       'attachmentType': null,
       'ocrStatus': null,

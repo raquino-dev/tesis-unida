@@ -7,6 +7,7 @@ import '../../features/alerts/presentation/alert_detail_screen.dart';
 import '../../features/alerts/presentation/alert_list_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/session_restoration_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/screens/change_password_screen.dart';
 import '../../features/auth/presentation/screens/reset_password_screen.dart';
@@ -16,6 +17,7 @@ import '../../core/widgets/offline_status_bar.dart';
 import '../../features/budgets/presentation/budgets_screen.dart';
 import '../../features/categories/presentation/category_list_screen.dart';
 import '../../features/credit_cards/presentation/credit_card_list_screen.dart';
+import '../../features/credit_cards/presentation/credit_card_detail_screen.dart';
 import '../../features/export/presentation/export_screen.dart';
 import '../../features/family/presentation/family_screen.dart';
 import '../../features/family/presentation/family_finance_screen.dart';
@@ -44,6 +46,9 @@ final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final currentUser = ref.watch(currentUserProvider);
+  final restorationStatus = ref.watch(sessionRestorationStatusProvider);
+  final restorationPending =
+      restorationStatus != SessionRestorationStatus.complete;
   // Una marca local no basta para abrir áreas privadas: el perfil debe haberse
   // restaurado desde la API o desde la caché cifrada del modo sin conexión.
   final authenticated = currentUser != null;
@@ -59,6 +64,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     navigatorKey: rootNavigatorKey,
     initialLocation: !PilotLocalStore.onboardingCompleted
         ? AppRoutes.splash
+        : restorationPending
+        ? AppRoutes.restoringSession
         : authenticated
         ? AppRoutes.dashboard
         : AppRoutes.login,
@@ -70,7 +77,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             location != AppRoutes.resetPassword) {
           return AppRoutes.splash;
         }
+      } else if (restorationPending) {
+        return location == AppRoutes.restoringSession
+            ? null
+            : AppRoutes.restoringSession;
       } else if (location == AppRoutes.splash ||
+          location == AppRoutes.restoringSession ||
           location == AppRoutes.onboarding) {
         return authenticated ? AppRoutes.dashboard : AppRoutes.login;
       }
@@ -104,6 +116,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
+        path: AppRoutes.restoringSession,
+        builder: (context, state) => const SessionRestorationScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.register,
         builder: (context, state) => const RegisterScreen(),
       ),
@@ -134,6 +150,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 : null,
             initialAccountId: extra is AddMovementArgs
                 ? extra.initialAccountId
+                : null,
+            initialCreditCardId: extra is AddMovementArgs
+                ? extra.initialCreditCardId
                 : null,
           );
         },
@@ -229,6 +248,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.creditCards,
         builder: (context, state) => const CreditCardListScreen(),
+      ),
+      GoRoute(
+        path: '/credit-cards/:id',
+        builder: (context, state) =>
+            CreditCardDetailScreen(cardId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: AppRoutes.transfers,

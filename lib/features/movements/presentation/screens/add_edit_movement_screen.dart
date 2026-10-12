@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/theme/app_radius.dart';
 import '../../../../app/theme/app_theme_extension.dart';
+import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_searchable_selector.dart';
@@ -59,19 +59,26 @@ class _PaymentOption {
 class AddMovementArgs {
   final MovementType? initialType;
   final String? initialAccountId;
+  final String? initialCreditCardId;
 
-  const AddMovementArgs({this.initialType, this.initialAccountId});
+  const AddMovementArgs({
+    this.initialType,
+    this.initialAccountId,
+    this.initialCreditCardId,
+  });
 }
 
 class AddEditMovementScreen extends ConsumerStatefulWidget {
   final MovementEntity? existing;
   final MovementType? initialType;
   final String? initialAccountId;
+  final String? initialCreditCardId;
   const AddEditMovementScreen({
     super.key,
     this.existing,
     this.initialType,
     this.initialAccountId,
+    this.initialCreditCardId,
   });
 
   @override
@@ -104,7 +111,9 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
   void initState() {
     super.initState();
     if (widget.existing != null) {
-      _amountController.text = widget.existing!.amount.toStringAsFixed(0);
+      _amountController.text = CurrencyFormatter.inputValue(
+        widget.existing!.amount,
+      );
       _descriptionController.text = widget.existing!.description;
       _categories = List.of(widget.existing!.categories);
       _account = widget.existing!.account;
@@ -553,7 +562,9 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
                         .submit(
                           existingId: widget.existing?.id,
                           type: _type,
-                          amount: double.tryParse(_amountController.text) ?? 0,
+                          amount: CurrencyFormatter.parse(
+                            _amountController.text,
+                          ),
                           date: _date,
                           categories: _categories,
                           account: _account!,
@@ -608,7 +619,7 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
               TextField(
                 controller: _amountController,
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                inputFormatters: const [CurrencyInputFormatter()],
                 style: TextStyle(
                   color: colors.textPrimary,
                   fontSize: 22,
@@ -616,7 +627,7 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
                 ),
                 decoration: _inputDecoration(
                   context,
-                  hint: '0',
+                  hint: 'Ingresá el monto',
                   leading: Icons.monetization_on_outlined,
                   highlighted: true,
                 ),
@@ -728,6 +739,18 @@ class _AddEditMovementScreenState extends ConsumerState<AddEditMovementScreen> {
                     empty: () => <CreditCardEntity>[],
                     success: (cards) => cards,
                   );
+                  final initialCard = cards
+                      .where((card) => card.id == widget.initialCreditCardId)
+                      .firstOrNull;
+                  if (_selectedPaymentId == null && initialCard != null) {
+                    _selectedPaymentId = 'card:${initialCard.id}';
+                    _selectedPaymentName = initialCard.alias;
+                    _account = initialCard.account;
+                    _cardLinkedAccount = initialCard.account;
+                    _cardOperation = _type == MovementType.expense
+                        ? CardOperation.purchase
+                        : CardOperation.refund;
+                  }
                   final selectedCard = cards
                       .where((card) => 'card:${card.id}' == _selectedPaymentId)
                       .firstOrNull;

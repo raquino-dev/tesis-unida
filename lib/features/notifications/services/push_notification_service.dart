@@ -64,12 +64,14 @@ class PushNotificationService {
   }
 
   Future<bool> setEnabled(bool enabled) async {
-    if (!_available) return false;
     if (!enabled) {
+      await _repository.unregisterPushDevice();
+      if (!_available) return true;
       await FirebaseMessaging.instance.setAutoInitEnabled(false);
       await FirebaseMessaging.instance.deleteToken();
       return true;
     }
+    if (!_available) return false;
     await FirebaseMessaging.instance.setAutoInitEnabled(true);
     final permission = await FirebaseMessaging.instance.requestPermission(
       alert: true,
@@ -80,9 +82,8 @@ class PushNotificationService {
       return false;
     }
     final token = await FirebaseMessaging.instance.getToken();
-    if (token != null && token.isNotEmpty) {
-      await _repository.registerPushToken(token);
-    }
+    if (token == null || token.isEmpty) return false;
+    await _repository.registerPushToken(token);
     return true;
   }
 

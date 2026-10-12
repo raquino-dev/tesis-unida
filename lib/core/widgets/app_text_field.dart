@@ -17,6 +17,7 @@ class AppTextField extends StatefulWidget {
   final Iterable<String>? autofillHints;
   final List<TextInputFormatter>? inputFormatters;
   final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
 
   const AppTextField({
     super.key,
@@ -34,6 +35,7 @@ class AppTextField extends StatefulWidget {
     this.autofillHints,
     this.inputFormatters,
     this.textInputAction,
+    this.onSubmitted,
   });
 
   @override
@@ -67,6 +69,7 @@ class _AppTextFieldState extends State<AppTextField> {
           inputFormatters: widget.inputFormatters,
           textInputAction: widget.textInputAction,
           onChanged: widget.onChanged,
+          onSubmitted: widget.onSubmitted,
           maxLines: widget.obscureText ? 1 : widget.maxLines,
           style: TextStyle(color: colors.textPrimary, fontSize: 15),
           decoration: InputDecoration(

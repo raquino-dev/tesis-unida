@@ -20,6 +20,7 @@ class PilotLocalStore {
 
   static const _onboardingKey = 'pilot.onboarding.completed';
   static const _sessionKey = 'pilot.session.active';
+  static const _rememberSessionKey = 'pilot.session.remember';
   static const _refreshTokenKey = 'pilot.refresh.token';
   static const _accessTokenKey = 'pilot.access.token';
   static const _sessionIdKey = 'pilot.session.id';
@@ -38,6 +39,7 @@ class PilotLocalStore {
   static const _pushDeviceVersionKey = 'pilot.notifications.device.version';
   static const _installationIdKey = 'pilot.installation.id';
   static const _lastOnlineAuthenticationKey = 'pilot.auth.last_online';
+  static const _financialProductsOrderKey = 'pilot.financial_products.order';
 
   static Future<void> initialize() async {
     _preferences = await SharedPreferences.getInstance();
@@ -74,11 +76,24 @@ class PilotLocalStore {
   static bool get onboardingCompleted => _getBool(_onboardingKey);
   static Future<void> completeOnboarding() => _setBool(_onboardingKey, true);
 
-  static bool get hasSession => _getBool(_sessionKey);
+  static bool get hasSession =>
+      _memory[_sessionKey] as bool? ??
+      _preferences?.getBool(_sessionKey) ??
+      false;
+
+  /// Indica si la sesión debe sobrevivir al cierre completo de la aplicación.
+  /// Las instalaciones anteriores se consideran recordadas para conservar la
+  /// sesión que ya tenían guardada.
+  static bool get remembersSession =>
+      _memory[_rememberSessionKey] as bool? ??
+      _preferences?.getBool(_rememberSessionKey) ??
+      hasSession;
 
   static bool get offlineSessionValid {
     if (!hasSession) return false;
-    final raw = _preferences?.getString(_lastOnlineAuthenticationKey);
+    final raw =
+        _memory[_lastOnlineAuthenticationKey] as String? ??
+        _preferences?.getString(_lastOnlineAuthenticationKey);
     if (raw == null) return true; // Compatibilidad con instalaciones previas.
     final timestamp = DateTime.tryParse(raw);
     if (timestamp == null) return false;
@@ -87,14 +102,25 @@ class PilotLocalStore {
   }
 
   static Future<void> markOnlineAuthentication() async {
-    await _preferences?.setString(
-      _lastOnlineAuthenticationKey,
-      DateTime.now().toUtc().toIso8601String(),
-    );
+    final value = DateTime.now().toUtc().toIso8601String();
+    _memory[_lastOnlineAuthenticationKey] = value;
+    if (remembersSession) {
+      await _preferences?.setString(_lastOnlineAuthenticationKey, value);
+    } else {
+      await _preferences?.remove(_lastOnlineAuthenticationKey);
+    }
   }
 
-  static Future<void> saveSession(String refreshToken) async {
-    await _setBool(_sessionKey, true);
+  static Future<void> saveSession(
+    String refreshToken, {
+    bool rememberSession = true,
+  }) async {
+    await _saveSessionPreference(rememberSession);
+    if (!rememberSession) {
+      await _deletePersistedTokens();
+      _memory[_refreshTokenKey] = refreshToken;
+      return;
+    }
     try {
       await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
     } catch (_) {
@@ -107,9 +133,18 @@ class PilotLocalStore {
     required String accessToken,
     required String refreshToken,
     required String sessionId,
+    bool? rememberSession,
   }) async {
-    await _setBool(_sessionKey, true);
+    final persist = rememberSession ?? remembersSession;
+    await _saveSessionPreference(persist);
     await markOnlineAuthentication();
+    if (!persist) {
+      await _deletePersistedTokens();
+      _memory[_accessTokenKey] = accessToken;
+      _memory[_refreshTokenKey] = refreshToken;
+      _memory[_sessionIdKey] = sessionId;
+      return;
+    }
     try {
       await Future.wait([
         _secureStorage.write(key: _accessTokenKey, value: accessToken),
@@ -124,24 +159,30 @@ class PilotLocalStore {
   }
 
   static Future<String?> readAccessToken() async {
+    if (!remembersSession) return _memory[_accessTokenKey] as String?;
     try {
-      return await _secureStorage.read(key: _accessTokenKey);
+      return await _secureStorage.read(key: _accessTokenKey) ??
+          _memory[_accessTokenKey] as String?;
     } catch (_) {
       return _memory[_accessTokenKey] as String?;
     }
   }
 
   static Future<String?> readRefreshToken() async {
+    if (!remembersSession) return _memory[_refreshTokenKey] as String?;
     try {
-      return await _secureStorage.read(key: _refreshTokenKey);
+      return await _secureStorage.read(key: _refreshTokenKey) ??
+          _memory[_refreshTokenKey] as String?;
     } catch (_) {
       return _memory[_refreshTokenKey] as String?;
     }
   }
 
   static Future<String?> readSessionId() async {
+    if (!remembersSession) return _memory[_sessionIdKey] as String?;
     try {
-      return await _secureStorage.read(key: _sessionIdKey);
+      return await _secureStorage.read(key: _sessionIdKey) ??
+          _memory[_sessionIdKey] as String?;
     } catch (_) {
       return _memory[_sessionIdKey] as String?;
     }
@@ -180,8 +221,32 @@ class PilotLocalStore {
   }
 
   static Future<void> clearSession() async {
-    await _setBool(_sessionKey, false);
+    _memory[_sessionKey] = false;
+    _memory[_rememberSessionKey] = false;
+    await _preferences?.setBool(_sessionKey, false);
+    await _preferences?.setBool(_rememberSessionKey, false);
     await _preferences?.remove(_lastOnlineAuthenticationKey);
+    _memory.remove(_lastOnlineAuthenticationKey);
+    await _deletePersistedTokens();
+    _memory.remove(_accessTokenKey);
+    _memory.remove(_refreshTokenKey);
+    _memory.remove(_sessionIdKey);
+  }
+
+  static Future<void> _saveSessionPreference(bool rememberSession) async {
+    if (!rememberSession) {
+      _memory.remove(_accessTokenKey);
+      _memory.remove(_refreshTokenKey);
+      _memory.remove(_sessionIdKey);
+    }
+    _memory[_sessionKey] = true;
+    _memory[_rememberSessionKey] = rememberSession;
+    await _preferences?.setBool(_rememberSessionKey, rememberSession);
+    // Una sesión no recordada existe sólo en memoria durante este proceso.
+    await _preferences?.setBool(_sessionKey, rememberSession);
+  }
+
+  static Future<void> _deletePersistedTokens() async {
     try {
       await Future.wait([
         _secureStorage.delete(key: _accessTokenKey),
@@ -189,11 +254,12 @@ class PilotLocalStore {
         _secureStorage.delete(key: _sessionIdKey),
       ]);
     } catch (_) {
-      _memory.remove(_accessTokenKey);
-      _memory.remove(_refreshTokenKey);
-      _memory.remove(_sessionIdKey);
+      // En tests y plataformas sin almacén seguro no hay datos persistidos.
     }
   }
+
+  /// Simula un nuevo proceso en pruebas sin modificar el almacenamiento.
+  static void resetMemoryForTesting() => _memory.clear();
 
   static bool get consentAccepted => _getBool(_consentKey);
   static Future<void> acceptConsent() => _setBool(_consentKey, true);
@@ -226,6 +292,19 @@ class PilotLocalStore {
       _setBool(_pushKey, enabled);
   static Future<void> saveWeeklySummary(bool enabled) =>
       _setBool(_weeklyKey, enabled);
+
+  /// Orden local de cuentas y tarjetas en la vista unificada.
+  /// Los valores llevan prefijo (`account:` o `card:`) para evitar colisiones.
+  static List<String> get financialProductsOrder =>
+      _preferences?.getStringList(_financialProductsOrderKey) ??
+      (_memory[_financialProductsOrderKey] as List<String>?) ??
+      const [];
+
+  static Future<void> saveFinancialProductsOrder(List<String> order) async {
+    final value = List<String>.unmodifiable(order);
+    _memory[_financialProductsOrderKey] = value;
+    await _preferences?.setStringList(_financialProductsOrderKey, value);
+  }
 
   static String? get pushDeviceId =>
       _preferences?.getString(_pushDeviceIdKey) ??

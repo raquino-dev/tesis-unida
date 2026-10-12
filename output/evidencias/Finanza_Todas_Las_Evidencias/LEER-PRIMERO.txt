@@ -1,0 +1,9 @@
+Evidencias reunidas de Finanza
+
+01: resultados técnicos, registros y fichas de resumen. Las fichas generadas no son capturas de la app.
+02: capturas reales del emulador.
+03: capturas reales de las consolas web.
+04: capturas adicionales de uso sin internet y resultado OCR demo.
+
+Alcance final acordado: evidencias por capturas; offline demuestra la app y su formulario disponibles con internet desactivado. OCR se presenta en modo demo, no como ejecución de AWS Textract. No se requieren capturas de sincronización ni conflictos.
+Los registros históricos incluidos conservan sus observaciones originales.
